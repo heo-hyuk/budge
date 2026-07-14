@@ -34,6 +34,17 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15
+
+### 작업 계획
+- [ ] Cloudflare D1 DB 생성 (`wrangler d1 create budget-db`)
+- [ ] `wrangler.toml` database_id 실제 값으로 교체
+- [ ] 로컬 D1 스키마 초기화 (`npm run d1:init`)
+- [ ] Cloudflare Pages 프로젝트 생성 및 최초 배포 (`npm run deploy`)
+- 예상 변경 파일: `wrangler.toml`, `WORKLOG.md`
+
+---
+
 ## 2026-07-14 (3차)
 
 ### 완료
