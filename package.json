@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "d1:init": "wrangler d1 execute budget-db --local --file=./schema.sql",
     "d1:init:remote": "wrangler d1 execute budget-db --remote --file=./schema.sql",
-    "deploy": "npm run build && wrangler pages deploy dist"
+    "deploy": "vite build && wrangler pages deploy dist"
   },
   "dependencies": {
     "react": "^19.2.7",

@@ -36,12 +36,19 @@
 
 ## 2026-07-15
 
-### 작업 계획
-- [ ] Cloudflare D1 DB 생성 (`wrangler d1 create budget-db`)
-- [ ] `wrangler.toml` database_id 실제 값으로 교체
-- [ ] 로컬 D1 스키마 초기화 (`npm run d1:init`)
-- [ ] Cloudflare Pages 프로젝트 생성 및 최초 배포 (`npm run deploy`)
-- 예상 변경 파일: `wrangler.toml`, `WORKLOG.md`
+### 완료
+- [x] Cloudflare D1 DB 생성 (`wrangler d1 create budget-db`)
+  - database_id: `ff31284d-4e34-4a03-a99c-313cc330d7d0` (APAC 리전)
+- [x] `wrangler.toml` database_id 실제 값으로 교체
+- [x] 로컬 D1 스키마 초기화 (`npx wrangler d1 execute budget-db --local --file=./schema.sql`)
+- [x] 원격 D1 스키마 적용 (`npx wrangler d1 execute budget-db --remote --file=./schema.sql`)
+- [x] Cloudflare Pages 프로젝트 생성 (`budget` 프로젝트, 프로덕션 URL: https://budget-3wb.pages.dev)
+- [x] 최초 배포 완료 (preview: https://e7905b8a.budget-3wb.pages.dev)
+
+### 미완료 / 다음 작업
+- [ ] Cloudflare 대시보드에서 D1 바인딩 연결 확인 (Pages → budget → Settings → Bindings)
+- [ ] `npm run d1:init` 스크립트가 wrangler 전역 설치 없이 실패하는 문제 → package.json 스크립트를 `npx wrangler ...`로 수정 필요
+- [ ] GitHub 저장소와 Cloudflare Pages 자동 배포 연결 여부 결정
 
 ---
 
