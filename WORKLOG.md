@@ -1,5 +1,19 @@
 # WORKLOG
 
+## 2026-07-15 (11차) — budgets NULL UNIQUE 중복 방지
+
+### 작업 계획
+- [ ] functions/api/budgets/index.ts POST — 애플리케이션 레벨 중복 체크 추가 (케이스 A: 매월반복, B: 특정월)
+- [ ] functions/api/budgets/[id].ts PATCH — category/year_month 변경·재활성화 시 중복 체크
+- [ ] src/lib/api.ts — BudgetConflictError 클래스 추가, createBudget/updateBudget 충돌 응답 처리
+- [ ] src/components/BudgetManager.tsx — id 타입 string으로 수정, 카테고리 "이미 설정됨" 뱃지, 충돌 시 인라인 에러+수정 안내
+
+### 변경 파일
+- `functions/api/budgets/index.ts`, `functions/api/budgets/[id].ts`
+- `src/lib/api.ts`, `src/components/BudgetManager.tsx`
+
+---
+
 ## 2026-07-15 (10차) — 코드 리뷰 4가지 수정
 
 ### 작업 계획
