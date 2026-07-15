@@ -34,6 +34,21 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (6차)
+
+### 작업 계획
+- [ ] migrations/004_add_benefits.sql — card_benefits 테이블 + transactions.original_amount/discount_amount/benefit_id
+- [ ] functions/lib/benefitMatcher.ts — 우선순위 점수(merchant=100, category=50, global=10) 기반 매칭
+- [ ] functions/api/benefits/index.ts — GET(card_id 필터) / POST
+- [ ] functions/api/benefits/match.ts — GET /api/benefits/match (정적 라우트)
+- [ ] functions/api/benefits/[id].ts — PATCH / DELETE
+- [ ] src/types.ts — CardBenefit, BenefitMatch 추가, Transaction 업데이트
+- [ ] src/lib/api.ts — benefit API 함수 추가
+- [ ] src/components/TransactionForm.tsx — 실시간 혜택 매칭 UI (debounce)
+- [ ] src/components/CardManager.tsx — 카드별 혜택 규칙 관리 섹션
+
+---
+
 ## 2026-07-15 (5차)
 
 ### 작업 계획
