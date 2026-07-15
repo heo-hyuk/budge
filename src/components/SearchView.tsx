@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { getCategories } from '../lib/categories'
@@ -117,12 +118,12 @@ function SearchView({ cards }: Props) {
             value={filters.q}
             onChange={(e) => set('q', e.target.value)}
             placeholder="구매처, 분류, 메모로 검색..."
-            className="min-h-11 flex-1 rounded-xl border-2 border-neutral-300 px-4 text-base focus:border-blue-500 focus:outline-none"
+            className="min-h-11 flex-1 rounded-xl border border-neutral-300 px-4 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
           <button
             type="submit"
             disabled={loading}
-            className="min-h-11 rounded-xl bg-neutral-900 px-5 text-sm font-bold text-white disabled:opacity-40"
+            className="min-h-11 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
           >
             {loading ? '...' : '검색'}
           </button>
@@ -133,16 +134,16 @@ function SearchView({ cards }: Props) {
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-xl px-3 min-h-9 text-sm font-semibold border-2 transition-colors ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 min-h-9 text-sm font-semibold border transition-colors ${
               showFilters || cnt > 0
-                ? 'border-neutral-900 bg-neutral-900 text-white'
-                : 'border-neutral-200 bg-white text-neutral-600'
+                ? 'border-brand-600 bg-brand-600 text-white'
+                : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
             }`}
           >
-            <span>⚙</span>
+            <SlidersHorizontal size={15} strokeWidth={2.25} />
             필터
             {cnt > 0 && (
-              <span className="ml-0.5 rounded-full bg-white text-neutral-900 text-xs font-bold min-w-5 h-5 flex items-center justify-center px-1">
+              <span className="ml-0.5 rounded-full bg-white text-brand-700 text-xs font-bold min-w-5 h-5 flex items-center justify-center px-1">
                 {cnt}
               </span>
             )}
@@ -151,7 +152,7 @@ function SearchView({ cards }: Props) {
             <button
               type="button"
               onClick={resetFilters}
-              className="text-xs text-neutral-400 underline"
+              className="text-xs text-neutral-400 underline hover:text-neutral-600"
             >
               필터 초기화
             </button>
@@ -160,7 +161,7 @@ function SearchView({ cards }: Props) {
 
         {/* 필터 패널 */}
         {showFilters && (
-          <div className="rounded-2xl border-2 border-neutral-200 bg-white p-4 space-y-4 shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-4 shadow-sm">
 
             {/* 수입 / 지출 */}
             <div>
@@ -171,12 +172,12 @@ function SearchView({ cards }: Props) {
                     key={v}
                     type="button"
                     onClick={() => { set('type', v); set('category', '') }}
-                    className={`min-h-8 rounded-full px-3 text-sm font-semibold ${
+                    className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
                       filters.type === v
                         ? v === 'expense' ? 'bg-red-600 text-white'
                         : v === 'income'  ? 'bg-blue-600 text-white'
-                        :                   'bg-neutral-900 text-white'
-                        : 'bg-neutral-100 text-neutral-600'
+                        :                   'bg-brand-600 text-white'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                     }`}
                   >
                     {label}
@@ -195,7 +196,7 @@ function SearchView({ cards }: Props) {
                     type="date"
                     value={filters.dateStart}
                     onChange={(e) => set('dateStart', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border-2 border-neutral-300 px-3 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div>
@@ -204,7 +205,7 @@ function SearchView({ cards }: Props) {
                     type="date"
                     value={filters.dateEnd}
                     onChange={(e) => set('dateEnd', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border-2 border-neutral-300 px-3 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
               </div>
@@ -258,8 +259,8 @@ function SearchView({ cards }: Props) {
                 <button
                   type="button"
                   onClick={() => set('category', '')}
-                  className={`min-h-7 rounded-full px-3 text-xs font-semibold ${
-                    filters.category === '' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+                  className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                    filters.category === '' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   전체
@@ -269,8 +270,8 @@ function SearchView({ cards }: Props) {
                     key={c}
                     type="button"
                     onClick={() => set('category', c)}
-                    className={`min-h-7 rounded-full px-3 text-xs font-semibold ${
-                      filters.category === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+                    className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                      filters.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                     }`}
                   >
                     {c}
@@ -286,8 +287,8 @@ function SearchView({ cards }: Props) {
                 <button
                   type="button"
                   onClick={() => set('cardId', '')}
-                  className={`min-h-7 rounded-full px-3 text-xs font-semibold ${
-                    filters.cardId === '' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+                  className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                    filters.cardId === '' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   전체
@@ -295,8 +296,8 @@ function SearchView({ cards }: Props) {
                 <button
                   type="button"
                   onClick={() => set('cardId', 'cash')}
-                  className={`min-h-7 rounded-full px-3 text-xs font-semibold ${
-                    filters.cardId === 'cash' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+                  className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                    filters.cardId === 'cash' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   현금
@@ -307,7 +308,7 @@ function SearchView({ cards }: Props) {
                     type="button"
                     onClick={() => set('cardId', card.id)}
                     className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                      filters.cardId === card.id ? 'text-white' : 'bg-neutral-100 text-neutral-600'
+                      filters.cardId === card.id ? 'text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                     }`}
                     style={filters.cardId === card.id ? { backgroundColor: card.color } : {}}
                   >
@@ -328,7 +329,7 @@ function SearchView({ cards }: Props) {
                     placeholder="최소 금액"
                     value={filters.amountMin}
                     onChange={(e) => set('amountMin', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border-2 border-neutral-300 px-3 pr-7 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400">원~</span>
                 </div>
@@ -339,7 +340,7 @@ function SearchView({ cards }: Props) {
                     placeholder="최대 금액"
                     value={filters.amountMax}
                     onChange={(e) => set('amountMax', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border-2 border-neutral-300 px-3 pr-7 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400">~원</span>
                 </div>
@@ -350,7 +351,7 @@ function SearchView({ cards }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full min-h-10 rounded-xl bg-neutral-900 text-sm font-bold text-white disabled:opacity-40"
+              className="w-full min-h-10 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
             >
               {loading ? '검색 중...' : '필터 적용하여 검색'}
             </button>
@@ -382,13 +383,13 @@ function SearchView({ cards }: Props) {
           </div>
 
           {results.length === 0 ? (
-            <div className="rounded-2xl border-2 border-neutral-200 bg-white p-8 text-center shadow-sm">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
               <p className="text-base text-neutral-500">결과가 없습니다</p>
               {cnt > 0 && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="mt-2 text-sm text-blue-600 underline"
+                  className="mt-2 text-sm text-brand-600 underline hover:text-brand-700"
                 >
                   필터 초기화
                 </button>
@@ -397,8 +398,8 @@ function SearchView({ cards }: Props) {
           ) : (
             <div className="space-y-4">
               {Array.from(groups.entries()).map(([date, items]) => (
-                <div key={date} className="rounded-2xl border-2 border-neutral-200 bg-white shadow-sm">
-                  <h3 className="border-b-2 border-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-500">
+                <div key={date} className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                  <h3 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-500">
                     {date}
                   </h3>
                   <ul>
@@ -407,7 +408,7 @@ function SearchView({ cards }: Props) {
                       return (
                         <li
                           key={tx.id}
-                          className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0"
+                          className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50"
                         >
                           <div className="min-w-0">
                             <p className="text-base font-semibold text-neutral-900">

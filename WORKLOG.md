@@ -18,8 +18,35 @@
 - [ ] tsc/oxlint/build 검증
 - [ ] Chrome 확장 미연결 상태라 육안 검증 불가 — 코드 리뷰 + 빌드 통과로만 확인 예정임을 사용자에게 고지
 
-### 미완료
-(진행 중 — 완료 시 이 섹션 갱신)
+### 완료
+- [x] `src/index.css` — `--color-brand-*`(인디고 계열) 토큰 정의, focus-visible 컬러 브랜드로 통일
+- [x] `npm install lucide-react`
+- [x] `src/App.tsx` — 탭/햄버거/닫기/로그아웃 아이콘 lucide로 교체, 활성 탭·"오늘" 버튼·예산초과 배너 브랜드 컬러/아이콘 적용, 헤더 `border-2`→`border`+`shadow-sm`, 모든 버튼에 `transition-colors`+hover 상태 추가
+- [x] `src/components/SummaryCard.tsx` — 잔액 박스 neutral→brand 톤
+- [x] `src/components/CategoryBreakdown.tsx` — 탭/막대 트랜지션 추가, 테두리 정리
+- [x] `src/components/TransactionForm.tsx` — 포커스 컬러 blue→brand, 결제방법/분류 칩 선택색 brand, 예산 경고 이모지→lucide 아이콘, 제출 버튼 brand
+- [x] `src/components/TransactionList.tsx` — 입력창 포커스 brand, 분류 칩 brand, 행 hover, 삭제 버튼 hover 시 red 강조
+- [x] `src/components/CardManager.tsx` — 기존 indigo 하드코딩을 brand 토큰으로 통일, 모든 버튼 hover/transition 추가, 테두리 정리
+- [x] `src/components/RecurringManager.tsx`, `BudgetManager.tsx` — 동일 패턴 적용, 이모지(💰⚠)를 lucide 아이콘으로 교체
+- [x] `src/components/MonthlyReport.tsx` — 카드별 청구 내역 펼치기 화살표(▲▼)를 ChevronUp/Down 아이콘으로 교체, 테두리/트랜지션 정리
+- [x] `src/components/AnnualReport.tsx` — 연 잔액 박스 brand 톤, 표 행 hover, 막대 그래프 트랜지션
+- [x] `src/components/SearchView.tsx` — 필터 아이콘(⚙→SlidersHorizontal), 칩/버튼 brand 컬러, 결과 행 hover
+- [x] `src/components/ExportButton.tsx` — 아이콘(📥→Download, ⏳→Loader2 스핀), 버튼 brand 컬러
+- [x] `src/components/AuthPage.tsx` — 로그인 첫 화면 타이틀/탭/버튼 brand 톤, 체크박스 accent 컬러
+- [x] tsc --noEmit / oxlint / vite build 전부 통과
+
+### 검증 관련 특이사항
+Chrome 확장이 이번 세션 내내 연결되지 않아(`tabs_context_mcp` 반복 실패) 육안 스크린샷 검증을 하지 못함. wrangler pages dev + vite 로컬 서버는 정상 기동 확인(`http://localhost:8788` 200 응답)했으나 브라우저로 실제 렌더링을 보지는 못했음 — 코드 리뷰 + 타입체크/린트/빌드 통과로만 확인. 다음 세션에서 Chrome 확장이 연결되면 반드시 실제 화면으로 배색/hover/레이아웃 재확인 필요.
+
+### 배포
+아직 미배포 — 사용자 확인 후 `npm run deploy` 예정
+
+### 변경 파일
+- `src/index.css`, `package.json`, `package-lock.json`
+- `src/App.tsx`
+- `src/components/SummaryCard.tsx`, `CategoryBreakdown.tsx`, `TransactionForm.tsx`, `TransactionList.tsx`
+- `src/components/CardManager.tsx`, `RecurringManager.tsx`, `BudgetManager.tsx`
+- `src/components/MonthlyReport.tsx`, `AnnualReport.tsx`, `SearchView.tsx`, `ExportButton.tsx`, `AuthPage.tsx`
 
 ---
 

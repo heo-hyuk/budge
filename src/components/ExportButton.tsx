@@ -1,3 +1,4 @@
+import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { fetchExportData } from '../lib/api'
 import { exportTransactionsToExcel } from '../lib/exportExcel'
@@ -91,9 +92,9 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
       <button
         type="button"
         onClick={() => { setOpen(true); setError('') }}
-        className="min-h-9 rounded-xl border-2 border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 flex items-center gap-1.5"
+        className="min-h-9 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 flex items-center gap-1.5"
       >
-        <span>📥</span> 엑셀 내보내기
+        <Download size={15} strokeWidth={2.25} /> 엑셀 내보내기
       </button>
 
       {/* 모달 오버레이 */}
@@ -102,7 +103,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
         >
-          <div className="w-full max-w-sm rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-neutral-800">엑셀 내보내기</h3>
             <p className="mt-0.5 text-xs text-neutral-500">
               거래내역 / 월별요약 / 카드별정산 3개 시트로 내보냅니다
@@ -115,10 +116,10 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                   key={p.id}
                   type="button"
                   onClick={() => setPreset(p.id)}
-                  className={`min-h-10 rounded-xl text-sm font-semibold ${
+                  className={`min-h-10 rounded-xl text-sm font-semibold transition-colors ${
                     preset === p.id
-                      ? 'bg-neutral-900 text-white'
-                      : 'bg-neutral-100 text-neutral-600'
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   {p.label}
@@ -135,7 +136,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
-                    className="min-h-9 w-full rounded-lg border-2 border-neutral-300 px-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
                 <div>
@@ -144,7 +145,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
-                    className="min-h-9 w-full rounded-lg border-2 border-neutral-300 px-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
               </div>
@@ -165,20 +166,20 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                 type="button"
                 onClick={handleExport}
                 disabled={loading}
-                className="min-h-10 flex-1 rounded-xl bg-neutral-900 text-sm font-bold text-white disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="min-h-10 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {loading ? (
                   <>
-                    <span className="animate-spin">⏳</span> 생성 중...
+                    <Loader2 size={16} className="animate-spin" /> 생성 중...
                   </>
                 ) : (
-                  <>📥 다운로드</>
+                  <><Download size={16} strokeWidth={2.25} /> 다운로드</>
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="min-h-10 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600"
+                className="min-h-10 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
               >
                 취소
               </button>

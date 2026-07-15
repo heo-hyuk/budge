@@ -1,3 +1,4 @@
+import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, Repeat, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
@@ -17,14 +18,14 @@ import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transact
 // 탭 정의
 type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search'
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',      label: '홈',     icon: '🏠' },
-  { id: 'monthly',   label: '월정산', icon: '📊' },
-  { id: 'annual',    label: '연정산', icon: '📈' },
-  { id: 'cards',     label: '카드',   icon: '💳' },
-  { id: 'recurring', label: '고정',   icon: '🔁' },
-  { id: 'budget',    label: '예산',   icon: '📋' },
-  { id: 'search',    label: '검색',   icon: '🔍' },
+const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
+  { id: 'home',      label: '홈',     icon: Home },
+  { id: 'monthly',   label: '월정산', icon: BarChart3 },
+  { id: 'annual',    label: '연정산', icon: TrendingUp },
+  { id: 'cards',     label: '카드',   icon: CreditCard },
+  { id: 'recurring', label: '고정',   icon: Repeat },
+  { id: 'budget',    label: '예산',   icon: ClipboardList },
+  { id: 'search',    label: '검색',   icon: Search },
 ]
 
 function currentMonth() {
@@ -136,7 +137,7 @@ function App() {
   return (
     <div className="min-h-svh bg-neutral-50 text-neutral-900">
       {/* 헤더 */}
-      <header className="border-b-2 border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10">
+      <header className="border-b border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
             {/* 햄버거 버튼 */}
@@ -144,11 +145,11 @@ function App() {
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="메뉴 열기"
-              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-2xl leading-none text-neutral-700"
+              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 active:bg-neutral-200"
             >
-              ☰
+              <Menu size={22} strokeWidth={2} />
             </button>
-            <h1 className="text-lg font-extrabold">가계부</h1>
+            <h1 className="text-lg font-extrabold text-brand-700">가계부</h1>
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
@@ -156,18 +157,18 @@ function App() {
           {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700"
+                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200"
               >◀</button>
               <span className="min-w-24 text-center text-sm font-bold text-neutral-800">
                 {monthLabel}
               </span>
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, 1))}
                 disabled={isCurrentMonth}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 disabled:opacity-30"
+                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
               {!isCurrentMonth && (
                 <button onClick={() => setSelectedMonth(currentMonth())}
-                  className="min-h-8 rounded-lg bg-neutral-900 px-2.5 text-sm font-semibold text-white"
+                  className="min-h-8 rounded-lg bg-brand-600 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800"
                 >오늘</button>
               )}
             </div>
@@ -177,13 +178,13 @@ function App() {
           {activeTab === 'annual' && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedYear((y) => String(parseInt(y) - 1))}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold"
+                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200"
               >◀</button>
               <span className="min-w-16 text-center text-sm font-bold">{selectedYear}년</span>
               <button
                 onClick={() => setSelectedYear((y) => String(parseInt(y) + 1))}
                 disabled={selectedYear === currentYear()}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold disabled:opacity-30"
+                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
             </div>
           )}
@@ -192,7 +193,7 @@ function App() {
           <button
             type="button"
             onClick={logout}
-            className="hidden shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600 sm:inline-flex sm:items-center"
+            className="hidden shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200 sm:inline-flex sm:items-center"
           >
             로그아웃
           </button>
@@ -211,8 +212,10 @@ function App() {
                 const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
                 if (exceeded.length === 0) return null
                 return (
-                  <div className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3">
-                    <p className="text-sm font-bold text-red-800">⚠ 예산 초과 {exceeded.length}건</p>
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-red-800">
+                      <TriangleAlert size={16} strokeWidth={2.5} /> 예산 초과 {exceeded.length}건
+                    </p>
                     <ul className="mt-1 space-y-0.5">
                       {exceeded.map((s) => (
                         <li key={s.budget.id} className="text-xs text-red-700">
@@ -302,40 +305,44 @@ function App() {
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between border-b-2 border-neutral-200 px-4 py-3">
-          <h2 className="text-lg font-extrabold">가계부</h2>
+        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+          <h2 className="text-lg font-extrabold text-brand-700">가계부</h2>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="메뉴 닫기"
-            className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-xl leading-none text-neutral-500"
+            className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 active:bg-neutral-200"
           >
-            ✕
+            <X size={20} strokeWidth={2} />
           </button>
         </div>
         <div className="flex flex-col p-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => { setActiveTab(tab.id); setMenuOpen(false) }}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-neutral-900 text-white'
-                  : 'text-neutral-600'
-              }`}
-            >
-              <span className="text-xl leading-none">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => { setActiveTab(tab.id); setMenuOpen(false) }}
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
+                  active
+                    ? 'bg-brand-600 text-white'
+                    : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <Icon size={20} strokeWidth={2} />
+                {tab.label}
+              </button>
+            )
+          })}
           {/* 로그아웃 (넓은 화면은 헤더에도 있지만, 좁은 화면은 헤더에서 숨겨서 여기가 유일한 진입점) */}
           <button
             type="button"
             onClick={logout}
-            className="mt-2 flex items-center gap-3 rounded-xl border-t-2 border-neutral-100 px-3 pt-4 pb-3 text-left text-base font-semibold text-red-600 sm:hidden"
+            className="mt-2 flex items-center gap-3 rounded-xl border-t border-neutral-100 px-3 pt-4 pb-3 text-left text-base font-semibold text-red-600 transition-colors hover:bg-red-50 sm:hidden"
           >
-            <span className="text-xl leading-none">🚪</span>
+            <LogOut size={20} strokeWidth={2} />
             로그아웃
           </button>
         </div>

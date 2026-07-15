@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { matchBenefit } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
@@ -138,7 +139,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
   const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-bold text-neutral-700">내역 추가</h2>
 
       {/* 수입/지출 토글 */}
@@ -171,7 +172,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(formatNumberInput(e.target.value))}
-            className="min-h-11 w-full rounded-xl border-2 border-neutral-300 pl-3 pr-9 py-2 text-right text-lg font-bold text-neutral-900 focus:border-blue-500 focus:outline-none"
+            className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-lg font-bold text-neutral-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
         </div>
@@ -188,7 +189,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           placeholder="예: 스타벅스, 쿠팡"
           value={merchant}
           onChange={(e) => setMerchant(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base text-neutral-900 focus:border-blue-500 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
       </div>
 
@@ -199,8 +200,8 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           <button
             type="button"
             onClick={() => setPaymentMethod('현금')}
-            className={`min-h-9 rounded-full px-3 text-sm font-semibold ${
-              paymentMethod === '현금' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+            className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+              paymentMethod === '현금' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
             }`}
           >
             현금
@@ -211,7 +212,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
               type="button"
               onClick={() => setPaymentMethod(card.id)}
               className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100'
+                paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100 hover:bg-neutral-200'
               }`}
               style={paymentMethod === card.id ? { backgroundColor: card.color } : {}}
             >
@@ -233,8 +234,8 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
               key={c}
               type="button"
               onClick={() => setCategory(c)}
-              className={`min-h-9 rounded-full px-3 text-sm font-semibold ${
-                category === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+                category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               }`}
             >
               {c}
@@ -244,7 +245,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
-              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 px-3 text-sm font-semibold text-neutral-500"
+              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 px-3 text-sm font-semibold text-neutral-500 transition-colors hover:border-brand-300 hover:text-brand-600"
             >
               + 직접입력
             </button>
@@ -259,12 +260,12 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
-              className="min-h-9 flex-1 rounded-lg border-2 border-neutral-300 px-3 text-sm focus:border-blue-500 focus:outline-none"
+              className="min-h-9 flex-1 rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
             />
             <button
               type="button"
               onClick={handleAddCategory}
-              className="min-h-9 rounded-lg bg-neutral-900 px-3 text-sm font-semibold text-white"
+              className="min-h-9 rounded-lg bg-brand-600 px-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
             >
               추가
             </button>
@@ -296,7 +297,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
         const pct = matched.percentage
 
         return (
-          <div className={`mt-3 rounded-xl border-2 px-3 py-2.5 ${
+          <div className={`mt-3 rounded-xl border px-3 py-2.5 ${
             isExceeded ? 'border-red-200 bg-red-50' :
             pct >= 80   ? 'border-amber-200 bg-amber-50' :
                           'border-green-200 bg-green-50'
@@ -321,17 +322,17 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />
             </div>
-            <p className={`mt-1 text-xs font-semibold ${
+            <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
               isExceeded ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-green-700'
             }`}>
               {isExceeded
-                ? `⚠ 예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
+                ? <><TriangleAlert size={12} strokeWidth={2.5} /> 예산 초과! {formatWon(Math.abs(matched.remaining))} 초과</>
                 : `${formatWon(matched.remaining)} 남음 (${formatWon(matched.spent)} / ${formatWon(matched.budget.monthly_limit)})`}
             </p>
             {/* 입력 중인 금액 포함 예상 초과 경고 */}
             {addingAmount > 0 && !isExceeded && projectedExceeded && (
-              <p className="mt-0.5 text-xs font-bold text-red-700">
-                ⚠ 이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
+              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-red-700">
+                <TriangleAlert size={12} strokeWidth={2.5} /> 이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
               </p>
             )}
             {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
@@ -352,7 +353,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           required
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
       </div>
 
@@ -366,7 +367,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           type="text"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
       </div>
 
@@ -379,7 +380,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
 
           {/* 복수 매칭 → 라디오 선택 */}
           {!matchLoading && matches.length > 1 && (
-            <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-3 space-y-2">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
               <p className="text-xs font-bold text-amber-800">적용 혜택을 선택하세요</p>
               {matches.map((m) => (
                 <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
@@ -415,7 +416,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
 
           {/* 단일 매칭 → 자동 제안 */}
           {!matchLoading && matches.length === 1 && selectedMatch && (
-            <div className="rounded-xl border-2 border-green-200 bg-green-50 p-3">
+            <div className="rounded-xl border border-green-200 bg-green-50 p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-green-800">
@@ -449,7 +450,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="mt-5 min-h-12 w-full rounded-xl bg-neutral-900 text-lg font-bold text-white disabled:opacity-50"
+        className="mt-5 min-h-12 w-full rounded-xl bg-brand-600 text-lg font-bold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50"
       >
         {saving ? '저장 중...' : (
           selectedMatch

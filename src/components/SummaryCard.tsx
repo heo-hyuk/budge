@@ -16,7 +16,7 @@ function SummaryCard({ transactions, month }: Props) {
   const label = `${year}년 ${parseInt(mon)}월 요약`
 
   return (
-    <section className="rounded-2xl border-2 border-neutral-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-bold text-neutral-700">{label}</h2>
 
       {/* 좁은 화면에서는 큰 금액이 "원"만 다음 줄로 떨어지며 어색해지므로 세로로 쌓고, sm 이상에서 2열로 */}
@@ -31,9 +31,9 @@ function SummaryCard({ transactions, month }: Props) {
         </div>
       </dl>
 
-      <div className="mt-3 rounded-xl bg-neutral-100 p-3">
-        <dt className="text-sm font-semibold text-neutral-700">잔액</dt>
-        <dd className="mt-1 text-2xl font-extrabold text-neutral-900">{formatWon(balance)}</dd>
+      <div className="mt-3 rounded-xl bg-brand-50 p-3">
+        <dt className="text-sm font-semibold text-brand-800">잔액</dt>
+        <dd className="mt-1 text-2xl font-extrabold text-brand-900">{formatWon(balance)}</dd>
       </div>
     </section>
   )

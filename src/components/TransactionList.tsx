@@ -30,7 +30,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
 
   if (transactions.length === 0) {
     return (
-      <section className="rounded-2xl border-2 border-neutral-200 bg-white p-6 text-center shadow-sm">
+      <section className="rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
         <p className="text-base text-neutral-500">아직 내역이 없습니다</p>
       </section>
     )
@@ -90,8 +90,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
   return (
     <section className="space-y-4">
       {Array.from(groups.entries()).map(([date, items]) => (
-        <div key={date} className="rounded-2xl border-2 border-neutral-200 bg-white shadow-sm">
-          <h3 className="border-b-2 border-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-500">
+        <div key={date} className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <h3 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-500">
             {formatDateLabel(date)}
           </h3>
           <ul>
@@ -107,7 +107,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                           const cats = getCategories(t)
                           setEditState((s) => s && { ...s, type: t, category: cats[0] })
                         }}
-                        className={`min-h-9 rounded-xl text-sm font-bold ${
+                        className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
                           editState.type === t
                             ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
                             : 'bg-neutral-100 text-neutral-500'
@@ -121,7 +121,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="text" inputMode="numeric"
                     value={editState.amount}
                     onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value) })}
-                    className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-right text-base font-bold focus:border-blue-500 focus:outline-none"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-right text-base font-bold transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                     placeholder="금액"
                   />
                   {/* 구매처 */}
@@ -129,7 +129,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     value={editState.merchant}
                     onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
                     placeholder="구매처 (선택)"
-                    className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
@@ -139,7 +139,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                         <button key={pm} type="button"
                           onClick={() => setEditState((s) => s && { ...s, paymentMethod: pm })}
                           className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
-                            editState.paymentMethod === pm ? 'text-white' : 'bg-neutral-100 text-neutral-600'
+                            editState.paymentMethod === pm ? 'text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                           }`}
                           style={editState.paymentMethod === pm ? { backgroundColor: card?.color ?? '#1f2937' } : {}}
                         >
@@ -153,8 +153,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     {getCategories(editState.type).map((c) => (
                       <button key={c} type="button"
                         onClick={() => setEditState((s) => s && { ...s, category: c })}
-                        className={`min-h-8 rounded-full px-3 text-sm font-semibold ${
-                          editState.category === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+                        className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
+                          editState.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         }`}
                       >
                         {c}
@@ -165,23 +165,23 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="date"
                     value={editState.date}
                     onChange={(e) => setEditState((s) => s && { ...s, date: e.target.value })}
-                    className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   {/* 메모 */}
                   <input type="text"
                     value={editState.memo}
                     onChange={(e) => setEditState((s) => s && { ...s, memo: e.target.value })}
                     placeholder="메모 (선택)"
-                    className="mb-3 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}
-                      className="min-h-9 flex-1 rounded-xl bg-neutral-900 text-sm font-bold text-white disabled:opacity-50"
+                      className="min-h-9 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                     >
                       {saving ? '저장 중...' : '저장'}
                     </button>
                     <button type="button" onClick={cancelEdit}
-                      className="min-h-9 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600"
+                      className="min-h-9 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
                     >
                       취소
                     </button>
@@ -190,7 +190,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
               ) : (
                 /* ── 일반 표시 ── */
                 <li key={tx.id}
-                  className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0"
+                  className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-neutral-900">
@@ -223,12 +223,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                       {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
                     <button type="button" onClick={() => startEdit(tx)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
                     >
                       수정
                     </button>
                     <button type="button" onClick={() => handleDelete(tx.id)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600"
                     >
                       삭제
                     </button>

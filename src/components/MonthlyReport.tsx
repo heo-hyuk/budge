@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getCardBillingPeriod } from '../lib/billing'
 import { fetchTransactions } from '../lib/api'
@@ -81,7 +82,7 @@ function MonthlyReport({ month, cards }: Props) {
       <h2 className="text-lg font-bold text-neutral-800">{label}</h2>
 
       {/* 잔액 요약 (항상 표시) */}
-      <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
         {/* 좁은 화면에서는 큰 금액이 어색하게 줄바꿈되므로 세로로 쌓고, sm 이상에서 2열로 */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
@@ -93,7 +94,7 @@ function MonthlyReport({ month, cards }: Props) {
             <p className="text-lg font-extrabold text-red-700">{formatWon(totalExpense)}</p>
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t-2 border-neutral-200 flex items-baseline justify-between">
+        <div className="mt-3 pt-3 border-t border-neutral-200 flex items-baseline justify-between">
           <span className="text-base font-bold text-neutral-700">잔액</span>
           <span className={`text-2xl font-extrabold ${balance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
             {balance >= 0 ? '+' : ''}{formatWon(balance)}
@@ -107,7 +108,7 @@ function MonthlyReport({ month, cards }: Props) {
           type="button"
           onClick={() => setView('expense')}
           className={`flex-1 min-h-10 rounded-lg text-sm font-bold transition-colors ${
-            view === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500'
+            view === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
           }`}
         >
           지출정산
@@ -116,7 +117,7 @@ function MonthlyReport({ month, cards }: Props) {
           type="button"
           onClick={() => setView('income')}
           className={`flex-1 min-h-10 rounded-lg text-sm font-bold transition-colors ${
-            view === 'income' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500'
+            view === 'income' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
           }`}
         >
           수입정산
@@ -126,7 +127,7 @@ function MonthlyReport({ month, cards }: Props) {
       {/* 수입정산 */}
       {view === 'income' && (
         <>
-          <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <h3 className="text-sm font-bold text-neutral-500 mb-3">수입</h3>
             <div className="space-y-2">
               <Row label="현금 수입" amount={cashIncome} color="blue" />
@@ -136,7 +137,7 @@ function MonthlyReport({ month, cards }: Props) {
           </div>
 
           {cashIncomeList.length > 0 && (
-            <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
               <h3 className="text-base font-bold text-neutral-700 mb-3">현금 수입 내역</h3>
               <ul className="space-y-2">
                 {cashIncomeList.map((tx) => (
@@ -157,7 +158,7 @@ function MonthlyReport({ month, cards }: Props) {
           )}
 
           {cardIncomeList.length > 0 && (
-            <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
               <h3 className="text-base font-bold text-neutral-700 mb-3">카드 입금 내역</h3>
               <ul className="space-y-2">
                 {cardIncomeList.map((tx) => (
@@ -185,7 +186,7 @@ function MonthlyReport({ month, cards }: Props) {
 
       {/* 지출정산 */}
       {view === 'expense' && (
-        <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-neutral-500 mb-3">실지출</h3>
           <div className="space-y-2">
             <Row label="현금 지출" amount={cashExpense} color="red" />
@@ -202,13 +203,13 @@ function MonthlyReport({ month, cards }: Props) {
           {cardBills.map((bill) => (
             <div
               key={bill.card.id}
-              className="rounded-2xl border-2 border-neutral-200 bg-white shadow-sm overflow-hidden"
+              className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden"
             >
               {/* 카드 헤더 */}
               <button
                 type="button"
                 onClick={() => setExpandedCard(expandedCard === bill.card.id ? null : bill.card.id)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left"
+                className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-neutral-50"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-8 w-12 rounded-md shrink-0" style={{ backgroundColor: bill.card.color }} />
@@ -222,13 +223,15 @@ function MonthlyReport({ month, cards }: Props) {
                 {/* 금액/화살표는 줄어들면 안 되므로 shrink-0 — 없으면 "0원"조차 글자 단위로 쪼개짐 */}
                 <div className="shrink-0 whitespace-nowrap text-right pl-2">
                   <p className="text-base font-bold text-red-700">{formatWon(bill.amount)}</p>
-                  <p className="text-xs text-neutral-400">{expandedCard === bill.card.id ? '▲' : '▼'}</p>
+                  <p className="mt-0.5 flex justify-end text-neutral-400">
+                    {expandedCard === bill.card.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </p>
                 </div>
               </button>
 
               {/* 세부 내역 펼치기 */}
               {expandedCard === bill.card.id && (
-                <div className="border-t-2 border-neutral-100">
+                <div className="border-t border-neutral-100">
                   {bill.transactions.filter((t) => t.type === 'expense').length === 0 ? (
                     <p className="px-5 py-3 text-sm text-neutral-400">내역 없음</p>
                   ) : (
@@ -265,7 +268,7 @@ function MonthlyReport({ month, cards }: Props) {
 
       {/* 현금 지출 상세 (지출정산에서만) */}
       {view === 'expense' && cashExpense > 0 && (
-        <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h3 className="text-base font-bold text-neutral-700 mb-3">현금 지출 내역</h3>
           <ul className="space-y-2">
             {monthlyTx

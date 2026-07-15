@@ -25,15 +25,15 @@ function CategoryBreakdown({ transactions, month }: Props) {
   const label = `${parseInt(mon)}월 분류별 합계`
 
   return (
-    <section className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-neutral-700">{label}</h2>
         <div className="flex gap-1 rounded-lg bg-neutral-100 p-1">
           <button
             type="button"
             onClick={() => setType('expense')}
-            className={`min-h-8 rounded-md px-3 text-sm font-semibold ${
-              type === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500'
+            className={`min-h-8 rounded-md px-3 text-sm font-semibold transition-colors ${
+              type === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
             }`}
           >
             지출
@@ -41,8 +41,8 @@ function CategoryBreakdown({ transactions, month }: Props) {
           <button
             type="button"
             onClick={() => setType('income')}
-            className={`min-h-8 rounded-md px-3 text-sm font-semibold ${
-              type === 'income' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500'
+            className={`min-h-8 rounded-md px-3 text-sm font-semibold transition-colors ${
+              type === 'income' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
             }`}
           >
             수입
@@ -62,7 +62,7 @@ function CategoryBreakdown({ transactions, month }: Props) {
               </div>
               <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-neutral-100">
                 <div
-                  className={`h-full rounded-full ${barColor}`}
+                  className={`h-full rounded-full transition-[width] duration-300 ${barColor}`}
                   style={{ width: `${max > 0 ? (amount / max) * 100 : 0}%` }}
                 />
               </div>
