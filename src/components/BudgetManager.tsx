@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createBudget, deleteBudget, updateBudget } from '../lib/api'
+import { BudgetConflictError, createBudget, deleteBudget, updateBudget } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
 import type { BudgetStatus, NewBudget } from '../types'
@@ -46,9 +46,10 @@ function bgColor(pct: number): string {
 function BudgetManager({ statuses, month, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(defaultForm)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
+  const [conflictTarget, setConflictTarget] = useState<BudgetStatus | null>(null)
 
   const [y, mon] = month.split('-')
   const monthLabel = `${y}년 ${parseInt(mon)}월`
@@ -68,6 +69,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
       repeat: s.budget.year_month ? 'once' : 'monthly',
     })
     setError('')
+    setConflictTarget(null)
     setShowForm(true)
   }
 
@@ -75,6 +77,21 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
     setShowForm(false)
     setEditingId(null)
     setError('')
+    setConflictTarget(null)
+  }
+
+  // 현재 선택된 반복 범위(매월반복/이번달만)에서 이미 예산이 설정된 카테고리 목록
+  // (수정 중인 항목 자신은 제외)
+  function takenCategories(repeat: FormState['repeat']): Set<string> {
+    const set = new Set<string>()
+    for (const s of statuses) {
+      if (s.budget.active !== 1) continue
+      if (editingId && s.budget.id === editingId) continue
+      const isMonthly = s.budget.year_month === null
+      if ((repeat === 'monthly') !== isMonthly) continue
+      set.add(s.budget.category)
+    }
+    return set
   }
 
   async function handleSave() {
@@ -90,6 +107,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
     setSaving(true)
     setError('')
+    setConflictTarget(null)
     try {
       if (editingId !== null) {
         await updateBudget(editingId, payload)
@@ -99,13 +117,18 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
       await onRefresh()
       cancelForm()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '저장 실패')
+      if (e instanceof BudgetConflictError) {
+        setError(e.message)
+        setConflictTarget(statuses.find((s) => s.budget.id === e.conflictId) ?? null)
+      } else {
+        setError(e instanceof Error ? e.message : '저장 실패')
+      }
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleDelete(id: number, category: string) {
+  async function handleDelete(id: string, category: string) {
     if (!window.confirm(`"${category}" 예산을 삭제할까요?`)) return
     await deleteBudget(id)
     await onRefresh()
@@ -158,20 +181,28 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">카테고리</label>
             <div className="flex flex-wrap gap-1.5">
-              {EXPENSE_CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, category: c }))}
-                  className={`min-h-8 rounded-full px-3 text-sm font-semibold ${
-                    form.category === c
-                      ? 'bg-neutral-900 text-white'
-                      : 'bg-neutral-100 text-neutral-600'
-                  }`}
-                >
-                  {c === '전체' ? '💰 전체 지출' : c}
-                </button>
-              ))}
+              {EXPENSE_CATEGORIES.map((c) => {
+                const isTaken = takenCategories(form.repeat).has(c)
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, category: c }))}
+                    className={`min-h-8 rounded-full px-3 text-sm font-semibold ${
+                      form.category === c
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-neutral-100 text-neutral-600'
+                    }`}
+                  >
+                    {c === '전체' ? '💰 전체 지출' : c}
+                    {isTaken && (
+                      <span className={`ml-1 text-xs ${form.category === c ? 'text-neutral-300' : 'text-neutral-400'}`}>
+                        (이미 설정됨)
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -220,7 +251,20 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="rounded-xl bg-red-50 border border-red-200 p-3">
+              <p className="text-sm text-red-600">{error}</p>
+              {conflictTarget && (
+                <button
+                  type="button"
+                  onClick={() => startEdit(conflictTarget)}
+                  className="mt-1.5 text-sm font-semibold text-red-700 underline"
+                >
+                  기존 항목 수정하러 가기
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button

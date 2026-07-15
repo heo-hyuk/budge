@@ -174,12 +174,26 @@ export async function fetchBudgetStatus(yearMonth: string): Promise<BudgetStatus
   return body.data
 }
 
+/** 예산 카테고리/기간 중복 시 서버가 409로 응답할 때 던지는 에러 */
+export class BudgetConflictError extends Error {
+  conflictId?: string
+  constructor(message: string, conflictId?: string) {
+    super(message)
+    this.name = 'BudgetConflictError'
+    this.conflictId = conflictId
+  }
+}
+
 export async function createBudget(data: NewBudget): Promise<void> {
   const res = await fetch('/api/budgets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+  if (res.status === 409) {
+    const body = await res.json() as { error: string; conflictId?: string }
+    throw new BudgetConflictError(body.error, body.conflictId)
+  }
   if (!res.ok) throw new Error('예산을 등록하지 못했습니다')
 }
 
@@ -189,6 +203,10 @@ export async function updateBudget(id: string, data: Partial<NewBudget> & { acti
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+  if (res.status === 409) {
+    const body = await res.json() as { error: string; conflictId?: string }
+    throw new BudgetConflictError(body.error, body.conflictId)
+  }
   if (!res.ok) throw new Error('예산을 수정하지 못했습니다')
 }
 

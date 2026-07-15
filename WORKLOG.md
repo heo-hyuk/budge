@@ -3,18 +3,29 @@
 ## 2026-07-15 (11차) — budgets NULL UNIQUE 중복 방지
 
 ### 작업 계획
-- [ ] functions/api/budgets/index.ts POST — 애플리케이션 레벨 중복 체크 추가 (케이스 A: 매월반복, B: 특정월)
-- [ ] functions/api/budgets/[id].ts PATCH — category/year_month 변경·재활성화 시 중복 체크
-- [ ] src/lib/api.ts — BudgetConflictError 클래스 추가, createBudget/updateBudget 충돌 응답 처리
-- [ ] src/components/BudgetManager.tsx — id 타입 string으로 수정, 카테고리 "이미 설정됨" 뱃지, 충돌 시 인라인 에러+수정 안내
+- [x] functions/api/budgets/index.ts POST — 애플리케이션 레벨 중복 체크 추가 (케이스 A: 매월반복, B: 특정월)
+- [x] functions/api/budgets/[id].ts PATCH — category/year_month 변경·재활성화 시 중복 체크
+- [x] src/lib/api.ts — BudgetConflictError 클래스 추가, createBudget/updateBudget 충돌 응답 처리
+- [x] src/components/BudgetManager.tsx — id 타입 string으로 수정, 카테고리 "이미 설정됨" 뱃지, 충돌 시 인라인 에러+수정 안내
+
+### 추가로 발견한 문제
+- PATCH 허용 필드(`allowed`)에 `category`가 빠져있어 예산 수정 폼에서 카테고리를 바꿔도 실제로는 반영되지 않던 기존 버그 발견 → `functions/api/budgets/[id].ts`에 `category` 추가
+
+### 검증 결과 (wrangler pages dev --local, curl)
+- 매월반복(year_month=NULL) 동일 카테고리 재등록 → 409 (기존엔 NULL UNIQUE 미적용으로 중복 행 생성됐음)
+- 특정월(year_month=YYYY-MM) 동일 카테고리 재등록 → 409
+- 비활성 예산에 동일 카테고리로 재등록 → 새 행 생성 없이 기존 id 재활성화 + 금액 갱신
+- PATCH로 카테고리를 이미 활성 상태인 다른 카테고리명으로 변경 → 409, 무관한 카테고리로 변경은 200
+- tsc --noEmit / oxlint 통과
+- Chrome 확장 미연결로 BudgetManager UI(뱃지·인라인 에러·"기존 항목 수정하러 가기" 버튼)는 코드 리뷰로만 확인, 육안 검증은 못함
 
 ### 변경 파일
 - `functions/api/budgets/index.ts`, `functions/api/budgets/[id].ts`
 - `src/lib/api.ts`, `src/components/BudgetManager.tsx`
+- `WORKLOG.md`
 
 ### 상태
-- 작업 중단 (집에서 이어서 진행 예정)
-- 미완료 항목 전부 미착수 상태로 초기화
+- 완료
 
 ---
 
