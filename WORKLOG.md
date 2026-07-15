@@ -34,6 +34,21 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (4차)
+
+### 작업 계획
+- [ ] DB 마이그레이션 — users, sessions 테이블 / transactions·cards에 user_id 추가
+- [ ] 비밀번호 해싱 유틸 (PBKDF2 + 랜덤 salt, Web Crypto API)
+- [ ] 인증 API — register, login, logout, me
+- [ ] Pages Functions 미들웨어 — 세션 검증 + user_id context 주입
+- [ ] 기존 transactions/cards API — user_id 필터 추가
+- [ ] AuthContext (로그인 상태 전역 관리)
+- [ ] AuthPage — 로그인 / 회원가입 폼
+- [ ] App.tsx — 미로그인 시 AuthPage 표시, 헤더에 로그아웃 버튼
+- 예상 변경/신규 파일: schema.sql, migrations/002, functions/api/_middleware.ts, functions/api/auth/*, transactions/index, cards/index, src/contexts/AuthContext.tsx, src/components/AuthPage.tsx, App.tsx
+
+---
+
 ## 2026-07-15 (3차)
 
 ### 작업 계획
