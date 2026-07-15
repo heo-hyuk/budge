@@ -1,5 +1,23 @@
 # WORKLOG
 
+## 2026-07-15 (13차) — 금액 입력창 천단위 콤마 표시
+
+### 완료
+- [x] `src/lib/format.ts` — `formatNumberInput(raw)` 추가: 숫자만 남기고 천단위 콤마 포맷
+- [x] `src/components/TransactionForm.tsx` — 금액 입력 onChange에 적용
+- [x] `src/components/BudgetManager.tsx` — 월 한도 금액 입력 onChange + 수정 시작 시 초기값에도 적용
+- [x] `src/components/RecurringManager.tsx` — 금액 입력 onChange + 수정 시작 시 초기값에도 적용
+- [x] `src/components/TransactionList.tsx` — 인라인 수정 금액 입력 onChange + 수정 시작 시 초기값에도 적용
+- 저장 시 파싱 로직은 기존에 이미 `.replace(/[^0-9]/g, '')`로 콤마를 포함한 비숫자 문자를 제거하고 있어 별도 수정 불필요
+- 검색 화면의 금액 범위 필터(`type="number"`)는 네이티브 number input이라 콤마 삽입이 불가능해 대상에서 제외
+- tsc --noEmit / oxlint 통과
+
+### 변경 파일
+- `src/lib/format.ts`
+- `src/components/TransactionForm.tsx`, `src/components/BudgetManager.tsx`, `src/components/RecurringManager.tsx`, `src/components/TransactionList.tsx`
+
+---
+
 ## 2026-07-15 (12차) — 거래 입력 금액 필드 텍스트 겹침 수정
 
 ### 완료

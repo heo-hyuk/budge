@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getCategories } from '../lib/categories'
-import { formatDateLabel, formatWon } from '../lib/format'
+import { formatDateLabel, formatNumberInput, formatWon } from '../lib/format'
 import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
 interface Props {
@@ -49,7 +49,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
     setEditState({
       type: tx.type,
       category: tx.category,
-      amount: String(tx.amount),
+      amount: formatNumberInput(String(tx.amount)),
       date: tx.date,
       memo: tx.memo ?? '',
       merchant: tx.merchant ?? '',
@@ -120,7 +120,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   {/* 금액 */}
                   <input type="text" inputMode="numeric"
                     value={editState.amount}
-                    onChange={(e) => setEditState((s) => s && { ...s, amount: e.target.value })}
+                    onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value) })}
                     className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-right text-base font-bold focus:border-blue-500 focus:outline-none"
                     placeholder="금액"
                   />

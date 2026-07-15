@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getCategories } from '../lib/categories'
 import { createRecurring, deleteRecurring, updateRecurring } from '../lib/api'
-import { formatWon } from '../lib/format'
+import { formatNumberInput, formatWon } from '../lib/format'
 import type { Card, NewRecurring, RecurringTransaction, TransactionType } from '../types'
 
 interface Props {
@@ -59,7 +59,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
       name: item.name,
       type: item.type,
       category: item.category,
-      amount: String(item.amount),
+      amount: formatNumberInput(String(item.amount)),
       merchant: item.merchant ?? '',
       payment_method: item.card_id || '현금',
       day_of_month: String(item.day_of_month),
@@ -187,7 +187,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 inputMode="numeric"
                 placeholder="0"
                 value={form.amount}
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, amount: formatNumberInput(e.target.value) }))}
                 className="min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 pr-8 text-right text-base font-bold focus:border-blue-500 focus:outline-none"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">원</span>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BudgetConflictError, createBudget, deleteBudget, updateBudget } from '../lib/api'
 import { getCategories } from '../lib/categories'
-import { formatWon } from '../lib/format'
+import { formatNumberInput, formatWon } from '../lib/format'
 import type { BudgetStatus, NewBudget } from '../types'
 
 interface Props {
@@ -65,7 +65,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
     setEditingId(s.budget.id)
     setForm({
       category: s.budget.category,
-      monthly_limit: String(s.budget.monthly_limit),
+      monthly_limit: formatNumberInput(String(s.budget.monthly_limit)),
       repeat: s.budget.year_month ? 'once' : 'monthly',
     })
     setError('')
@@ -215,7 +215,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                 inputMode="numeric"
                 placeholder="0"
                 value={form.monthly_limit}
-                onChange={(e) => setForm((f) => ({ ...f, monthly_limit: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, monthly_limit: formatNumberInput(e.target.value) }))}
                 className="min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 pr-8 text-right text-base font-bold focus:border-blue-500 focus:outline-none"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">원</span>
