@@ -93,7 +93,8 @@
   확인 못함 — 코드 리뷰로만 확인
 
 ### 배포
-- `npm run deploy` 완료 예정 (사용자 표준 지침에 따라 확인 없이 진행)
+- `npm run deploy` 완료 — https://a377c13e.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 200 정상 확인
 
 ## 2026-07-15 (22차) — 메모장 하루 여러 건 허용으로 수정 (완료)
 
