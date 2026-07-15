@@ -39,6 +39,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = (data as Record<string, string>).userId
   const body   = await request.json() as BenefitBody
 
+  if (!body.card_id || !body.name?.trim() || !body.discount_type) {
+    return Response.json({ error: '카드, 이름, 할인 유형은 필수입니다' }, { status: 400 })
+  }
+  if (typeof body.discount_value !== 'number' || body.discount_value <= 0) {
+    return Response.json({ error: '할인율/금액은 0보다 커야 합니다' }, { status: 400 })
+  }
+  // 해당 카드가 본인 소유인지 확인 (다른 유저의 card_id로 혜택 등록 방지)
+  const card = await env.DB.prepare(
+    'SELECT id FROM cards WHERE id = ? AND user_id = ?'
+  ).bind(body.card_id, userId).first()
+  if (!card) return Response.json({ error: '존재하지 않는 카드입니다' }, { status: 404 })
+
   const id  = crypto.randomUUID()
   const now = new Date().toISOString()
 

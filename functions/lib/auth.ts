@@ -1,34 +1,46 @@
 // PBKDF2 기반 비밀번호 해싱 (Web Crypto API — Cloudflare Workers 지원)
 
-const ITERATIONS = 10_000
+// Cloudflare Workers 무료 요금제는 요청당 CPU 10ms 제한.
+// workerd에서 실측한 결과 15,000회 ≈ 5ms로 다른 요청 처리(DB 쿼리 등) 여유를 두고 안전한 상한선.
+// (참고: 100,000회는 40ms로 무료 요금제에서 요청 자체가 실패함 — 반드시 실측 후 올릴 것)
+const ITERATIONS = 15_000
 const KEY_LENGTH = 256
 
-/** 비밀번호 해시 생성 (회원가입 시) */
+/** 비밀번호 해시 생성 (회원가입 시) — 항상 현재 ITERATIONS로 생성 */
 export async function hashPassword(
   password: string
-): Promise<{ hash: string; salt: string }> {
+): Promise<{ hash: string; salt: string; iterations: number }> {
   const salt = crypto.randomUUID()
-  const hash = await derive(password, salt)
-  return { hash, salt }
+  const hash = await derive(password, salt, ITERATIONS)
+  return { hash, salt, iterations: ITERATIONS }
 }
 
-/** 비밀번호 검증 (로그인 시) */
+/**
+ * 비밀번호 검증 (로그인 시) — 저장된 반복횟수로 검증
+ * 기존 계정은 예전에 더 적은 횟수로 해싱됐을 수 있어 DB에 저장된 값을 그대로 사용
+ */
 export async function verifyPassword(
   password: string,
   storedHash: string,
-  salt: string
+  salt: string,
+  iterations: number
 ): Promise<boolean> {
-  const hash = await derive(password, salt)
+  const hash = await derive(password, salt, iterations)
   return hash === storedHash
 }
 
-async function derive(password: string, salt: string): Promise<string> {
+/** 현재 저장된 반복횟수가 최신 기준보다 낮은지(재해싱이 필요한지) 확인 */
+export function needsRehash(storedIterations: number): boolean {
+  return storedIterations < ITERATIONS
+}
+
+async function derive(password: string, salt: string, iterations: number): Promise<string> {
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(
     'raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']
   )
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: enc.encode(salt), iterations: ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256' },
     key,
     KEY_LENGTH
   )

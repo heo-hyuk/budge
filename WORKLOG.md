@@ -1,5 +1,43 @@
 # WORKLOG
 
+## 2026-07-15 (17차) — 전체 이슈 감사 후 발견사항 전부 수정
+
+fork로 프로젝트 전체(인증/거래/카드/고정지출/혜택/CORS) 감사 진행 후 발견된 것 전부 수정.
+
+### 완료
+- [x] **[심각] 로그인 비밀번호 검증 우회** — `functions/api/auth/login.ts`: 유효한 세션 쿠키가 있으면 요청 본문의 이메일/비밀번호를 전혀 확인하지 않고 기존 세션 유저를 그대로 반환하던 로직 제거. 이제 매 로그인 요청마다 항상 자격 증명을 검증함. 공유 PC에서 이전 사용자 세션이 남아있을 때 다른 계정으로 로그인해도 이전 사용자로 남는 문제였음 (curl로 재현 후 수정 검증: 유효 세션 + 틀린 비밀번호 → 이전엔 200, 이제 401)
+- [x] **[중상] 카드 삭제 시 연관 데이터 미정리** — `functions/api/cards/[id].ts` DELETE: `recurring_transactions.card_id`를 정리 안 해서 고정지출이 죽은 카드ID로 매달 거래를 계속 생성하던 문제, `card_benefits`가 고아 레코드로 남던 문제(schema.sql의 `ON DELETE CASCADE`는 D1에 `PRAGMA foreign_keys=ON`이 없어 실제로 동작 안 함, 코드 전체 검색으로 확인) 수정 — 카드 삭제 시 고정지출은 현금으로 전환, 혜택 규칙은 명시적으로 DELETE
+- [x] **[중간] PBKDF2 반복횟수 상향 + 기존 유저 호환** — `functions/lib/auth.ts`: 10,000 → 15,000회. Cloudflare Workers 무료 요금제(CPU 10ms/요청) 확인 후 `wrangler pages dev`(workerd) 실측으로 안전선 결정(15,000회≈5ms, 100,000회는 40ms로 무료 요금제에서 요청 자체가 실패함을 확인). 기존 유저 비밀번호가 깨지지 않도록 `users.iterations` 컬럼 추가(`migrations/007_add_password_iterations.sql`, 기본값 10000) 후 유저별 저장된 반복횟수로 검증하고, 로그인 성공 시 예전 반복횟수면 자동으로 최신 기준 재해싱(rehash-on-login)
+- [x] **[중간] 거래 금액 음수/0 검증 없음** — `functions/api/transactions/index.ts` POST, `[id].ts` PATCH에 `amount > 0` 검증 추가 (프론트는 이미 막고 있었지만 API 직접 호출 시 우회 가능했음)
+- [x] **[경미] 카드 혜택 등록 API 검증 없음** — `functions/api/benefits/index.ts` POST: card_id/name/discount_type 필수값 검증, discount_value>0 검증, 요청한 유저 소유의 카드인지 확인(다른 유저 card_id로 혜택 등록 방지) 추가
+- [x] **[경미] CORS 와일드카드 제거** — `Access-Control-Allow-Origin: '*'`를 쓰던 11개 API 파일 + `_middleware.ts`에서 제거. 프론트엔드가 항상 same-origin 요청만 하므로 CORS 헤더 자체가 불필요 (실제 위험은 낮았음 — 쿠키에 `credentials:'include'`를 안 써서 크로스오리진 자동전송은 원래도 안 됐음 — 그래도 불필요한 노출이라 제거)
+- [ ] **[정보, 의도적으로 스킵]** 고정지출 자동생성이 `/api/transactions` GET마다 실행되는 것 — 재검토 결과 이미 `active=1` 조건의 인덱스된 SELECT 1번+ (밀린 달이 없으면) 추가 쿼리 없음으로 비용이 낮아서, 이걸 위해 유저별 "마지막 체크일" 컬럼과 디바운스 로직을 새로 추가하는 건 실익 대비 불필요한 복잡도 증가로 판단해 스킵함
+
+### 검증 결과
+- tsc --noEmit(src) / oxlint(전체) 통과. functions/ 디렉터리는 별도 tsconfig가 없어 임시로 `tsc --ignoreConfig`로 직접 타입체크해 통과 확인
+- wrangler pages dev(workerd) + curl로 전부 실측 검증:
+  - PBKDF2 15,000회 실측 5ms / 100,000회 실측 40ms(무료 요금제 10ms 제한 초과 확인)
+  - 기존 유저(10,000회) 로그인 성공 → iterations 15,000으로 자동 재해싱 확인 → 재해싱 후 재로그인도 정상
+  - 유효 세션 + 틀린 비밀번호 로그인 시도 → 401 (수정 전 200)
+  - 카드+고정지출+혜택 생성 → 카드 삭제 → 고정지출 card_id/payment_method 정리됨, 혜택 규칙 삭제됨 확인
+  - 거래 음수 금액 POST → 400, 정상 금액 → 201
+  - 존재하지 않는/타인 소유 card_id로 혜택 등록 → 404, 이름 누락 → 400
+  - 응답 헤더에서 Access-Control-Allow-Origin 사라짐 확인
+- Chrome 확장으로 홈 화면 정상 로드, 위 테스트로 생성된 거래 내역 정상 표시 확인
+
+### ⚠️ 배포 전 필수 — 원격 D1 마이그레이션
+`migrations/007_add_password_iterations.sql`을 **원격 D1에 먼저 적용해야** 함. 적용 전에 이 커밋을 배포하면 `users` 테이블에 `iterations` 컬럼이 없어서 로그인 API가 즉시 에러남 (운영 서비스 로그인 전체 장애). 원격 마이그레이션과 배포는 사용자 확인 후 별도 진행.
+
+### 변경 파일
+- `functions/api/auth/login.ts`, `functions/api/auth/register.ts`, `functions/lib/auth.ts`
+- `functions/api/cards/[id].ts`
+- `functions/api/transactions/index.ts`, `functions/api/transactions/[id].ts`
+- `functions/api/benefits/index.ts`
+- `functions/api/_middleware.ts`, `functions/api/cards/index.ts`, `functions/api/recurring/index.ts`, `functions/api/recurring/[id].ts`, `functions/api/auth/me.ts`, `functions/api/auth/logout.ts` (CORS 헤더 제거)
+- `migrations/007_add_password_iterations.sql` (신규), `schema.sql`
+
+---
+
 ## 2026-07-15 (16차) — 카드 청구기간 미리보기 문구 "32일" 버그 수정
 
 ### 완료

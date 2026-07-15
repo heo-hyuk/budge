@@ -3,8 +3,8 @@ import { parseCookie } from '../lib/auth'
 
 interface Env { DB: D1Database }
 
+// 프론트엔드는 항상 same-origin으로만 요청하므로 CORS 헤더 자체가 불필요함
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }

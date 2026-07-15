@@ -2,8 +2,8 @@
 
 interface Env { DB: D1Database }
 
+// 프론트엔드는 항상 same-origin으로만 요청하므로 CORS 헤더 자체가 불필요함
 const cors = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'DELETE, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
@@ -30,6 +30,10 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
   const body   = await request.json() as {
     type?: 'income' | 'expense'; category?: string; amount?: number
     memo?: string; date?: string; merchant?: string; payment_method?: string; card_id?: string
+  }
+
+  if (body.amount !== undefined && (typeof body.amount !== 'number' || body.amount <= 0)) {
+    return json({ error: '금액은 0보다 커야 합니다' }, 400)
   }
 
   const fields: string[] = []; const values: unknown[] = []

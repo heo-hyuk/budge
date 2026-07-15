@@ -3,8 +3,8 @@ import { hashPassword, sessionCookie } from '../../lib/auth'
 
 interface Env { DB: D1Database }
 
+// 프론트엔드는 항상 same-origin으로만 요청하므로 CORS 헤더 자체가 불필요함
 const cors = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
@@ -38,13 +38,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (existing) return json({ error: '이미 사용 중인 이메일입니다' }, 409)
 
   // 비밀번호 해싱
-  const { hash, salt } = await hashPassword(password)
+  const { hash, salt, iterations } = await hashPassword(password)
   const userId = crypto.randomUUID()
   const now    = new Date().toISOString()
 
   await env.DB.prepare(
-    'INSERT INTO users (id, email, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(userId, email, hash, salt, name, now).run()
+    'INSERT INTO users (id, email, password_hash, salt, iterations, name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(userId, email, hash, salt, iterations, name, now).run()
 
   // 회원가입 후 자동 로그인 — 세션 발급
   const sessionId  = crypto.randomUUID()

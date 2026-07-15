@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~006 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~007 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   salt TEXT NOT NULL,
   name TEXT NOT NULL,
+  iterations INTEGER NOT NULL DEFAULT 10000,  -- PBKDF2 반복횟수 (migration 007)
   created_at TEXT NOT NULL
 );
 

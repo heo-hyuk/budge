@@ -3,8 +3,8 @@ import { generateDueRecurringTransactions } from '../../lib/recurring'
 
 interface Env { DB: D1Database }
 
+// 프론트엔드는 항상 same-origin으로만 요청하므로 CORS 헤더 자체가 불필요함
 const cors = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
@@ -60,6 +60,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   if (!body.type || !body.category || !body.amount || !body.date) {
     return json({ error: 'Missing required fields' }, 400)
+  }
+  if (typeof body.amount !== 'number' || body.amount <= 0) {
+    return json({ error: '금액은 0보다 커야 합니다' }, 400)
   }
 
   const id         = crypto.randomUUID()
