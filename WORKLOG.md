@@ -34,6 +34,17 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (2차)
+
+### 작업 계획
+- [ ] 월별 필터 UI (이전/다음 버튼) — App.tsx에 selectedMonth 상태 추가
+- [ ] API month 쿼리 파라미터 지원 — `functions/api/transactions/index.ts`
+- [ ] SummaryCard, CategoryBreakdown에 month prop 전달 (내부 하드코딩 제거)
+- [ ] 거래 수정 기능 — `PATCH /api/transactions/[id]` 추가, TransactionList 인라인 편집
+- 예상 변경 파일: `App.tsx`, `index.ts`, `[id].ts`, `api.ts`, `types.ts`, `SummaryCard.tsx`, `CategoryBreakdown.tsx`, `TransactionList.tsx`
+
+---
+
 ## 2026-07-15
 
 ### 완료
