@@ -36,16 +36,17 @@
 
 ## 2026-07-15 (6차)
 
-### 작업 계획
-- [ ] migrations/004_add_benefits.sql — card_benefits 테이블 + transactions.original_amount/discount_amount/benefit_id
-- [ ] functions/lib/benefitMatcher.ts — 우선순위 점수(merchant=100, category=50, global=10) 기반 매칭
-- [ ] functions/api/benefits/index.ts — GET(card_id 필터) / POST
-- [ ] functions/api/benefits/match.ts — GET /api/benefits/match (정적 라우트)
-- [ ] functions/api/benefits/[id].ts — PATCH / DELETE
-- [ ] src/types.ts — CardBenefit, BenefitMatch 추가, Transaction 업데이트
-- [ ] src/lib/api.ts — benefit API 함수 추가
-- [ ] src/components/TransactionForm.tsx — 실시간 혜택 매칭 UI (debounce)
-- [ ] src/components/CardManager.tsx — 카드별 혜택 규칙 관리 섹션
+### 완료
+- [x] migrations/004_add_benefits.sql — card_benefits 테이블 + transactions.original_amount/discount_amount/benefit_id (로컬+원격 적용)
+- [x] functions/lib/benefitMatcher.ts — 우선순위 점수(merchant+category=150, merchant=100, category=50, global=10) 기반 매칭, 월 한도/사용액 계산
+- [x] functions/api/benefits/index.ts — GET(card_id 필터) / POST
+- [x] functions/api/benefits/match.ts — GET /api/benefits/match (정적 라우트, [id].ts보다 우선)
+- [x] functions/api/benefits/[id].ts — PATCH / DELETE
+- [x] src/types.ts — CardBenefit, BenefitMatch, NewBenefit 추가, Transaction에 recurring_id/original_amount/discount_amount/benefit_id 추가
+- [x] src/lib/api.ts — fetchBenefits, createBenefit, updateBenefit, deleteBenefit, matchBenefit 추가
+- [x] src/components/TransactionForm.tsx — 카드+금액 입력 시 400ms debounce로 매칭 호출, 단일 매칭 자동 적용/복수 라디오 선택, 실결제액 저장 버튼 표시
+- [x] src/components/CardManager.tsx — 카드별 혜택 섹션(토글), 혜택 규칙 CRUD (할인유형/율/분류/구매처/한도/최소금액)
+- [x] tsc + vite 빌드 통과, Cloudflare Pages 배포 완료
 
 ---
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { matchBenefit } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
-import { todayStr } from '../lib/format'
-import type { Card, NewTransaction, TransactionType } from '../types'
+import { formatWon, todayStr } from '../lib/format'
+import type { BenefitMatch, Card, NewTransaction, TransactionType } from '../types'
 
 interface Props {
   onSubmit: (tx: NewTransaction) => Promise<void>
@@ -15,11 +16,17 @@ function TransactionForm({ onSubmit, cards }: Props) {
   const [amount, setAmount]           = useState('')
   const [date, setDate]               = useState(todayStr())
   const [memo, setMemo]               = useState('')
-  const [merchant, setMerchant]       = useState('')        // 구매처/판매처
-  const [paymentMethod, setPaymentMethod] = useState('현금') // '현금' | 카드 id
+  const [merchant, setMerchant]       = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('현금')
   const [saving, setSaving]           = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
+
+  // 혜택 매칭 상태
+  const [matches, setMatches]         = useState<BenefitMatch[]>([])
+  const [selectedMatch, setSelectedMatch] = useState<BenefitMatch | null>(null)
+  const [matchLoading, setMatchLoading]   = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handleTypeChange(next: TransactionType) {
     setType(next)
@@ -27,6 +34,11 @@ function TransactionForm({ onSubmit, cards }: Props) {
     setCategories(nextCats)
     setCategory(nextCats[0])
     setAddingCategory(false)
+    // 수입으로 바꾸면 혜택 초기화
+    if (next === 'income') {
+      setMatches([])
+      setSelectedMatch(null)
+    }
   }
 
   function handleAddCategory() {
@@ -39,6 +51,56 @@ function TransactionForm({ onSubmit, cards }: Props) {
     setAddingCategory(false)
   }
 
+  // 결제방법·구매처·분류·금액 변경 시 혜택 매칭 (debounce 400ms)
+  useEffect(() => {
+    if (type !== 'expense') return
+    const cardId = paymentMethod !== '현금' ? paymentMethod : ''
+    const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
+
+    // 카드 미선택이거나 금액 없으면 초기화
+    if (!cardId || numericAmount <= 0) {
+      setMatches([])
+      setSelectedMatch(null)
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setMatchLoading(true)
+      try {
+        const month = date.slice(0, 7)
+        const result = await matchBenefit({
+          card_id: cardId,
+          merchant: merchant.trim(),
+          category,
+          amount: numericAmount,
+          month,
+        })
+        setMatches(result)
+        // 1개면 자동 선택, 여러 개면 초기화
+        if (result.length === 1) {
+          setSelectedMatch(result[0])
+        } else {
+          setSelectedMatch(null)
+        }
+      } catch {
+        // 오류 시 조용히 무시
+      } finally {
+        setMatchLoading(false)
+      }
+    }, 400)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [paymentMethod, merchant, category, amount, date, type])
+
+  // 혜택 적용 취소
+  function dismissBenefit() {
+    setSelectedMatch(null)
+    setMatches([])
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
@@ -46,22 +108,33 @@ function TransactionForm({ onSubmit, cards }: Props) {
 
     const selectedCard = cards.find((c) => c.id === paymentMethod)
 
+    // 할인 적용 계산
+    const discountAmount = selectedMatch ? selectedMatch.estimated_discount : 0
+    const finalAmount = numericAmount - discountAmount
+
     setSaving(true)
     try {
       await onSubmit({
-        type, category, amount: numericAmount, date,
+        type, category, amount: finalAmount, date,
         memo: memo.trim() || undefined,
         merchant: merchant.trim() || undefined,
         payment_method: selectedCard ? selectedCard.id : '현금',
         card_id: selectedCard ? selectedCard.id : undefined,
+        original_amount: discountAmount > 0 ? numericAmount : undefined,
+        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+        benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
       })
       setAmount('')
       setMemo('')
       setMerchant('')
+      setMatches([])
+      setSelectedMatch(null)
     } finally {
       setSaving(false)
     }
   }
+
+  const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
@@ -122,7 +195,6 @@ function TransactionForm({ onSubmit, cards }: Props) {
       <div className="mt-4">
         <span className="block text-sm font-semibold text-neutral-700">결제 방법</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {/* 현금 버튼 */}
           <button
             type="button"
             onClick={() => setPaymentMethod('현금')}
@@ -132,7 +204,6 @@ function TransactionForm({ onSubmit, cards }: Props) {
           >
             현금
           </button>
-          {/* 등록된 카드 버튼 */}
           {cards.map((card) => (
             <button
               key={card.id}
@@ -227,12 +298,92 @@ function TransactionForm({ onSubmit, cards }: Props) {
         />
       </div>
 
+      {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시) */}
+      {type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
+        <div className="mt-4">
+          {matchLoading && (
+            <p className="text-xs text-neutral-400">혜택 확인 중...</p>
+          )}
+
+          {/* 복수 매칭 → 라디오 선택 */}
+          {!matchLoading && matches.length > 1 && (
+            <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-3 space-y-2">
+              <p className="text-xs font-bold text-amber-800">적용 혜택을 선택하세요</p>
+              {matches.map((m) => (
+                <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="benefit"
+                    className="mt-0.5"
+                    checked={selectedMatch?.benefit.id === m.benefit.id}
+                    onChange={() => setSelectedMatch(m)}
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900">{m.benefit.name}</p>
+                    <p className="text-xs text-amber-700">
+                      {formatWon(m.estimated_discount)} 할인
+                      {m.benefit.monthly_cap > 0 && (
+                        <span className="ml-1 text-neutral-500">
+                          (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={dismissBenefit}
+                className="text-xs text-neutral-400 underline"
+              >
+                혜택 미적용
+              </button>
+            </div>
+          )}
+
+          {/* 단일 매칭 → 자동 제안 */}
+          {!matchLoading && matches.length === 1 && selectedMatch && (
+            <div className="rounded-xl border-2 border-green-200 bg-green-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-green-800">
+                    혜택 자동 적용: {selectedMatch.benefit.name}
+                  </p>
+                  <p className="text-sm font-bold text-green-700 mt-0.5">
+                    {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
+                    실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
+                  </p>
+                  {selectedMatch.benefit.monthly_cap > 0 && (
+                    <p className="text-xs text-green-600 mt-0.5">
+                      이번 달 한도 {formatWon(selectedMatch.monthly_remaining)} 남음
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissBenefit}
+                  className="shrink-0 text-xs text-neutral-400 underline"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 혜택 없음 — 조용히 표시 안 함 */}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={saving}
         className="mt-5 min-h-12 w-full rounded-xl bg-neutral-900 text-lg font-bold text-white disabled:opacity-50"
       >
-        {saving ? '저장 중...' : '저장하기'}
+        {saving ? '저장 중...' : (
+          selectedMatch
+            ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
+            : '저장하기'
+        )}
       </button>
     </form>
   )

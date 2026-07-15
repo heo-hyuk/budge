@@ -13,7 +13,8 @@
       "Bash(./node_modules/.bin/vite build *)",
       "Bash(curl *)",
       "Bash(powershell *)",
-      "Bash(./node_modules/.bin/oxlint src/)"
+      "Bash(./node_modules/.bin/oxlint src/)",
+      "Bash(./node_modules/.bin/tsc -b --noEmit)"
     ]
   }
 }

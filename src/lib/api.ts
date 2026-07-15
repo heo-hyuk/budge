@@ -1,4 +1,4 @@
-import type { Card, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitMatch, Card, CardBenefit, NewBenefit, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 // ── 거래 API ──────────────────────────────────────────
 
@@ -110,4 +110,57 @@ export async function updateRecurring(id: string, data: Partial<NewRecurring> & 
 export async function deleteRecurring(id: string): Promise<void> {
   const res = await fetch(`/api/recurring/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('고정지출을 삭제하지 못했습니다')
+}
+
+// ── 혜택 규칙 API ─────────────────────────────────────
+
+export async function fetchBenefits(cardId?: string): Promise<CardBenefit[]> {
+  const url = cardId ? `/api/benefits?card_id=${encodeURIComponent(cardId)}` : '/api/benefits'
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('혜택 목록을 불러오지 못했습니다')
+  const body = (await res.json()) as { data: CardBenefit[] }
+  return body.data
+}
+
+export async function createBenefit(data: NewBenefit): Promise<void> {
+  const res = await fetch('/api/benefits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('혜택을 추가하지 못했습니다')
+}
+
+export async function updateBenefit(id: string, data: Partial<NewBenefit>): Promise<void> {
+  const res = await fetch(`/api/benefits/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('혜택을 수정하지 못했습니다')
+}
+
+export async function deleteBenefit(id: string): Promise<void> {
+  const res = await fetch(`/api/benefits/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('혜택을 삭제하지 못했습니다')
+}
+
+export async function matchBenefit(params: {
+  card_id: string
+  merchant: string
+  category: string
+  amount: number
+  month: string
+}): Promise<BenefitMatch[]> {
+  const qs = new URLSearchParams({
+    card_id: params.card_id,
+    merchant: params.merchant,
+    category: params.category,
+    amount: String(params.amount),
+    month: params.month,
+  })
+  const res = await fetch(`/api/benefits/match?${qs}`)
+  if (!res.ok) return []
+  const body = (await res.json()) as { data: BenefitMatch[] }
+  return body.data
 }

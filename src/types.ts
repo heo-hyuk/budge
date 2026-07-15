@@ -7,9 +7,13 @@ export interface Transaction {
   amount: number
   memo: string
   date: string
-  merchant: string       // 구매처/판매처
-  payment_method: string // '현금' | 카드ID
-  card_id: string        // 카드 결제 시 카드 ID
+  merchant: string         // 구매처/판매처
+  payment_method: string   // '현금' | 카드ID
+  card_id: string          // 카드 결제 시 카드 ID
+  recurring_id: string     // 고정지출 연결 ID
+  original_amount: number  // 할인 전 원래 금액 (0이면 할인 없음)
+  discount_amount: number  // 적용된 할인액
+  benefit_id: string       // 적용된 혜택 규칙 ID
   created_at: string
 }
 
@@ -22,6 +26,9 @@ export interface NewTransaction {
   merchant?: string
   payment_method?: string
   card_id?: string
+  original_amount?: number
+  discount_amount?: number
+  benefit_id?: string
 }
 
 export interface UpdateTransaction {
@@ -69,6 +76,43 @@ export interface RecurringTransaction {
   last_generated_date: string | null
   active: number   // 1 = 활성, 0 = 비활성
   created_at: string
+}
+
+// ── 카드 혜택 규칙 ───────────────────────────────────────
+
+export interface CardBenefit {
+  id: string
+  user_id: string
+  card_id: string
+  name: string
+  category: string
+  merchant_pattern: string
+  discount_type: 'percent' | 'fixed'
+  discount_value: number
+  monthly_cap: number   // 0 = 무제한
+  min_spend: number     // 0 = 무조건
+  memo: string
+  created_at: string
+}
+
+export interface NewBenefit {
+  card_id: string
+  name: string
+  category?: string
+  merchant_pattern?: string
+  discount_type: 'percent' | 'fixed'
+  discount_value: number
+  monthly_cap?: number
+  min_spend?: number
+  memo?: string
+}
+
+export interface BenefitMatch {
+  benefit: CardBenefit
+  score: number
+  estimated_discount: number
+  monthly_used: number
+  monthly_remaining: number  // 0 = 무제한
 }
 
 export interface NewRecurring {
