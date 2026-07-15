@@ -39,7 +39,9 @@
 Chrome 확장이 이번 세션 내내 연결되지 않아(`tabs_context_mcp` 반복 실패) 육안 스크린샷 검증을 하지 못함. wrangler pages dev + vite 로컬 서버는 정상 기동 확인(`http://localhost:8788` 200 응답)했으나 브라우저로 실제 렌더링을 보지는 못했음 — 코드 리뷰 + 타입체크/린트/빌드 통과로만 확인. 다음 세션에서 Chrome 확장이 연결되면 반드시 실제 화면으로 배색/hover/레이아웃 재확인 필요.
 
 ### 배포
-아직 미배포 — 사용자 확인 후 `npm run deploy` 예정
+- `npm run deploy` 완료 — https://c45e9d9a.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 헬스체크 200 정상 확인
+- Chrome 확장 미연결로 육안 검증은 여전히 못한 채 사용자 요청으로 배포함 (다음 세션에서 재확인 필요)
 
 ### 변경 파일
 - `src/index.css`, `package.json`, `package-lock.json`
