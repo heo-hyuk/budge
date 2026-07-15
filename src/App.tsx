@@ -188,11 +188,11 @@ function App() {
             </div>
           )}
 
-          {/* 로그아웃 */}
+          {/* 로그아웃 (좁은 화면에서는 헤더가 붐벼서 사이드 메뉴로만 노출) */}
           <button
             type="button"
             onClick={logout}
-            className="shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
+            className="hidden shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600 sm:inline-flex sm:items-center"
           >
             로그아웃
           </button>
@@ -329,6 +329,15 @@ function App() {
               {tab.label}
             </button>
           ))}
+          {/* 로그아웃 (넓은 화면은 헤더에도 있지만, 좁은 화면은 헤더에서 숨겨서 여기가 유일한 진입점) */}
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 flex items-center gap-3 rounded-xl border-t-2 border-neutral-100 px-3 pt-4 pb-3 text-left text-base font-semibold text-red-600 sm:hidden"
+          >
+            <span className="text-xl leading-none">🚪</span>
+            로그아웃
+          </button>
         </div>
       </nav>
     </div>

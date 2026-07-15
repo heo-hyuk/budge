@@ -379,7 +379,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleToggle(item)}
-                      className={`min-h-8 rounded-lg px-2.5 text-xs font-semibold ${
+                      className={`min-h-8 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold ${
                         isActive
                           ? 'bg-neutral-100 text-neutral-600'
                           : 'bg-green-100 text-green-700'
@@ -390,14 +390,14 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(item)}
-                      className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
                     >
                       수정
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(item.id, item.name)}
-                      className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600"
                     >
                       삭제
                     </button>

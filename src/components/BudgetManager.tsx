@@ -359,7 +359,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleToggle(s)}
-                      className={`min-h-7 rounded-lg px-2.5 text-xs font-semibold ${
+                      className={`min-h-7 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold ${
                         isActive ? 'bg-neutral-100 text-neutral-600' : 'bg-green-100 text-green-700'
                       }`}
                     >
@@ -368,14 +368,14 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(s)}
-                      className="min-h-7 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
+                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
                     >
                       수정
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(s.budget.id, s.budget.category)}
-                      className="min-h-7 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600"
+                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600"
                     >
                       삭제
                     </button>

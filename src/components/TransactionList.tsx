@@ -193,7 +193,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0"
                 >
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-neutral-900">
+                    <p className="truncate text-base font-semibold text-neutral-900">
                       {tx.merchant || tx.category}
                     </p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
@@ -219,16 +219,16 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                    <span className={`whitespace-nowrap text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
                       {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
                     <button type="button" onClick={() => startEdit(tx)}
-                      className="min-h-9 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
                     >
                       수정
                     </button>
                     <button type="button" onClick={() => handleDelete(tx.id)}
-                      className="min-h-9 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
                     >
                       삭제
                     </button>

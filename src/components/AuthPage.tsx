@@ -110,10 +110,11 @@ function AuthPage() {
               />
             </div>
 
-            {/* 아이디 저장 / 자동 로그인 (로그인 모드만) */}
+            {/* 아이디 저장 / 자동 로그인 (로그인 모드만) — 체크박스 자체는 작아도
+                라벨 전체를 터치 영역으로 넓혀서 탭하기 쉽게 함 */}
             {mode === 'login' && (
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-600">
+              <div className="-ml-2 flex items-center gap-2">
+                <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600">
                   <input
                     type="checkbox"
                     checked={saveEmail}
@@ -122,7 +123,7 @@ function AuthPage() {
                   />
                   아이디 저장
                 </label>
-                <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-600">
+                <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600">
                   <input
                     type="checkbox"
                     checked={autoLogin}

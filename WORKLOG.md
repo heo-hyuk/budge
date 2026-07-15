@@ -1,5 +1,38 @@
 # WORKLOG
 
+## 2026-07-15 (18차) — 모바일 레이아웃 전체 점검 (375/390/414px)
+
+Chrome 창 크기 조절이 이 환경에서 실제 뷰포트에 반영되지 않아(가상 디스플레이 고정폭), `about:blank`에 정확한 폭의 `<iframe>`을 띄우는 방식으로 375/390/414px를 정밀 재현해 점검. 큰 금액·긴 카드명·긴 혜택명 등 스트레스 테스트 데이터를 실제로 넣고 확인.
+
+### 발견 및 수정한 문제
+- [x] **[App.tsx]** 헤더 — 이전 달로 이동해 "오늘" 버튼이 뜨면 375px에서 헤더가 넘쳐 "로그아웃" 버튼이 화면 밖으로 밀리고 가로 스크롤 발생. → 로그아웃 버튼을 `sm:` 미만에서 숨기고, 이미 있는 사이드 드로어 하단으로 이동(`hidden sm:inline-flex` + 드로어에 로그아웃 항목 추가)
+- [x] **[SummaryCard.tsx, MonthlyReport.tsx]** 수입/지출(잔액 요약) 2열 그리드 — 큰 금액이 "4,850,000" / "원"처럼 숫자 뒤 단위만 다음 줄로 떨어짐 → `grid-cols-1 sm:grid-cols-2`로 모바일에서 세로로 쌓음
+- [x] **[AnnualReport.tsx]** 연수입/연지출/연잔액 3열 그리드 — 동일 문제 → `grid-cols-1 sm:grid-cols-3`. 월별 숫자 표는 "1월"조차 "1"/"월"로 쪼개질 정도로 셀이 눌림 → `overflow-x-auto` 래퍼 추가해 표 자체가 가로 스크롤되게 하고 각 셀에 `whitespace-nowrap` 추가
+- [x] **[CardManager.tsx]** 카드 목록의 "혜택/수정/삭제" 버튼이 CJK 텍스트 특성상(공백 없어도 글자 단위로 줄바꿈 가능) "혜/택"처럼 쪼개지는 버그 발견 → `whitespace-nowrap` 추가만으로는 카드명이 "테스..."로 과도하게 truncate되는 부작용이 있어, 모바일에서는 이름 줄과 버튼 줄을 분리(`flex-col gap-3 sm:flex-row`)하는 구조로 재수정. 혜택 규칙 목록의 수정/삭제 버튼도 동일하게 `whitespace-nowrap` 보강
+- [x] **[MonthlyReport.tsx]** 카드별 청구 내역 헤더 — `min-w-0`/`shrink-0` 누락으로 긴 청구기간 문구에 밀려 "0원"조차 글자 단위로 쪼개짐 → 좌측 이름 블록에 `min-w-0`+`truncate`, 우측 금액 블록에 `shrink-0`+`whitespace-nowrap` 추가. 같은 위험이 있던 현금수입/카드입금/청구세부내역/현금지출 리스트 4곳도 동일하게 예방 수정
+- [x] **[TransactionList.tsx]** 수정/삭제 버튼 CJK 줄바꿈 방지(`whitespace-nowrap`), 거래명에 `truncate` 추가(원래 `min-w-0`만 있고 truncate가 없어 긴 이름이 좁은 공간에서 줄바꿈되던 걸 방지)
+- [x] **[BudgetManager.tsx, RecurringManager.tsx]** 비활성화/활성화/수정/삭제 버튼에 `whitespace-nowrap` 예방적 추가 (이미 `min-w-0`+`shrink-0` 구조가 있어 실제 깨짐은 없었지만 안전장치로 보강)
+- [x] **[TransactionForm.tsx]** 혜택 자동 적용 안내 박스에 `min-w-0` 추가 (긴 혜택 이름 대응, 예방적)
+- [x] **[AuthPage.tsx]** "아이디 저장"/"자동 로그인" 체크박스 터치 영역이 16px로 44px 권장 기준에 크게 못 미침 → 라벨 전체를 `min-h-11` 터치 영역으로 확장
+
+### 문제없이 확인된 컴포넌트
+CategoryBreakdown, ExportButton(기간 선택 모달), SearchView(필터 패널 + 검색 결과), AuthPage 폼 구조, 카드/예산/혜택 등록 폼들의 grid-cols-2 필드(라벨 텍스트라 짧아서 문제 없음)
+
+### 의도적으로 손대지 않은 것
+앱 전반의 수정/삭제/토글 등 보조 버튼 다수가 32~40px(min-h-7~10)로 44px 권장에 못 미치지만, 이는 앱 전체에 걸친 기존 디자인 언어라 이번 "레이아웃 깨짐 점검·수정" 범위를 넘어서는 대규모 리디자인이 필요해 손대지 않음. 명백히 너무 작았던 체크박스만 개선
+
+### 검증 결과
+- tsc --noEmit / oxlint 통과
+- wrangler pages dev + Chrome 확장(about:blank에 정확한 폭의 iframe 삽입)으로 375/390/414px 3개 너비 전부 실측: 모든 탭에서 body-level 가로 오버플로우 0 확인(자동 스캔), 위 발견 항목은 수정 전/후 스크린샷으로 직접 대조
+- 큰 금액(4,850,000원), 긴 카드명 아님이지만 긴 혜택명("스타벅스 및 카페 전용 15% 특별 할인 혜택"), 긴 고정지출명("넷플릭스 프리미엄 정기구독료"), 긴 구매처명("백화점 명품관 정기 세일 구매") 등 실제 스트레스 데이터로 검증
+
+### 변경 파일
+- `src/App.tsx`, `src/components/SummaryCard.tsx`, `src/components/MonthlyReport.tsx`, `src/components/AnnualReport.tsx`
+- `src/components/CardManager.tsx`, `src/components/TransactionList.tsx`, `src/components/BudgetManager.tsx`, `src/components/RecurringManager.tsx`
+- `src/components/TransactionForm.tsx`, `src/components/AuthPage.tsx`
+
+---
+
 ## 2026-07-15 (17차) — 전체 이슈 감사 후 발견사항 전부 수정
 
 fork로 프로젝트 전체(인증/거래/카드/고정지출/혜택/CORS) 감사 진행 후 발견된 것 전부 수정.

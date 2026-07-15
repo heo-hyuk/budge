@@ -396,25 +396,28 @@ function CardManager({ cards, onRefresh }: Props) {
             const isOpen = openBenefitCardId === card.id
             return (
               <div key={card.id} className="rounded-2xl border-2 border-neutral-200 bg-white shadow-sm overflow-hidden">
-                {/* 카드 헤더 */}
-                <div className="p-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                {/* 카드 헤더 — 좁은 화면에서는 이름 줄과 버튼 줄을 분리해야 이름이
+                    "테스..."처럼 과도하게 줄어들지 않음. sm 이상에서는 한 줄로 합침 */}
+                <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className="h-10 w-16 rounded-lg flex-shrink-0"
                       style={{ backgroundColor: card.color }}
                     />
-                    <div>
-                      <p className="text-base font-bold text-neutral-900">{card.name}</p>
-                      <p className="text-sm text-neutral-500">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-bold text-neutral-900">{card.name}</p>
+                      <p className="truncate text-sm text-neutral-500">
                         마감 {card.closing_day}일 · 결제 {card.billing_day}일
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  {/* CJK 텍스트는 공백 없이도 글자 단위로 줄바꿈될 수 있어 좁은 화면에서
+                      "혜/택"처럼 쪼개지는 걸 막기 위해 shrink-0 + whitespace-nowrap 필요 */}
+                  <div className="flex shrink-0 gap-2">
                     <button
                       type="button"
                       onClick={() => openBenefits(card.id)}
-                      className={`min-h-8 rounded-lg px-3 text-sm font-semibold ${
+                      className={`min-h-8 whitespace-nowrap rounded-lg px-3 text-sm font-semibold ${
                         isOpen ? 'bg-indigo-100 text-indigo-700' : 'bg-neutral-100 text-neutral-600'
                       }`}
                     >
@@ -423,14 +426,14 @@ function CardManager({ cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(card)}
-                      className="min-h-8 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600"
                     >
                       수정
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(card.id, card.name)}
-                      className="min-h-8 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-red-600"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-red-600"
                     >
                       삭제
                     </button>
@@ -630,14 +633,14 @@ function CardManager({ cards, onRefresh }: Props) {
                           <button
                             type="button"
                             onClick={() => startEditBenefit(b)}
-                            className="min-h-7 rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-neutral-600"
+                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-neutral-600"
                           >
                             수정
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteBenefit(b)}
-                            className="min-h-7 rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600"
+                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600"
                           >
                             삭제
                           </button>

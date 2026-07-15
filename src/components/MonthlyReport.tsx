@@ -82,7 +82,8 @@ function MonthlyReport({ month, cards }: Props) {
 
       {/* 잔액 요약 (항상 표시) */}
       <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-2 gap-3">
+        {/* 좁은 화면에서는 큰 금액이 어색하게 줄바꿈되므로 세로로 쌓고, sm 이상에서 2열로 */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs font-semibold text-neutral-500">수입 합계</p>
             <p className="text-lg font-extrabold text-blue-700">{formatWon(totalIncome)}</p>
@@ -139,16 +140,16 @@ function MonthlyReport({ month, cards }: Props) {
               <h3 className="text-base font-bold text-neutral-700 mb-3">현금 수입 내역</h3>
               <ul className="space-y-2">
                 {cashIncomeList.map((tx) => (
-                  <li key={tx.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800">
+                  <li key={tx.id} className="flex justify-between items-center gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-neutral-800">
                         {tx.merchant || tx.category}
                       </p>
                       <p className="text-xs text-neutral-400">
                         {tx.date} · {tx.category}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -160,16 +161,16 @@ function MonthlyReport({ month, cards }: Props) {
               <h3 className="text-base font-bold text-neutral-700 mb-3">카드 입금 내역</h3>
               <ul className="space-y-2">
                 {cardIncomeList.map((tx) => (
-                  <li key={tx.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800">
+                  <li key={tx.id} className="flex justify-between items-center gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-neutral-800">
                         {tx.merchant || tx.category}
                       </p>
                       <p className="text-xs text-neutral-400">
                         {tx.date} · {tx.category}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -209,16 +210,17 @@ function MonthlyReport({ month, cards }: Props) {
                 onClick={() => setExpandedCard(expandedCard === bill.card.id ? null : bill.card.id)}
                 className="w-full flex items-center justify-between px-5 py-4 text-left"
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-12 rounded-md" style={{ backgroundColor: bill.card.color }} />
-                  <div>
-                    <p className="text-base font-bold text-neutral-900">{bill.card.name}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-12 rounded-md shrink-0" style={{ backgroundColor: bill.card.color }} />
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-bold text-neutral-900">{bill.card.name}</p>
                     <p className="text-xs text-neutral-500">
                       {bill.start} ~ {bill.end} 사용분 · {bill.billingDate} 결제
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                {/* 금액/화살표는 줄어들면 안 되므로 shrink-0 — 없으면 "0원"조차 글자 단위로 쪼개짐 */}
+                <div className="shrink-0 whitespace-nowrap text-right pl-2">
                   <p className="text-base font-bold text-red-700">{formatWon(bill.amount)}</p>
                   <p className="text-xs text-neutral-400">{expandedCard === bill.card.id ? '▲' : '▼'}</p>
                 </div>
@@ -236,10 +238,10 @@ function MonthlyReport({ month, cards }: Props) {
                         .map((tx) => (
                           <li
                             key={tx.id}
-                            className="flex items-center justify-between px-5 py-2.5 border-b border-neutral-100 last:border-b-0"
+                            className="flex items-center justify-between gap-2 px-5 py-2.5 border-b border-neutral-100 last:border-b-0"
                           >
-                            <div>
-                              <p className="text-sm font-semibold text-neutral-800">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-neutral-800">
                                 {tx.merchant || tx.category}
                               </p>
                               <p className="text-xs text-neutral-400">
@@ -247,7 +249,7 @@ function MonthlyReport({ month, cards }: Props) {
                                 {tx.memo ? ` · ${tx.memo}` : ''}
                               </p>
                             </div>
-                            <span className="text-sm font-bold text-red-700">
+                            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-red-700">
                               -{formatWon(tx.amount)}
                             </span>
                           </li>
@@ -269,16 +271,16 @@ function MonthlyReport({ month, cards }: Props) {
             {monthlyTx
               .filter((t) => t.type === 'expense' && !t.card_id)
               .map((tx) => (
-                <li key={tx.id} className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-800">
+                <li key={tx.id} className="flex justify-between items-center gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-neutral-800">
                       {tx.merchant || tx.category}
                     </p>
                     <p className="text-xs text-neutral-400">
                       {tx.date} · {tx.category}
                     </p>
                   </div>
-                  <span className="text-sm font-bold text-red-700">-{formatWon(tx.amount)}</span>
+                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-red-700">-{formatWon(tx.amount)}</span>
                 </li>
               ))}
           </ul>

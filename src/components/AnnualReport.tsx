@@ -61,7 +61,8 @@ function AnnualReport({ year }: Props) {
 
       {/* 연 합계 */}
       <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-3 gap-3">
+        {/* 좁은 화면에서는 큰 금액이 줄바꿈되며 어색해지므로 세로로 쌓고, sm 이상에서 3열로 */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-blue-50 p-3">
             <p className="text-xs font-semibold text-blue-800">연 수입</p>
             <p className="mt-1 text-base font-bold text-blue-700">{formatWon(totalIncome)}</p>
@@ -114,37 +115,39 @@ function AnnualReport({ year }: Props) {
         </div>
       </div>
 
-      {/* 월별 숫자 표 */}
+      {/* 월별 숫자 표 — 좁은 화면에서는 셀 안에서 줄바꿈되며 찌그러지는 대신 표 자체가 가로 스크롤되게 함 */}
       <div className="rounded-2xl border-2 border-neutral-200 bg-white shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b-2 border-neutral-100 bg-neutral-50">
-              <th className="px-4 py-2.5 text-left font-semibold text-neutral-500">월</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-blue-700">수입</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-red-700">지출</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-neutral-700">잔액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats.map((m) => {
-              const bal = m.income - m.expense
-              return (
-                <tr key={m.month} className="border-b border-neutral-100 last:border-b-0">
-                  <td className="px-4 py-2.5 font-semibold text-neutral-700">{m.label}</td>
-                  <td className="px-4 py-2.5 text-right text-blue-700">
-                    {m.income > 0 ? formatWon(m.income) : '—'}
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-red-700">
-                    {m.expense > 0 ? formatWon(m.expense) : '—'}
-                  </td>
-                  <td className={`px-4 py-2.5 text-right font-semibold ${bal >= 0 ? 'text-neutral-800' : 'text-red-700'}`}>
-                    {m.income === 0 && m.expense === 0 ? '—' : formatWon(bal)}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <thead>
+              <tr className="border-b-2 border-neutral-100 bg-neutral-50">
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-semibold text-neutral-500">월</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-blue-700">수입</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-red-700">지출</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-neutral-700">잔액</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((m) => {
+                const bal = m.income - m.expense
+                return (
+                  <tr key={m.month} className="border-b border-neutral-100 last:border-b-0">
+                    <td className="whitespace-nowrap px-4 py-2.5 font-semibold text-neutral-700">{m.label}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-blue-700">
+                      {m.income > 0 ? formatWon(m.income) : '—'}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-red-700">
+                      {m.expense > 0 ? formatWon(m.expense) : '—'}
+                    </td>
+                    <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${bal >= 0 ? 'text-neutral-800' : 'text-red-700'}`}>
+                      {m.income === 0 && m.expense === 0 ? '—' : formatWon(bal)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -417,7 +417,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           {!matchLoading && matches.length === 1 && selectedMatch && (
             <div className="rounded-xl border-2 border-green-200 bg-green-50 p-3">
               <div className="flex items-center justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold text-green-800">
                     혜택 자동 적용: {selectedMatch.benefit.name}
                   </p>
