@@ -1,5 +1,28 @@
 # WORKLOG
 
+## 2026-07-15 (19차) — UI/UX 디자인 시스템 정비 (진행 중)
+
+사용자 피드백: "기능적인 부분은 잘 해결됐는데 UI/UX 디자인이 조금 부족한 느낌". 코드 리뷰로 확인한 현재 상태: 배경(neutral-50)+흰 카드+검정 텍스트 외 포인트 컬러 전무, `border-2 neutral-200` 두꺼운 테두리 반복, 탭/버튼 아이콘이 전부 이모지(OS별 렌더링 불일치), hover/active 트랜지션 거의 없음, 폰트 굵기만으로 위계 표현.
+
+### 방향 (사용자 확인 완료)
+- 범위: 전체 디자인 시스템 정비 (공통 토큰 먼저 정의 후 전 화면 일괄 적용)
+- 포인트 컬러: 차분한 단색(인디고 계열) — 수입(파랑)/지출(빨강) 의미색과 안 겹치게
+- 아이콘: 이모지 → lucide-react SVG 아이콘 세트로 교체
+
+### 작업 계획
+- [ ] `src/index.css` — `--color-brand-*` 토큰 정의 (완료), focus-visible 컬러 브랜드로 통일
+- [ ] `npm install lucide-react` (완료)
+- [ ] `src/App.tsx` — 헤더/사이드 드로어 아이콘 교체, 활성 탭/버튼 브랜드 컬러 적용, 테두리/트랜지션 정리
+- [ ] `src/components/SummaryCard.tsx`, `CategoryBreakdown.tsx`, `TransactionForm.tsx`, `TransactionList.tsx` — 홈 화면 우선 정비
+- [ ] `src/components/CardManager.tsx`, `RecurringManager.tsx`, `BudgetManager.tsx`, `MonthlyReport.tsx`, `AnnualReport.tsx`, `SearchView.tsx`, `AuthPage.tsx`, `ExportButton.tsx` — 나머지 화면에 동일 토큰/아이콘/버튼 스타일 일괄 적용
+- [ ] tsc/oxlint/build 검증
+- [ ] Chrome 확장 미연결 상태라 육안 검증 불가 — 코드 리뷰 + 빌드 통과로만 확인 예정임을 사용자에게 고지
+
+### 미완료
+(진행 중 — 완료 시 이 섹션 갱신)
+
+---
+
 ## 2026-07-15 (18차) — 모바일 레이아웃 전체 점검 (375/390/414px)
 
 Chrome 창 크기 조절이 이 환경에서 실제 뷰포트에 반영되지 않아(가상 디스플레이 고정폭), `about:blank`에 정확한 폭의 `<iframe>`을 띄우는 방식으로 375/390/414px를 정밀 재현해 점검. 큰 금액·긴 카드명·긴 혜택명 등 스트레스 테스트 데이터를 실제로 넣고 확인.
