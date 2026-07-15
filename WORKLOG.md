@@ -1,5 +1,23 @@
 # WORKLOG
 
+## 2026-07-15 (10차) — 코드 리뷰 4가지 수정
+
+### 작업 계획
+- [ ] Issue 2: benefitMatcher.ts calcScore 버그 수정 (hasMerchant && hasCategory 시 카테고리 누수 제거)
+- [ ] Issue 4: billing.ts getCardBillingPeriod에 daysInMonth 클램핑 추가
+- [ ] Issue 3: budgets 테이블 id를 TEXT UUID로 변경 (migration 006 + 관련 파일 전부)
+- [ ] Issue 1: schema.sql을 모든 마이그레이션 반영한 최종 상태로 재작성
+
+### 변경 파일
+- `functions/lib/benefitMatcher.ts`, `src/lib/billing.ts`
+- `migrations/006_budgets_text_id.sql` (신규), `functions/lib/budget.ts`
+- `functions/api/budgets/index.ts`, `functions/api/budgets/[id].ts`
+- `src/types.ts`, `src/lib/api.ts`
+- `schema.sql`
+
+---
+
+
 ## 2026-07-14
 
 ### 완료
