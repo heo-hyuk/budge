@@ -48,9 +48,14 @@ export function parseCookie(cookieHeader: string, key: string): string | null {
   return null
 }
 
-/** 세션 쿠키 Set-Cookie 헤더 값 생성 */
-export function sessionCookie(token: string, maxAge = 60 * 60 * 24 * 30): string {
-  return `session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}`
+/**
+ * 세션 쿠키 Set-Cookie 헤더 값 생성
+ * persist=false면 Max-Age를 생략해 브라우저 종료 시 사라지는 세션 쿠키로 발급
+ * (자동 로그인 체크 해제 시 사용)
+ */
+export function sessionCookie(token: string, persist = true): string {
+  const base = `session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/`
+  return persist ? `${base}; Max-Age=${60 * 60 * 24 * 30}` : base
 }
 
 /** 세션 쿠키 삭제용 헤더 값 */

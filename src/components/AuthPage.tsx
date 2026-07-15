@@ -3,14 +3,18 @@ import { useAuth } from '../contexts/AuthContext'
 
 type Mode = 'login' | 'register'
 
+const SAVED_EMAIL_KEY = 'budget:savedEmail'
+
 function AuthPage() {
   const { login, register } = useAuth()
   const [mode, setMode]     = useState<Mode>('login')
-  const [email, setEmail]   = useState('')
+  const [email, setEmail]   = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) ?? '')
   const [password, setPassword] = useState('')
   const [name, setName]     = useState('')
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
+  const [saveEmail, setSaveEmail] = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) !== null)
+  const [autoLogin, setAutoLogin] = useState(true)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -18,7 +22,9 @@ function AuthPage() {
     setLoading(true)
     try {
       if (mode === 'login') {
-        await login(email, password)
+        if (saveEmail) localStorage.setItem(SAVED_EMAIL_KEY, email)
+        else localStorage.removeItem(SAVED_EMAIL_KEY)
+        await login(email, password, autoLogin)
       } else {
         await register(email, password, name)
       }
@@ -103,6 +109,30 @@ function AuthPage() {
                 className="min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
               />
             </div>
+
+            {/* 아이디 저장 / 자동 로그인 (로그인 모드만) */}
+            {mode === 'login' && (
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-600">
+                  <input
+                    type="checkbox"
+                    checked={saveEmail}
+                    onChange={(e) => setSaveEmail(e.target.checked)}
+                    className="h-4 w-4 rounded border-2 border-neutral-300"
+                  />
+                  아이디 저장
+                </label>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-600">
+                  <input
+                    type="checkbox"
+                    checked={autoLogin}
+                    onChange={(e) => setAutoLogin(e.target.checked)}
+                    className="h-4 w-4 rounded border-2 border-neutral-300"
+                  />
+                  자동 로그인
+                </label>
+              </div>
+            )}
 
             {/* 에러 메시지 */}
             {error && (

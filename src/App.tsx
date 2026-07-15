@@ -45,6 +45,7 @@ function shiftMonth(month: string, delta: number): string {
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
   const [activeTab, setActiveTab]       = useState<Tab>('home')
+  const [menuOpen, setMenuOpen]         = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear]   = useState(currentYear)
   const [transactions, setTransactions]   = useState<Transaction[]>([])
@@ -133,11 +134,20 @@ function App() {
   if (!user) return <AuthPage />
 
   return (
-    <div className="min-h-svh bg-neutral-50 text-neutral-900 pb-16">
+    <div className="min-h-svh bg-neutral-50 text-neutral-900">
       {/* 헤더 */}
       <header className="border-b-2 border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
+            {/* 햄버거 버튼 */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="메뉴 열기"
+              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-2xl leading-none text-neutral-700"
+            >
+              ☰
+            </button>
             <h1 className="text-lg font-extrabold">가계부</h1>
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
@@ -278,21 +288,44 @@ function App() {
         )}
       </main>
 
-      {/* 하단 탭 네비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t-2 border-neutral-200 bg-white">
-        <div className="mx-auto max-w-5xl grid grid-cols-7">
+      {/* 사이드 메뉴 오버레이 */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* 사이드 메뉴 드로어 */}
+      <nav
+        className={`fixed left-0 top-0 z-40 h-full w-64 max-w-[80vw] transform bg-white shadow-xl transition-transform duration-200 ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b-2 border-neutral-200 px-4 py-3">
+          <h2 className="text-lg font-extrabold">가계부</h2>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="메뉴 닫기"
+            className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-xl leading-none text-neutral-500"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="flex flex-col p-2">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold transition-colors ${
+              onClick={() => { setActiveTab(tab.id); setMenuOpen(false) }}
+              className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
                 activeTab === tab.id
-                  ? 'text-neutral-900'
-                  : 'text-neutral-400'
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-neutral-600'
               }`}
             >
-              <span className="text-lg leading-none">{tab.icon}</span>
+              <span className="text-xl leading-none">{tab.icon}</span>
               {tab.label}
             </button>
           ))}

@@ -264,8 +264,11 @@ function CardManager({ cards, onRefresh }: Props) {
           {/* 청구 기간 안내 */}
           <div className="mb-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">
             <p className="font-semibold mb-1">청구 기간이란?</p>
-            <p>마감일까지 사용한 금액이 다음달 결제일에 청구됩니다.</p>
-            <p className="mt-1 text-blue-600">예) 마감일 14일 → 전월 15일~당월 14일 사용분</p>
+            <p>마감일까지 사용한 금액이 결제일에 청구됩니다.</p>
+            <p className="mt-1 text-blue-600">
+              결제일이 마감일과 같거나 늦으면(예: 마감 14일·결제 25일) 같은 달에 마감→결제되고,
+              결제일이 마감일보다 빠르면(예: 마감 25일·결제 14일) 마감 다음 달에 결제됩니다.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -297,14 +300,20 @@ function CardManager({ cards, onRefresh }: Props) {
             </div>
           </div>
 
-          {form.closing_day && form.billing_day && (
-            <div className="mb-4 rounded-xl bg-neutral-100 p-3 text-sm text-neutral-600">
-              매월 <span className="font-bold text-neutral-900">{form.billing_day}일</span>에{' '}
-              전월 <span className="font-bold text-neutral-900">{parseInt(form.closing_day) + 1}일</span>
-              {' '}~{' '}
-              당월 <span className="font-bold text-neutral-900">{form.closing_day}일</span> 사용분이 청구됩니다
-            </div>
-          )}
+          {form.closing_day && form.billing_day && (() => {
+            const closingDay = parseInt(form.closing_day)
+            const billingDay = parseInt(form.billing_day)
+            // 결제일이 마감일보다 빠르면 마감은 결제월 전월에 끝난다
+            const sameMonth = billingDay >= closingDay
+            return (
+              <div className="mb-4 rounded-xl bg-neutral-100 p-3 text-sm text-neutral-600">
+                매월 <span className="font-bold text-neutral-900">{billingDay}일</span>에{' '}
+                {sameMonth ? '전월' : '전전월'} <span className="font-bold text-neutral-900">{closingDay + 1}일</span>
+                {' '}~{' '}
+                {sameMonth ? '당월' : '전월'} <span className="font-bold text-neutral-900">{closingDay}일</span> 사용분이 청구됩니다
+              </div>
+            )
+          })()}
 
           <div className="flex gap-2">
             <button

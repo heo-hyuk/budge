@@ -3,12 +3,24 @@
 ## 2026-07-15 (14차) — 로그인 옵션 / 수입·지출정산 분리 / 마감일 로직 수정 / 사이드 메뉴
 
 ### 작업 계획
-- [ ] `functions/lib/billing.ts`(→ `src/lib/billing.ts`) — 결제일이 마감일보다 빠른 카드(예: 마감 25일·결제 14일)는 결제가 다음 달로 넘어가도록 청구기간 계산 수정. `src/components/CardManager.tsx` 안내 문구도 실제 로직과 일치하도록 수정
-- [ ] `src/components/MonthlyReport.tsx` — 지출정산/수입정산 탭 분리, 수입 쪽에도 상세 내역 리스트 추가(현재 지출만 있음)
-- [ ] 로그인 "아이디 저장"(이메일 localStorage 기억) + "자동 로그인"(체크 해제 시 브라우저 종료 시 만료되는 세션 쿠키로 발급) — `functions/lib/auth.ts`, `functions/api/auth/login.ts`, `src/contexts/AuthContext.tsx`, `src/components/AuthPage.tsx`
-- [ ] 하단 탭 네비게이션 → 사이드 드로어 메뉴로 전환, 헤더에 햄버거 버튼 추가 — `src/App.tsx`
+- [x] `src/lib/billing.ts` — 결제일이 마감일보다 빠른 카드(예: 마감 25일·결제 14일)는 결제가 다음 달로 넘어가도록 청구기간 계산 수정. `src/components/CardManager.tsx` 안내 문구도 실제 로직과 일치하도록 수정
+- [x] `src/components/MonthlyReport.tsx` — 지출정산/수입정산 탭 분리, 수입 쪽에도 상세 내역 리스트 추가(현재 지출만 있음)
+- [x] 로그인 "아이디 저장"(이메일 localStorage 기억) + "자동 로그인"(체크 해제 시 브라우저 종료 시 만료되는 세션 쿠키로 발급) — `functions/lib/auth.ts`, `functions/api/auth/login.ts`, `src/contexts/AuthContext.tsx`, `src/components/AuthPage.tsx`
+- [x] 하단 탭 네비게이션 → 사이드 드로어 메뉴로 전환, 헤더에 햄버거 버튼 추가 — `src/App.tsx`
 
-### 변경 예정 파일
+### 마감일/결제일 계산 방식 (사용자 확인 완료)
+결제일이 마감일과 같거나 늦으면(예: 마감 14일·결제 25일) 같은 달 안에서 마감→결제.
+결제일이 마감일보다 빠르면(예: 마감 25일·결제 14일, 실제 카드사에 흔한 패턴) 마감은 결제월 전월에
+끝나 있는 것으로 계산 — `getCardBillingPeriod`에서 `billing_day < closing_day`일 때 마감월을
+결제월보다 한 달 앞으로 당김. tsx로 5가지 케이스(동일월/타월/2월 클램핑 양쪽/동일값) 직접 계산해 검증.
+
+### 검증 결과
+- tsc --noEmit / oxlint / vite build 통과
+- billing.ts: tsx로 케이스별 날짜 계산 직접 검증 (정상 케이스, 역전 케이스, 2월 클램핑 양쪽, 마감=결제 동일값)
+- 로그인 옵션: wrangler pages dev --local + curl로 확인 — remember=true는 `Max-Age=2592000`(30일), remember=false는 Max-Age 없는 세션 쿠키로 정상 분기
+- Chrome 확장 미연결로 수입/지출 탭 전환, 사이드 메뉴 열고 닫기 등 UI 동작은 육안 확인 못함 (코드 리뷰로만 확인)
+
+### 변경 파일
 - `src/lib/billing.ts`, `src/components/CardManager.tsx`
 - `src/components/MonthlyReport.tsx`
 - `functions/lib/auth.ts`, `functions/api/auth/login.ts`, `src/contexts/AuthContext.tsx`, `src/components/AuthPage.tsx`

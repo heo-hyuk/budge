@@ -9,7 +9,7 @@ interface User {
 interface AuthContextValue {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember?: boolean) => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -29,11 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, remember = true) {
     const res  = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, remember }),
     })
     const body = (await res.json()) as { ok?: boolean; user?: User; error?: string }
     if (!res.ok || !body.user) throw new Error(body.error ?? '로그인에 실패했습니다')

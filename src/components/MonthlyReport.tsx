@@ -18,11 +18,14 @@ interface CardBill {
   transactions: Transaction[]
 }
 
+type SettlementView = 'expense' | 'income'
+
 function MonthlyReport({ month, cards }: Props) {
   const [monthlyTx, setMonthlyTx] = useState<Transaction[]>([])
   const [cardBills, setCardBills] = useState<CardBill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
+  const [view, setView] = useState<SettlementView>('expense')
 
   const [year, mon] = month.split('-')
   const label = `${year}년 ${parseInt(mon)}월 정산`
@@ -69,38 +72,130 @@ function MonthlyReport({ month, cards }: Props) {
   const totalExpense = cashExpense + totalCardBill
   const balance = totalIncome - totalExpense
 
+  // 카드 입금 내역 (드문 케이스지만 수입정산에서 확인 가능해야 함)
+  const cashIncomeList = monthlyTx.filter((t) => t.type === 'income' && !t.card_id)
+  const cardIncomeList = monthlyTx.filter((t) => t.type === 'income' && t.card_id)
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-neutral-800">{label}</h2>
 
-      {/* 요약 카드 */}
+      {/* 잔액 요약 (항상 표시) */}
       <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-neutral-500 mb-3">수입</h3>
-        <div className="space-y-2 mb-4">
-          <Row label="현금 수입" amount={cashIncome} color="blue" />
-          {cardIncome > 0 && <Row label="카드 입금" amount={cardIncome} color="blue" />}
-          <Row label="합계" amount={totalIncome} color="blue" bold />
-        </div>
-
-        <h3 className="text-sm font-bold text-neutral-500 mb-3 pt-3 border-t border-neutral-100">실지출</h3>
-        <div className="space-y-2 mb-4">
-          <Row label="현금 지출" amount={cashExpense} color="red" />
-          <Row label="카드 청구 합계" amount={totalCardBill} color="red" />
-          <Row label="합계" amount={totalExpense} color="red" bold />
-        </div>
-
-        <div className="pt-3 border-t-2 border-neutral-200">
-          <div className="flex items-baseline justify-between">
-            <span className="text-base font-bold text-neutral-700">잔액</span>
-            <span className={`text-2xl font-extrabold ${balance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
-              {balance >= 0 ? '+' : ''}{formatWon(balance)}
-            </span>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs font-semibold text-neutral-500">수입 합계</p>
+            <p className="text-lg font-extrabold text-blue-700">{formatWon(totalIncome)}</p>
           </div>
+          <div>
+            <p className="text-xs font-semibold text-neutral-500">지출 합계</p>
+            <p className="text-lg font-extrabold text-red-700">{formatWon(totalExpense)}</p>
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t-2 border-neutral-200 flex items-baseline justify-between">
+          <span className="text-base font-bold text-neutral-700">잔액</span>
+          <span className={`text-2xl font-extrabold ${balance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+            {balance >= 0 ? '+' : ''}{formatWon(balance)}
+          </span>
         </div>
       </div>
 
-      {/* 카드별 청구 내역 */}
-      {cardBills.length > 0 && (
+      {/* 지출정산 / 수입정산 탭 */}
+      <div className="flex rounded-xl bg-neutral-100 p-1">
+        <button
+          type="button"
+          onClick={() => setView('expense')}
+          className={`flex-1 min-h-10 rounded-lg text-sm font-bold transition-colors ${
+            view === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500'
+          }`}
+        >
+          지출정산
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('income')}
+          className={`flex-1 min-h-10 rounded-lg text-sm font-bold transition-colors ${
+            view === 'income' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500'
+          }`}
+        >
+          수입정산
+        </button>
+      </div>
+
+      {/* 수입정산 */}
+      {view === 'income' && (
+        <>
+          <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-bold text-neutral-500 mb-3">수입</h3>
+            <div className="space-y-2">
+              <Row label="현금 수입" amount={cashIncome} color="blue" />
+              {cardIncome > 0 && <Row label="카드 입금" amount={cardIncome} color="blue" />}
+              <Row label="합계" amount={totalIncome} color="blue" bold />
+            </div>
+          </div>
+
+          {cashIncomeList.length > 0 && (
+            <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-bold text-neutral-700 mb-3">현금 수입 내역</h3>
+              <ul className="space-y-2">
+                {cashIncomeList.map((tx) => (
+                  <li key={tx.id} className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-800">
+                        {tx.merchant || tx.category}
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        {tx.date} · {tx.category}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {cardIncomeList.length > 0 && (
+            <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-bold text-neutral-700 mb-3">카드 입금 내역</h3>
+              <ul className="space-y-2">
+                {cardIncomeList.map((tx) => (
+                  <li key={tx.id} className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-800">
+                        {tx.merchant || tx.category}
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        {tx.date} · {tx.category}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-blue-700">+{formatWon(tx.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {cashIncomeList.length === 0 && cardIncomeList.length === 0 && (
+            <p className="text-sm text-neutral-400 text-center py-4">이번 달 수입 내역이 없습니다</p>
+          )}
+        </>
+      )}
+
+      {/* 지출정산 */}
+      {view === 'expense' && (
+        <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-neutral-500 mb-3">실지출</h3>
+          <div className="space-y-2">
+            <Row label="현금 지출" amount={cashExpense} color="red" />
+            <Row label="카드 청구 합계" amount={totalCardBill} color="red" />
+            <Row label="합계" amount={totalExpense} color="red" bold />
+          </div>
+        </div>
+      )}
+
+      {/* 카드별 청구 내역 (지출정산에서만) */}
+      {view === 'expense' && cardBills.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-base font-bold text-neutral-700">카드별 청구 내역</h3>
           {cardBills.map((bill) => (
@@ -166,8 +261,8 @@ function MonthlyReport({ month, cards }: Props) {
         </div>
       )}
 
-      {/* 현금 지출 상세 */}
-      {cashExpense > 0 && (
+      {/* 현금 지출 상세 (지출정산에서만) */}
+      {view === 'expense' && cashExpense > 0 && (
         <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
           <h3 className="text-base font-bold text-neutral-700 mb-3">현금 지출 내역</h3>
           <ul className="space-y-2">

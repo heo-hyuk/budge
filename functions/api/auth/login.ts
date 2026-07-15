@@ -33,9 +33,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
   }
 
-  const body = await request.json() as { email?: string; password?: string }
+  const body = await request.json() as { email?: string; password?: string; remember?: boolean }
   const email    = body.email?.trim().toLowerCase()
   const password = body.password?.trim()
+  const remember = body.remember !== false  // 기본값 true (자동 로그인)
 
   if (!email || !password) return json({ error: '이메일과 비밀번호를 입력해주세요' }, 400)
 
@@ -60,6 +61,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   return json(
     { ok: true, user: { id: user.id, email: user.email, name: user.name } },
     200,
-    { 'Set-Cookie': sessionCookie(newSessionId) }
+    { 'Set-Cookie': sessionCookie(newSessionId, remember) }
   )
 }
