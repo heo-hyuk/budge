@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
+import AuthPage from './components/AuthPage'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import MonthlyReport from './components/MonthlyReport'
@@ -7,6 +8,7 @@ import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
+import { useAuth } from './contexts/AuthContext'
 import { createTransaction, deleteTransaction, fetchCards, fetchTransactions, updateTransaction } from './lib/api'
 import type { Card, NewTransaction, Transaction, UpdateTransaction } from './types'
 
@@ -37,6 +39,7 @@ function shiftMonth(month: string, delta: number): string {
 }
 
 function App() {
+  const { user, loading: authLoading, logout } = useAuth()
   const [activeTab, setActiveTab]       = useState<Tab>('home')
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear]   = useState(currentYear)
@@ -45,21 +48,22 @@ function App() {
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
 
-  // 카드 목록은 앱 시작 시 한 번 로드
+  // 로그인 상태일 때만 카드 로드
   useEffect(() => {
+    if (!user) return
     fetchCards().then(setCards).catch(() => {})
-  }, [])
+  }, [user])
 
-  // 홈 탭: 선택 월 데이터 로드
+  // 홈 탭: 선택 월 데이터 로드 (로그인 후에만)
   useEffect(() => {
-    if (activeTab !== 'home') return
+    if (!user || activeTab !== 'home') return
     setLoading(true)
     setError('')
     fetchTransactions({ month: selectedMonth })
       .then(setTransactions)
       .catch(() => setError('불러오기에 실패했습니다'))
       .finally(() => setLoading(false))
-  }, [selectedMonth, activeTab])
+  }, [selectedMonth, activeTab, user])
 
   async function handleAdd(tx: NewTransaction) {
     await createTransaction(tx)
@@ -85,12 +89,27 @@ function App() {
   const [y, mon] = selectedMonth.split('-')
   const monthLabel = `${y}년 ${parseInt(mon)}월`
 
+  // 인증 로딩 중
+  if (authLoading) {
+    return (
+      <div className="min-h-svh bg-neutral-50 flex items-center justify-center">
+        <p className="text-base text-neutral-500">불러오는 중...</p>
+      </div>
+    )
+  }
+
+  // 미로그인 → 로그인 페이지
+  if (!user) return <AuthPage />
+
   return (
     <div className="min-h-svh bg-neutral-50 text-neutral-900 pb-16">
       {/* 헤더 */}
       <header className="border-b-2 border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
-          <h1 className="text-lg font-extrabold shrink-0">가계부</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            <h1 className="text-lg font-extrabold">가계부</h1>
+            <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
+          </div>
 
           {/* 월/연도 네비게이션 (홈·월정산 탭에서 표시) */}
           {(activeTab === 'home' || activeTab === 'monthly') && (
@@ -127,6 +146,15 @@ function App() {
               >▶</button>
             </div>
           )}
+
+          {/* 로그아웃 */}
+          <button
+            type="button"
+            onClick={logout}
+            className="shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600"
+          >
+            로그아웃
+          </button>
         </div>
       </header>
 

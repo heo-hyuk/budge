@@ -7,7 +7,6 @@ const cors = {
   'Access-Control-Allow-Methods': 'DELETE, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
-
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
@@ -17,27 +16,23 @@ const json = (data: unknown, status = 200) =>
 export const onRequestOptions: PagesFunction<Env> = async () =>
   new Response(null, { status: 204, headers: cors })
 
-export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
-  await env.DB.prepare('DELETE FROM transactions WHERE id = ?').bind(params.id).run()
+export const onRequestDelete: PagesFunction<Env> = async ({ params, env, data }) => {
+  const userId = (data as { userId: string }).userId
+  // 본인 거래만 삭제
+  await env.DB.prepare(
+    'DELETE FROM transactions WHERE id = ? AND user_id = ?'
+  ).bind(params.id, userId).run()
   return json({ ok: true })
 }
 
-// 거래 수정 — 변경할 필드만 받아서 업데이트
-export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env }) => {
-  const body = await request.json() as {
-    type?: 'income' | 'expense'
-    category?: string
-    amount?: number
-    memo?: string
-    date?: string
-    merchant?: string
-    payment_method?: string
-    card_id?: string
+export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env, data }) => {
+  const userId = (data as { userId: string }).userId
+  const body   = await request.json() as {
+    type?: 'income' | 'expense'; category?: string; amount?: number
+    memo?: string; date?: string; merchant?: string; payment_method?: string; card_id?: string
   }
 
-  const fields: string[] = []
-  const values: unknown[] = []
-
+  const fields: string[] = []; const values: unknown[] = []
   if (body.type !== undefined)           { fields.push('type = ?');           values.push(body.type) }
   if (body.category !== undefined)       { fields.push('category = ?');       values.push(body.category) }
   if (body.amount !== undefined)         { fields.push('amount = ?');         values.push(body.amount) }
@@ -49,9 +44,9 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env 
 
   if (fields.length === 0) return json({ error: 'No fields to update' }, 400)
 
-  values.push(params.id)
+  values.push(params.id, userId)
   await env.DB.prepare(
-    `UPDATE transactions SET ${fields.join(', ')} WHERE id = ?`
+    `UPDATE transactions SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`
   ).bind(...values).run()
 
   return json({ ok: true })

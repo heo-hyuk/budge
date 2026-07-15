@@ -37,15 +37,16 @@
 ## 2026-07-15 (4차)
 
 ### 작업 계획
-- [ ] DB 마이그레이션 — users, sessions 테이블 / transactions·cards에 user_id 추가
-- [ ] 비밀번호 해싱 유틸 (PBKDF2 + 랜덤 salt, Web Crypto API)
-- [ ] 인증 API — register, login, logout, me
-- [ ] Pages Functions 미들웨어 — 세션 검증 + user_id context 주입
-- [ ] 기존 transactions/cards API — user_id 필터 추가
-- [ ] AuthContext (로그인 상태 전역 관리)
-- [ ] AuthPage — 로그인 / 회원가입 폼
-- [ ] App.tsx — 미로그인 시 AuthPage 표시, 헤더에 로그아웃 버튼
-- 예상 변경/신규 파일: schema.sql, migrations/002, functions/api/_middleware.ts, functions/api/auth/*, transactions/index, cards/index, src/contexts/AuthContext.tsx, src/components/AuthPage.tsx, App.tsx
+### 완료
+- [x] DB 마이그레이션 — users, sessions 테이블 / transactions·cards에 user_id 추가 (`migrations/002_add_auth.sql`)
+- [x] 비밀번호 해싱 유틸 — PBKDF2 10,000회 + 랜덤 salt (`functions/lib/auth.ts`)
+- [x] 인증 API — POST register, POST login, POST logout, GET me
+- [x] Pages Functions 미들웨어 — `/api/auth/*` 제외 전체 보호, user_id context 주입
+- [x] transactions/cards API — WHERE user_id = ? 필터로 본인 데이터만 접근
+- [x] AuthContext — 로그인 상태 전역 관리, 앱 시작 시 /api/auth/me 자동 확인
+- [x] AuthPage — 로그인/회원가입 탭 폼, 에러 메시지 표시
+- [x] App.tsx — 미로그인 시 AuthPage, 헤더에 사용자 이름 + 로그아웃 버튼
+- [x] tsc + vite 빌드 통과, Cloudflare Pages 배포 완료
 
 ---
 
