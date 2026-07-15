@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
@@ -7,6 +7,7 @@ import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import LoadingSpinner from './components/LoadingSpinner'
 import MonthlyReport from './components/MonthlyReport'
+import NotesView from './components/NotesView'
 import RecurringManager from './components/RecurringManager'
 import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
@@ -18,7 +19,7 @@ import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fe
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search'
+type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'home',      label: '홈',     icon: Home },
@@ -27,6 +28,7 @@ const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'cards',     label: '카드',   icon: CreditCard },
   { id: 'recurring', label: '고정',   icon: Repeat },
   { id: 'budget',    label: '예산',   icon: ClipboardList },
+  { id: 'notes',     label: '메모',   icon: NotebookPen },
   { id: 'search',    label: '검색',   icon: Search },
 ]
 
@@ -168,12 +170,12 @@ function App() {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <h1 className="text-lg font-extrabold text-brand-700">가계부</h1>
+            <h1 className="text-lg font-extrabold text-brand-700">텅장</h1>
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
           {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget') && (
+          {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget' || activeTab === 'notes') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200"
@@ -314,6 +316,11 @@ function App() {
           />
         )}
 
+        {/* 메모 탭 */}
+        {activeTab === 'notes' && (
+          <NotesView month={selectedMonth} />
+        )}
+
         {/* 검색 탭 */}
         {activeTab === 'search' && (
           <SearchView cards={cards} />
@@ -335,7 +342,7 @@ function App() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-          <h2 className="text-lg font-extrabold text-brand-700">가계부</h2>
+          <h2 className="text-lg font-extrabold text-brand-700">텅장</h2>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}

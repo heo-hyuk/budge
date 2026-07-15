@@ -153,3 +153,21 @@ export interface NewRecurring {
   start_date: string
   end_date?: string
 }
+
+// ── 메모장 ──────────────────────────────────────────
+
+export interface Note {
+  id: string
+  user_id: string
+  date: string       // 'YYYY-MM-DD'
+  category: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface NewNote {
+  date: string
+  category: string
+  content: string
+}

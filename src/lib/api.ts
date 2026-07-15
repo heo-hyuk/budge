@@ -1,4 +1,4 @@
-import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewNote, NewRecurring, NewTransaction, Note, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -199,6 +199,25 @@ export async function deleteBudget(id: string): Promise<void> {
 
 // Budget 타입 re-export (편의)
 export type { Budget, BudgetStatus }
+
+// ── 메모장 API ────────────────────────────────────────
+
+export async function fetchNotes(month: string): Promise<Note[]> {
+  const body = await apiRequest<{ data: Note[] }>(`/api/notes?month=${encodeURIComponent(month)}`, undefined, '메모를 불러오지 못했습니다')
+  return body.data
+}
+
+export async function saveNote(note: NewNote): Promise<void> {
+  await apiRequest('/api/notes', jsonInit('POST', note), '메모를 저장하지 못했습니다')
+}
+
+export async function updateNote(id: string, data: Partial<Pick<NewNote, 'category' | 'content'>>): Promise<void> {
+  await apiRequest(`/api/notes/${id}`, jsonInit('PATCH', data), '메모를 수정하지 못했습니다')
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await apiRequest(`/api/notes/${id}`, { method: 'DELETE' }, '메모를 삭제하지 못했습니다')
+}
 
 // ── 엑셀 내보내기 API ────────────────────────────────────
 

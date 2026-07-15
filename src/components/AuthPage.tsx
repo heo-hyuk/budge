@@ -40,7 +40,7 @@ function AuthPage() {
       <div className="w-full max-w-sm">
         {/* 로고/타이틀 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-brand-700">가계부</h1>
+          <h1 className="text-3xl font-extrabold text-brand-700">텅장</h1>
           <p className="mt-2 text-sm text-neutral-500">나만의 가계부 서비스</p>
         </div>
 

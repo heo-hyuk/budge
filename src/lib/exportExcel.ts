@@ -216,12 +216,12 @@ export function exportTransactionsToExcel(data: ExportData): void {
   // 파일명 결정
   let filename: string
   if (start_date && end_date) {
-    filename = `가계부_${start_date.replace(/-/g, '')}_${end_date.replace(/-/g, '')}.xlsx`
+    filename = `텅장_${start_date.replace(/-/g, '')}_${end_date.replace(/-/g, '')}.xlsx`
   } else if (txs.length > 0) {
     const { min, max } = dateRange(txs)
-    filename = `가계부_${min}_${max}.xlsx`
+    filename = `텅장_${min}_${max}.xlsx`
   } else {
-    filename = `가계부_전체_${todayYMD()}.xlsx`
+    filename = `텅장_전체_${todayYMD()}.xlsx`
   }
 
   XLSX.writeFile(wb, filename)

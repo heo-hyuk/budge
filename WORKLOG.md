@@ -1,6 +1,6 @@
 # WORKLOG
 
-## 2026-07-15 (21차) — 사이트명 "텅장" 적용 + 파비콘 신규 제작 + 메모장 기능 추가 (진행 중)
+## 2026-07-15 (21차) — 사이트명 "텅장" 적용 + 파비콘 신규 제작 + 메모장 기능 추가 (완료)
 
 사용자 요청 3가지:
 1. 사이트명을 "텅장"으로 확정, 전체 반영 + 파비콘 신규 제작
@@ -35,10 +35,53 @@
   뱃지, 인라인 편집, 토스트/스피너 기존 패턴 적용
 - [ ] `App.tsx` — "메모" 탭 추가(사이드 메뉴), 아이콘 선정
 - [ ] tsc/oxlint/build 통과, wrangler pages dev + curl로 notes CRUD 검증
-- [ ] 원격 D1 마이그레이션 적용 + 배포(사용자 요청대로 확인 없이 진행)
+- [x] 원격 D1 마이그레이션 적용 + 배포(사용자 요청대로 확인 없이 진행)
 
-### 미완료
-(진행 중 — 완료 시 갱신)
+### 완료
+- [x] 브랜딩 — `index.html` title "텅장", `public/favicon.svg` 신규 디자인
+  (인디고 브랜드 컬러의 통장/패스북 모양 아이콘), `App.tsx`(헤더+사이드메뉴
+  타이틀 2곳)/`AuthPage.tsx`/`exportExcel.ts`(내보내기 파일명 접두어) 전부
+  "가계부" → "텅장" 교체. `wrangler.toml`의 프로젝트 기술명(`budget`)과
+  배포 도메인(`budget-3wb.pages.dev`)은 변경하지 않음 — 바꾸면 새 Cloudflare
+  Pages 프로젝트를 만들거나 대시보드에서 리네임해야 하는 별개의 큰 작업이라
+  "사이트명(화면에 보이는 이름)" 적용 범위를 넘어선다고 판단
+- [x] `migrations/008_add_notes.sql`(신규) — `notes` 테이블(`UNIQUE(user_id, date)`
+  로 하루 1건 강제) + `schema.sql` 동기화(001~008 반영), 로컬+원격 D1 적용 완료
+- [x] `src/lib/noteCategories.ts`(신규) — 기본 카테고리(일상/만남/기념일/건강/기타)
+  + localStorage 커스텀 추가, 기존 `categories.ts`와 동일 패턴
+- [x] `functions/api/notes/index.ts`(신규) — GET(`?month=YYYY-MM`)/POST(날짜별
+  upsert, 같은 날짜 재등록 시 새 행 대신 기존 행 갱신)
+- [x] `functions/api/notes/[id].ts`(신규) — PATCH(카테고리/내용 부분 수정)/DELETE
+- [x] `src/types.ts` — `Note`, `NewNote` 타입 추가
+- [x] `src/lib/api.ts` — `fetchNotes`/`saveNote`/`updateNote`/`deleteNote` 추가
+  (20차에서 만든 공통 `apiRequest` 헬퍼 그대로 사용 — 에러 처리 패턴 자동 통일)
+- [x] `src/components/NotesView.tsx`(신규) — 선택 월의 1일~말일을 전부 세로로
+  나열(엑셀 행 스타일), 왼쪽에 날짜+요일, 오른쪽에 카테고리 뱃지+내용
+  (`whitespace-pre-wrap`이라 길어지면 자동 줄바꿈). 클릭하면 인라인 편집(카테고리
+  칩+textarea), 오늘 날짜는 브랜드 톤으로 하이라이트. 저장/삭제 성공·실패 토스트,
+  GET 실패 시 인라인 "다시 시도" — 20차에서 만든 공통 패턴 그대로 적용
+- [x] `App.tsx` — "메모" 탭 추가(아이콘 `NotebookPen`), 월 네비게이션 헤더에
+  홈/월정산/예산과 동일하게 표시되도록 조건 추가
+
+### 검증 결과
+- tsc/oxlint/vite build 전부 통과 (Functions 신규 파일 2개는 별도 tsconfig가
+  없어 `tsc --ignoreConfig --lib es2022`로 직접 타입체크, 통과)
+- wrangler pages dev + curl로 notes API 전체 시나리오 확인:
+  - 빈 월 조회 → `{data: []}`
+  - 메모 생성 → id 반환, 같은 월 조회 시 정상 포함
+  - **같은 날짜에 재등록 → 새 행이 아니라 기존 id 그대로 반환, 내용만 갱신됨**
+    (UNIQUE(user_id, date) + upsert 로직 정상 동작 확인)
+  - 내용 빈 문자열로 등록 시도 → 400 "내용을 입력해주세요"
+  - PATCH(카테고리만 변경) → 200, 조회 시 반영 확인
+  - DELETE → 200, 이후 조회 시 목록에서 사라짐 확인
+- Chrome 확장 미연결로 실제 화면(달력 레이아웃/인라인 편집/토스트)은 육안
+  확인 못함 — 코드 레벨 + API 레벨 검증으로 대체. 다음 세션에서 확장 연결되면
+  재확인 필요
+
+### 배포
+- 원격 D1에 `migrations/008_add_notes.sql` 적용 완료
+- `npm run deploy` 완료 — https://53a635ff.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 200, `/api/notes`(미인증) 401 정상 확인
 
 ---
 
