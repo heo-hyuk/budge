@@ -34,6 +34,22 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (3차)
+
+### 작업 계획
+- [ ] DB 마이그레이션 — transactions(merchant, payment_method, card_id), cards 테이블 신규
+- [ ] 카드 API — GET/POST /api/cards, PATCH/DELETE /api/cards/[id]
+- [ ] 거래 API 확장 — 신규 필드, 검색 파라미터
+- [ ] 탭 네비게이션 (홈/월별정산/연간정산/카드관리/검색)
+- [ ] TransactionForm — 구매처, 결제방법(현금/카드 선택) 필드 추가
+- [ ] CardManager 컴포넌트 — 카드 CRUD, 청구기간·결제일 직접 입력
+- [ ] MonthlyReport — 현금지출 + 카드별 청구액 표시
+- [ ] AnnualReport — 12개월 바 차트
+- [ ] SearchView — 구매처·메모·분류 검색
+- 예상 변경/신규 파일: schema.sql, types.ts, api.ts, App.tsx, TransactionForm, TransactionList, CardManager, MonthlyReport, AnnualReport, SearchView, functions/api/cards/*, functions/api/transactions/*
+
+---
+
 ## 2026-07-15 (2차)
 
 ### 완료
