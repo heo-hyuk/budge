@@ -33,6 +33,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   if (!body.name || !body.billing_day || !body.closing_day) {
     return json({ error: 'Missing required fields' }, 400)
   }
+  if (
+    body.billing_day < 1 || body.billing_day > 31 ||
+    body.closing_day < 1 || body.closing_day > 31
+  ) {
+    return json({ error: '결제일과 마감일은 1~31 사이여야 합니다' }, 400)
+  }
 
   const id         = crypto.randomUUID()
   const created_at = new Date().toISOString()

@@ -1,5 +1,26 @@
 # WORKLOG
 
+## 2026-07-15 (15차) — 카드 등록 시 마감일 자동 제안
+
+### 완료
+- [x] `src/lib/cardDateUtils.ts`(신규) — `suggestClosingDay(billingDay)`: "마감일 = 결제일 - 11일" 패턴 기반 제안값 계산, 1 미만/31 초과 시 순환 보정. 정확한 카드사 규칙이 아니라 일반 패턴 기반 제안값이라는 점을 함수 주석에 명시
+  - functions/lib이 아닌 src/lib에 배치: CardManager.tsx의 결제일 입력 onChange에서 네트워크 왕복 없이 즉시 계산해야 해서 프론트엔드 번들에 포함되어야 함 (functions/lib은 tsconfig.app.json의 include 대상이 아니라 프론트 전용 위치가 아님) — 기존 `src/lib/billing.ts`와 동일한 패턴
+- [x] `src/components/CardManager.tsx` — 결제일 필드를 마감일보다 먼저 배치, 결제일 onChange 시 `suggestClosingDay`로 마감일 자동 채움(수동 수정 이력 추적 없이 매번 재계산해 덮어씀). 마감일 필드 자체는 계속 자유롭게 수정 가능한 일반 입력창. 안내 문구 추가. 수정 모드 진입 시(`startEdit`)는 onChange를 거치지 않고 `setForm`으로 기존 값을 바로 채우므로 자동 제안이 저장된 값을 덮어쓰지 않음
+- [x] 저장 시 결제일/마감일 1~31 범위 검증 추가 — 프론트(`CardManager.handleSave`) + 백엔드(`functions/api/cards/index.ts` POST, `functions/api/cards/[id].ts` PATCH, 기존엔 없었음)
+
+### 검증 결과
+- tsc --noEmit / oxlint / vite build 통과
+- tsx로 `suggestClosingDay` 직접 검증: 25→14, 5→25(순환), 11→31(경계), 1→21, 31→20
+- wrangler pages dev --local + curl: 카드 등록 정상 케이스 200, closing_day=35(범위초과) POST 400, billing_day=0 PATCH 400, 정상 PATCH 200 확인
+- Chrome 확장 미연결로 결제일 입력 시 마감일이 실시간으로 채워지는 화면 동작, 수정 모드 진입 시 기존값 유지 여부는 육안 확인 못함 (코드 리뷰로만 확인: onChange 핸들러 분리 구조상 startEdit의 setForm은 별도 경로라 자동 제안 로직을 타지 않음)
+
+### 변경 파일
+- `src/lib/cardDateUtils.ts` (신규)
+- `src/components/CardManager.tsx`
+- `functions/api/cards/index.ts`, `functions/api/cards/[id].ts`
+
+---
+
 ## 2026-07-15 (14차) — 로그인 옵션 / 수입·지출정산 분리 / 마감일 로직 수정 / 사이드 메뉴
 
 ### 작업 계획

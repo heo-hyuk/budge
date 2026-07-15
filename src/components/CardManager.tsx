@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createBenefit, createCard, deleteBenefit, deleteCard, fetchBenefits, updateBenefit, updateCard } from '../lib/api'
+import { suggestClosingDay } from '../lib/cardDateUtils'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
 import type { Card, CardBenefit, NewBenefit, NewCard } from '../types'
@@ -58,6 +59,7 @@ function CardManager({ cards, onRefresh }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm]           = useState<CardFormState>(defaultForm)
   const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState('')
 
   // 카드별 혜택 규칙 상태
   const [openBenefitCardId, setOpenBenefitCardId] = useState<string | null>(null)
@@ -93,6 +95,7 @@ function CardManager({ cards, onRefresh }: Props) {
   function startAdd() {
     setEditingId(null)
     setForm(defaultForm())
+    setError('')
     setShowForm(true)
   }
 
@@ -106,18 +109,25 @@ function CardManager({ cards, onRefresh }: Props) {
       closing_day: String(card.closing_day),
       benefits: legacyBenefits.join('\n'),
     })
+    setError('')
     setShowForm(true)
   }
 
   function cancelForm() {
     setShowForm(false)
     setEditingId(null)
+    setError('')
   }
 
   async function handleSave() {
     const billing_day = parseInt(form.billing_day)
     const closing_day = parseInt(form.closing_day)
     if (!form.name.trim() || isNaN(billing_day) || isNaN(closing_day)) return
+    if (billing_day < 1 || billing_day > 31 || closing_day < 1 || closing_day > 31) {
+      setError('결제일과 마감일은 1~31 사이로 입력해주세요')
+      return
+    }
+    setError('')
 
     const benefits = JSON.stringify(
       form.benefits.split('\n').map((s) => s.trim()).filter(Boolean)
@@ -271,7 +281,29 @@ function CardManager({ cards, onRefresh }: Props) {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3 mb-1.5">
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">결제일</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={1} max={31}
+                  value={form.billing_day}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    const parsed = parseInt(raw, 10)
+                    setForm((f) => ({
+                      ...f,
+                      billing_day: raw,
+                      // 결제일을 바꿀 때마다 마감일을 다시 제안 (기존 수동 수정값이 있어도 그냥 덮어씀)
+                      closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
+                    }))
+                  }}
+                  className="min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 pr-8 text-base focus:border-blue-500 focus:outline-none"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">청구 마감일</label>
               <div className="relative">
@@ -285,20 +317,10 @@ function CardManager({ cards, onRefresh }: Props) {
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">결제일</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={1} max={31}
-                  value={form.billing_day}
-                  onChange={(e) => setForm((f) => ({ ...f, billing_day: e.target.value }))}
-                  className="min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 pr-8 text-base focus:border-blue-500 focus:outline-none"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
-              </div>
-            </div>
           </div>
+          <p className="mb-4 text-xs text-neutral-400">
+            마감일은 결제일 기준 자동 제안값이에요. 카드사 안내와 다르면 직접 수정하세요
+          </p>
 
           {form.closing_day && form.billing_day && (() => {
             const closingDay = parseInt(form.closing_day)
@@ -314,6 +336,8 @@ function CardManager({ cards, onRefresh }: Props) {
               </div>
             )
           })()}
+
+          {error && <p className="mb-3 text-sm font-semibold text-red-600">{error}</p>}
 
           <div className="flex gap-2">
             <button

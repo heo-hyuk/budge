@@ -22,6 +22,13 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
     name?: string; color?: string; billing_day?: number; closing_day?: number; benefits?: string
   }
 
+  if (body.billing_day !== undefined && (body.billing_day < 1 || body.billing_day > 31)) {
+    return json({ error: '결제일은 1~31 사이여야 합니다' }, 400)
+  }
+  if (body.closing_day !== undefined && (body.closing_day < 1 || body.closing_day > 31)) {
+    return json({ error: '마감일은 1~31 사이여야 합니다' }, 400)
+  }
+
   const fields: string[] = []; const values: unknown[] = []
   if (body.name !== undefined)        { fields.push('name = ?');        values.push(body.name) }
   if (body.color !== undefined)       { fields.push('color = ?');       values.push(body.color) }
