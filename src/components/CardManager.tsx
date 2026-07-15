@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import { createBenefit, createCard, deleteBenefit, deleteCard, fetchBenefits, updateBenefit, updateCard } from '../lib/api'
+import { getCardBillingPeriod } from '../lib/billing'
 import { suggestClosingDay } from '../lib/cardDateUtils'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
 import type { Card, CardBenefit, NewBenefit, NewCard } from '../types'
+
+const MONTH_BACK_LABELS = ['당월', '전월', '전전월', '전전전월']
+
+/** 두 'YYYY-MM-DD' 사이의 개월 차이 (a가 b보다 몇 달 뒤인지) */
+function monthsBetween(a: string, b: string): number {
+  const [ay, am] = a.split('-').map(Number)
+  const [by, bm] = b.split('-').map(Number)
+  return (ay - by) * 12 + (am - bm)
+}
 
 // 카드 색상 프리셋
 const COLOR_PRESETS = [
@@ -325,14 +335,29 @@ function CardManager({ cards, onRefresh }: Props) {
           {form.closing_day && form.billing_day && (() => {
             const closingDay = parseInt(form.closing_day)
             const billingDay = parseInt(form.billing_day)
-            // 결제일이 마감일보다 빠르면 마감은 결제월 전월에 끝난다
-            const sameMonth = billingDay >= closingDay
+            if (isNaN(closingDay) || isNaN(billingDay)) return null
+            if (closingDay < 1 || closingDay > 31 || billingDay < 1 || billingDay > 31) return null
+
+            // 실제 청구기간 계산(billing.ts)과 동일한 로직으로 미리보기를 만들어 화면 문구와
+            // 실제 계산이 항상 일치하게 함 (마감일 31일처럼 "+1일"이 32일로 넘어가는 경우를
+            // 직접 계산하면 놓치기 쉬움). 앵커 월은 항상 31일까지 있는 달을 써서
+            // 말일 클램핑이 미리보기 숫자를 왜곡하지 않도록 함
+            const { start, end, billingDate } = getCardBillingPeriod('2024-01', {
+              id: '', name: '', color: '', billing_day: billingDay, closing_day: closingDay,
+              benefits: '[]', created_at: '',
+            })
+            const endLabel   = MONTH_BACK_LABELS[monthsBetween(billingDate, end)]   ?? '이전월'
+            const startLabel = MONTH_BACK_LABELS[monthsBetween(billingDate, start)] ?? '이전월'
+            const endDay   = parseInt(end.split('-')[2], 10)
+            const startDay = parseInt(start.split('-')[2], 10)
+
             return (
               <div className="mb-4 rounded-xl bg-neutral-100 p-3 text-sm text-neutral-600">
                 매월 <span className="font-bold text-neutral-900">{billingDay}일</span>에{' '}
-                {sameMonth ? '전월' : '전전월'} <span className="font-bold text-neutral-900">{closingDay + 1}일</span>
+                {startLabel} <span className="font-bold text-neutral-900">{startDay}일</span>
                 {' '}~{' '}
-                {sameMonth ? '당월' : '전월'} <span className="font-bold text-neutral-900">{closingDay}일</span> 사용분이 청구됩니다
+                {startLabel !== endLabel && `${endLabel} `}
+                <span className="font-bold text-neutral-900">{endDay}일</span> 사용분이 청구됩니다
               </div>
             )
           })()}
