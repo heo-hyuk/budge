@@ -1,10 +1,11 @@
-import { SlidersHorizontal } from 'lucide-react'
+import { RotateCw, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
 import type { Card, Transaction, TransactionType } from '../types'
 import ExportButton from './ExportButton'
+import LoadingSpinner from './LoadingSpinner'
 
 interface Props {
   cards: Card[]
@@ -41,6 +42,7 @@ function SearchView({ cards }: Props) {
   const [showFilters, setShowFilters] = useState(false)
   const [results, setResults]     = useState<Transaction[] | null>(null)
   const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
 
   const cardMap = new Map(cards.map((c) => [c.id, c]))
 
@@ -62,6 +64,7 @@ function SearchView({ cards }: Props) {
   async function handleSearch(e?: React.FormEvent) {
     e?.preventDefault()
     setLoading(true)
+    setError('')
     try {
       // API: q, date_start, date_end, card_id 서버 필터
       const txs = await fetchTransactions({
@@ -85,6 +88,9 @@ function SearchView({ cards }: Props) {
       })
 
       setResults(filtered)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '검색에 실패했습니다')
+      setResults(null)
     } finally {
       setLoading(false)
     }
@@ -123,9 +129,9 @@ function SearchView({ cards }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="min-h-11 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
+            className="min-h-11 flex items-center justify-center rounded-xl bg-brand-600 px-5 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
           >
-            {loading ? '...' : '검색'}
+            {loading ? <LoadingSpinner size={16} /> : '검색'}
           </button>
         </div>
 
@@ -359,8 +365,22 @@ function SearchView({ cards }: Props) {
         )}
       </form>
 
+      {/* 검색 실패 — 인라인 재시도 (토스트로 화면을 덮지 않음) */}
+      {error && (
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => handleSearch()}
+            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+          >
+            <RotateCw size={13} /> 다시 시도
+          </button>
+        </div>
+      )}
+
       {/* 검색 결과 */}
-      {results !== null && (
+      {!error && results !== null && (
         <>
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-neutral-500">

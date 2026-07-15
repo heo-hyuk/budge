@@ -1,5 +1,45 @@
 import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
+/** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
+export class ApiError extends Error {
+  status?: number
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+/** 실패 응답 본문에서 { error: "..." } 메시지를 뽑아내고, 없으면 폴백 메시지 사용 */
+async function parseErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json() as { error?: string }
+    return body?.error || fallback
+  } catch {
+    return fallback
+  }
+}
+
+/** 네트워크 자체 실패(서버에 도달 못함)를 사용자 친화적 메시지로 변환 */
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new ApiError('인터넷 연결을 확인해주세요')
+  }
+}
+
+/** 공통 요청 헬퍼: 네트워크 실패 / 서버 실패를 구분해 ApiError로 통일 */
+async function apiRequest<T>(url: string, init: RequestInit | undefined, fallback: string): Promise<T> {
+  const res = await apiFetch(url, init)
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res, fallback), res.status)
+  return res.json() as Promise<T>
+}
+
+function jsonInit(method: string, body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+}
+
 // ── 거래 API ──────────────────────────────────────────
 
 export async function fetchTransactions(params?: {
@@ -19,132 +59,81 @@ export async function fetchTransactions(params?: {
   if (params?.date_end)   qs.set('date_end', params.date_end)
 
   const url = `/api/transactions${qs.toString() ? `?${qs}` : ''}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('거래 내역을 불러오지 못했습니다')
-  const body = (await res.json()) as { data: Transaction[] }
+  const body = await apiRequest<{ data: Transaction[] }>(url, undefined, '거래 내역을 불러오지 못했습니다')
   return body.data
 }
 
 export async function createTransaction(tx: NewTransaction): Promise<void> {
-  const res = await fetch('/api/transactions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(tx),
-  })
-  if (!res.ok) throw new Error('거래를 추가하지 못했습니다')
+  await apiRequest('/api/transactions', jsonInit('POST', tx), '거래를 추가하지 못했습니다')
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('거래를 삭제하지 못했습니다')
+  await apiRequest(`/api/transactions/${id}`, { method: 'DELETE' }, '거래를 삭제하지 못했습니다')
 }
 
 export async function updateTransaction(id: string, data: UpdateTransaction): Promise<void> {
-  const res = await fetch(`/api/transactions/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('거래를 수정하지 못했습니다')
+  await apiRequest(`/api/transactions/${id}`, jsonInit('PATCH', data), '거래를 수정하지 못했습니다')
 }
 
 // ── 카드 API ──────────────────────────────────────────
 
 export async function fetchCards(): Promise<Card[]> {
-  const res = await fetch('/api/cards')
-  if (!res.ok) throw new Error('카드 목록을 불러오지 못했습니다')
-  const body = (await res.json()) as { data: Card[] }
+  const body = await apiRequest<{ data: Card[] }>('/api/cards', undefined, '카드 목록을 불러오지 못했습니다')
   return body.data
 }
 
 export async function createCard(card: NewCard): Promise<void> {
-  const res = await fetch('/api/cards', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(card),
-  })
-  if (!res.ok) throw new Error('카드를 추가하지 못했습니다')
+  await apiRequest('/api/cards', jsonInit('POST', card), '카드를 추가하지 못했습니다')
 }
 
 export async function updateCard(id: string, data: Partial<NewCard>): Promise<void> {
-  const res = await fetch(`/api/cards/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('카드를 수정하지 못했습니다')
+  await apiRequest(`/api/cards/${id}`, jsonInit('PATCH', data), '카드를 수정하지 못했습니다')
 }
 
 export async function deleteCard(id: string): Promise<void> {
-  const res = await fetch(`/api/cards/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('카드를 삭제하지 못했습니다')
+  await apiRequest(`/api/cards/${id}`, { method: 'DELETE' }, '카드를 삭제하지 못했습니다')
 }
 
 // ── 고정지출 API ──────────────────────────────────────
 
 export async function fetchRecurring(): Promise<RecurringTransaction[]> {
-  const res = await fetch('/api/recurring')
-  if (!res.ok) throw new Error('고정지출 목록을 불러오지 못했습니다')
-  const body = (await res.json()) as { data: RecurringTransaction[] }
+  const body = await apiRequest<{ data: RecurringTransaction[] }>('/api/recurring', undefined, '고정지출 목록을 불러오지 못했습니다')
   return body.data
 }
 
 export async function createRecurring(data: NewRecurring): Promise<void> {
-  const res = await fetch('/api/recurring', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('고정지출을 추가하지 못했습니다')
+  await apiRequest('/api/recurring', jsonInit('POST', data), '고정지출을 추가하지 못했습니다')
 }
 
 export async function updateRecurring(id: string, data: Partial<NewRecurring> & { active?: number }): Promise<void> {
-  const res = await fetch(`/api/recurring/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('고정지출을 수정하지 못했습니다')
+  await apiRequest(`/api/recurring/${id}`, jsonInit('PATCH', data), '고정지출을 수정하지 못했습니다')
 }
 
 export async function deleteRecurring(id: string): Promise<void> {
-  const res = await fetch(`/api/recurring/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('고정지출을 삭제하지 못했습니다')
+  await apiRequest(`/api/recurring/${id}`, { method: 'DELETE' }, '고정지출을 삭제하지 못했습니다')
 }
 
 // ── 혜택 규칙 API ─────────────────────────────────────
 
 export async function fetchBenefits(cardId?: string): Promise<CardBenefit[]> {
   const url = cardId ? `/api/benefits?card_id=${encodeURIComponent(cardId)}` : '/api/benefits'
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('혜택 목록을 불러오지 못했습니다')
-  const body = (await res.json()) as { data: CardBenefit[] }
+  const body = await apiRequest<{ data: CardBenefit[] }>(url, undefined, '혜택 목록을 불러오지 못했습니다')
   return body.data
 }
 
 export async function createBenefit(data: NewBenefit): Promise<void> {
-  const res = await fetch('/api/benefits', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('혜택을 추가하지 못했습니다')
+  await apiRequest('/api/benefits', jsonInit('POST', data), '혜택을 추가하지 못했습니다')
 }
 
 export async function updateBenefit(id: string, data: Partial<NewBenefit>): Promise<void> {
-  const res = await fetch(`/api/benefits/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('혜택을 수정하지 못했습니다')
+  await apiRequest(`/api/benefits/${id}`, jsonInit('PATCH', data), '혜택을 수정하지 못했습니다')
 }
 
 export async function deleteBenefit(id: string): Promise<void> {
-  const res = await fetch(`/api/benefits/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('혜택을 삭제하지 못했습니다')
+  await apiRequest(`/api/benefits/${id}`, { method: 'DELETE' }, '혜택을 삭제하지 못했습니다')
 }
 
+/** 혜택 매칭은 거래 입력 중 실시간 보조 기능이라, 실패해도 조용히 빈 배열 반환(사용자 흐름 방해 안 함) */
 export async function matchBenefit(params: {
   card_id: string
   merchant: string
@@ -159,18 +148,20 @@ export async function matchBenefit(params: {
     amount: String(params.amount),
     month: params.month,
   })
-  const res = await fetch(`/api/benefits/match?${qs}`)
-  if (!res.ok) return []
-  const body = (await res.json()) as { data: BenefitMatch[] }
-  return body.data
+  try {
+    const res = await fetch(`/api/benefits/match?${qs}`)
+    if (!res.ok) return []
+    const body = (await res.json()) as { data: BenefitMatch[] }
+    return body.data
+  } catch {
+    return []
+  }
 }
 
 // ── 예산 API ──────────────────────────────────────────
 
 export async function fetchBudgetStatus(yearMonth: string): Promise<BudgetStatus[]> {
-  const res = await fetch(`/api/budgets?year_month=${encodeURIComponent(yearMonth)}`)
-  if (!res.ok) throw new Error('예산 정보를 불러오지 못했습니다')
-  const body = (await res.json()) as { data: BudgetStatus[] }
+  const body = await apiRequest<{ data: BudgetStatus[] }>(`/api/budgets?year_month=${encodeURIComponent(yearMonth)}`, undefined, '예산 정보를 불러오지 못했습니다')
   return body.data
 }
 
@@ -185,34 +176,25 @@ export class BudgetConflictError extends Error {
 }
 
 export async function createBudget(data: NewBudget): Promise<void> {
-  const res = await fetch('/api/budgets', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
+  const res = await apiFetch('/api/budgets', jsonInit('POST', data))
   if (res.status === 409) {
     const body = await res.json() as { error: string; conflictId?: string }
     throw new BudgetConflictError(body.error, body.conflictId)
   }
-  if (!res.ok) throw new Error('예산을 등록하지 못했습니다')
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res, '예산을 등록하지 못했습니다'), res.status)
 }
 
 export async function updateBudget(id: string, data: Partial<NewBudget> & { active?: number }): Promise<void> {
-  const res = await fetch(`/api/budgets/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
+  const res = await apiFetch(`/api/budgets/${id}`, jsonInit('PATCH', data))
   if (res.status === 409) {
     const body = await res.json() as { error: string; conflictId?: string }
     throw new BudgetConflictError(body.error, body.conflictId)
   }
-  if (!res.ok) throw new Error('예산을 수정하지 못했습니다')
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res, '예산을 수정하지 못했습니다'), res.status)
 }
 
 export async function deleteBudget(id: string): Promise<void> {
-  const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('예산을 삭제하지 못했습니다')
+  await apiRequest(`/api/budgets/${id}`, { method: 'DELETE' }, '예산을 삭제하지 못했습니다')
 }
 
 // Budget 타입 re-export (편의)
@@ -231,7 +213,5 @@ export async function fetchExportData(params: {
   if (params.end_date)   qs.set('end_date',   params.end_date)
 
   const url = `/api/export${qs.toString() ? `?${qs}` : ''}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('내보내기 데이터를 불러오지 못했습니다')
-  return res.json() as Promise<ExportData>
+  return apiRequest<ExportData>(url, undefined, '내보내기 데이터를 불러오지 못했습니다')
 }

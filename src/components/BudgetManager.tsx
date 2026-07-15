@@ -1,5 +1,7 @@
 import { TriangleAlert, Wallet } from 'lucide-react'
 import { useState } from 'react'
+import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { BudgetConflictError, createBudget, deleteBudget, updateBudget } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatNumberInput, formatWon } from '../lib/format'
@@ -45,12 +47,15 @@ function bgColor(pct: number): string {
 }
 
 function BudgetManager({ statuses, month, onRefresh }: Props) {
+  const { showToast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(defaultForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
   const [conflictTarget, setConflictTarget] = useState<BudgetStatus | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const [y, mon] = month.split('-')
   const monthLabel = `${y}년 ${parseInt(mon)}월`
@@ -117,7 +122,10 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
       }
       await onRefresh()
       cancelForm()
+      showToast(editingId !== null ? '예산을 수정했습니다' : '예산을 등록했습니다')
     } catch (e) {
+      // 카테고리 중복(409)은 alert가 아니라 폼 내부 인라인 에러로 표시 — 토스트로 화면을 덮으면
+      // "기존 항목 수정하러 가기" 안내를 놓치기 쉬워 의도적으로 토스트를 쓰지 않음
       if (e instanceof BudgetConflictError) {
         setError(e.message)
         setConflictTarget(statuses.find((s) => s.budget.id === e.conflictId) ?? null)
@@ -131,13 +139,29 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
   async function handleDelete(id: string, category: string) {
     if (!window.confirm(`"${category}" 예산을 삭제할까요?`)) return
-    await deleteBudget(id)
-    await onRefresh()
+    setDeletingId(id)
+    try {
+      await deleteBudget(id)
+      await onRefresh()
+      showToast('예산을 삭제했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '예산을 삭제하지 못했습니다', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   async function handleToggle(s: BudgetStatus) {
-    await updateBudget(s.budget.id, { active: s.budget.active === 1 ? 0 : 1 })
-    await onRefresh()
+    setTogglingId(s.budget.id)
+    try {
+      await updateBudget(s.budget.id, { active: s.budget.active === 1 ? 0 : 1 })
+      await onRefresh()
+      showToast(s.budget.active === 1 ? '비활성화했습니다' : '활성화했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '상태를 변경하지 못했습니다', 'error')
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   const exceededList = statuses.filter((s) => s.exceeded && s.budget.active === 1)
@@ -274,9 +298,9 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="min-h-10 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '저장 중...' : '저장'}
+              {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
             </button>
             <button
               type="button"
@@ -362,11 +386,12 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleToggle(s)}
-                      className={`min-h-7 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+                      disabled={togglingId === s.budget.id}
+                      className={`min-h-7 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1 ${
                         isActive ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
                       }`}
                     >
-                      {isActive ? '비활성화' : '활성화'}
+                      {togglingId === s.budget.id ? <LoadingSpinner size={12} /> : (isActive ? '비활성화' : '활성화')}
                     </button>
                     <button
                       type="button"
@@ -378,9 +403,10 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleDelete(s.budget.id, s.budget.category)}
-                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                      disabled={deletingId === s.budget.id}
+                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1"
                     >
-                      삭제
+                      {deletingId === s.budget.id ? <LoadingSpinner size={12} /> : '삭제'}
                     </button>
                   </div>
                 </div>

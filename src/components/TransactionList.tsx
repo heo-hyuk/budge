@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatNumberInput, formatWon } from '../lib/format'
 import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
@@ -6,7 +8,7 @@ import type { Card, Transaction, TransactionType, UpdateTransaction } from '../t
 interface Props {
   transactions: Transaction[]
   cards: Card[]
-  onDelete: (id: string) => void
+  onDelete: (id: string) => Promise<void>
   onUpdate: (id: string, data: UpdateTransaction) => Promise<void>
 }
 
@@ -21,9 +23,11 @@ interface EditState {
 }
 
 function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
+  const { showToast } = useToast()
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [editState, setEditState]   = useState<EditState | null>(null)
   const [saving, setSaving]         = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // 카드 ID → Card 매핑
   const cardMap = new Map(cards.map((c) => [c.id, c]))
@@ -78,13 +82,25 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
       })
       setEditingId(null)
       setEditState(null)
+      showToast('거래를 수정했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '거래를 수정하지 못했습니다', 'error')
     } finally {
       setSaving(false)
     }
   }
 
-  function handleDelete(id: string) {
-    if (window.confirm('이 내역을 삭제할까요?')) onDelete(id)
+  async function handleDelete(id: string) {
+    if (!window.confirm('이 내역을 삭제할까요?')) return
+    setDeletingId(id)
+    try {
+      await onDelete(id)
+      showToast('거래를 삭제했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '거래를 삭제하지 못했습니다', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -176,9 +192,9 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}
-                      className="min-h-9 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                      className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                     >
-                      {saving ? '저장 중...' : '저장'}
+                      {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
                     </button>
                     <button type="button" onClick={cancelEdit}
                       className="min-h-9 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
@@ -227,10 +243,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     >
                       수정
                     </button>
-                    <button type="button" onClick={() => handleDelete(tx.id)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                    <button type="button" onClick={() => handleDelete(tx.id)} disabled={deletingId === tx.id}
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      삭제
+                      {deletingId === tx.id ? <LoadingSpinner size={14} /> : '삭제'}
                     </button>
                   </div>
                 </li>

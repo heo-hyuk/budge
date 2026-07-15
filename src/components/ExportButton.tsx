@@ -1,5 +1,6 @@
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { useToast } from '../contexts/ToastContext'
 import { fetchExportData } from '../lib/api'
 import { exportTransactionsToExcel } from '../lib/exportExcel'
 
@@ -38,6 +39,7 @@ function presetDates(preset: Preset, year?: string, month?: string) {
 }
 
 export default function ExportButton({ defaultPreset = 'this_month', year, month }: Props) {
+  const { showToast } = useToast()
   const [open, setOpen]         = useState(false)
   const [preset, setPreset]     = useState<Preset>(defaultPreset)
   const [customStart, setCustomStart] = useState('')
@@ -72,6 +74,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
       }
       exportTransactionsToExcel(data)
       setOpen(false)
+      showToast('엑셀 파일을 다운로드했습니다')
     } catch (e) {
       setError(e instanceof Error ? e.message : '내보내기 실패')
     } finally {

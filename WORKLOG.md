@@ -1,6 +1,6 @@
 # WORKLOG
 
-## 2026-07-15 (20차) — 에러/로딩 처리 공통 패턴 통일 (진행 중)
+## 2026-07-15 (20차) — 에러/로딩 처리 공통 패턴 통일 (완료)
 
 사용자 요청: 여러 기능(고정지출/할인추적/예산/엑셀내보내기)이 순차 추가되며
 컴포넌트마다 로딩/에러 처리 방식이 제각각이라 하나의 공통 패턴으로 통일.
@@ -34,9 +34,46 @@
 - [ ] GET 조회 실패는 토스트 대신 인라인 "불러오기 실패, 다시 시도" +
   재시도 버튼: `SearchView` 검색 결과, `CardManager` 혜택 목록, `App.tsx` 홈 탭
 - [ ] `TransactionList` 삭제 optimistic update — 실패 시 롤백(재조회) 확인/수정
-- [ ] tsc/oxlint/build 통과, wrangler pages dev로 네트워크 차단/예산 중복/정상
-  저장 시나리오 확인 (Chrome 확장 미연결 상태라 실제 토스트 렌더링 육안 확인은
-  제한적일 수 있음 — 서버 응답/코드 레벨로 최대한 검증)
+
+### 검증 결과
+- tsc/oxlint/vite build 전부 통과
+- wrangler pages dev + curl로 서버 레벨 검증: 거래 금액 음수 POST → 400
+  `{error: "금액은 0보다 커야 합니다"}`, 예산 중복 등록 → 409
+  `{error: ..., conflictId}` — 둘 다 `ApiError`/`BudgetConflictError`가 그대로
+  파싱해 전달함을 확인
+- tsx로 `src/lib/api.ts`의 `fetch` 자체를 던지도록 모킹해 네트워크 실패 경로
+  직접 검증 → `ApiError('인터넷 연결을 확인해주세요')` 발생 확인
+- Chrome 확장이 이번 세션 내내 연결되지 않아 실제 토스트 렌더링(색상/위치/
+  자동소멸)과 스피너 애니메이션은 육안으로 확인하지 못함 — 코드 레벨(서버 응답
+  파싱, 네트워크 실패 모킹) 검증으로 대체. 다음 세션에서 Chrome 확장 연결되면
+  반드시 실제 화면으로 재확인 필요
+
+### 완료
+- [x] `src/lib/api.ts` — `ApiError` 클래스 + `apiFetch`/`parseErrorMessage`/
+  `apiRequest` 공통 헬퍼로 전체 함수 재작성. 네트워크 실패는
+  "인터넷 연결을 확인해주세요", 서버 실패는 서버가 준 `{error}` 메시지 우선
+  사용(없으면 폴백). `BudgetConflictError`(409) 분기는 유지. `matchBenefit`은
+  거래 입력 중 실시간 보조 기능이라 의도적으로 조용히 빈 배열 반환 유지
+- [x] `src/contexts/ToastContext.tsx`(신규), `src/components/Toast.tsx`(신규) —
+  전역 `showToast(message, 'success'|'error')`, 3초 자동 소멸, `src/main.tsx`에
+  `ToastProvider`+`<Toast />` 연결
+- [x] `src/components/LoadingSpinner.tsx`(신규) — lucide `Loader2` 기반 소형 스피너
+- [x] `TransactionForm.tsx` — 저장 성공/실패 토스트, 제출 버튼 스피너+"처리 중..."
+- [x] `TransactionList.tsx` — 인라인 수정 저장/삭제 성공·실패 토스트, 삭제 버튼별
+  개별 로딩 상태. `App.tsx`의 `handleDelete`에 낙관적 업데이트 롤백 추가(실패 시
+  삭제 전 목록으로 복원 후 에러를 다시 던져 `TransactionList`가 토스트 표시)
+- [x] `CardManager.tsx` — 카드 저장/삭제, 혜택 규칙 저장/삭제 전부 토스트+개별
+  로딩 스피너. 혜택 목록 GET 실패는 토스트 대신 인라인 "다시 시도" 버튼으로 변경
+- [x] `RecurringManager.tsx` — 저장/토글/삭제 토스트+개별 로딩 스피너
+- [x] `BudgetManager.tsx` — 예산 중복(409)은 기존대로 alert 없이 인라인 에러 +
+  "기존 항목 수정하러 가기" 유지(요청대로), 저장 성공 토스트 추가, 삭제/토글은
+  토스트+개별 로딩 스피너 신규 추가
+- [x] `ExportButton.tsx` — 기존 인라인 에러 유지, 다운로드 성공 시 토스트 추가
+- [x] `SearchView.tsx` — 검색 실패 시(기존엔 조용히 무시됨) 인라인 에러+"다시 시도"
+  버튼 신규 추가, 검색 버튼에 스피너 적용
+- [x] `App.tsx` — 홈 탭 거래/예산 로딩 실패 시 인라인 에러+재시도 버튼으로 변경
+  (기존엔 고정 문구만 표시), 카드/고정지출 배경 로딩 실패는 토스트로 알림(기존엔
+  완전히 조용히 무시됨)
 
 ---
 

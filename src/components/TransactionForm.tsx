@@ -1,5 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { matchBenefit } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
 import { formatNumberInput, formatWon, todayStr } from '../lib/format'
@@ -12,6 +14,7 @@ interface Props {
 }
 
 function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
+  const { showToast } = useToast()
   const [type, setType]               = useState<TransactionType>('expense')
   const [categories, setCategories]   = useState(() => getCategories('expense'))
   const [category, setCategory]       = useState(categories[0])
@@ -131,6 +134,9 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
       setMerchant('')
       setMatches([])
       setSelectedMatch(null)
+      showToast('거래를 저장했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '거래를 저장하지 못했습니다', 'error')
     } finally {
       setSaving(false)
     }
@@ -450,9 +456,9 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="mt-5 min-h-12 w-full rounded-xl bg-brand-600 text-lg font-bold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50"
+        className="mt-5 min-h-12 w-full rounded-xl bg-brand-600 text-lg font-bold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        {saving ? '저장 중...' : (
+        {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
           selectedMatch
             ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
             : '저장하기'

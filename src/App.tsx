@@ -1,10 +1,11 @@
-import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, Repeat, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
+import LoadingSpinner from './components/LoadingSpinner'
 import MonthlyReport from './components/MonthlyReport'
 import RecurringManager from './components/RecurringManager'
 import SearchView from './components/SearchView'
@@ -12,6 +13,7 @@ import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
+import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
@@ -45,6 +47,7 @@ function shiftMonth(month: string, delta: number): string {
 
 function App() {
   const { user, loading: authLoading, logout } = useAuth()
+  const { showToast } = useToast()
   const [activeTab, setActiveTab]       = useState<Tab>('home')
   const [menuOpen, setMenuOpen]         = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
@@ -56,16 +59,20 @@ function App() {
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
 
-  // 로그인 상태일 때 카드 + 고정지출 로드
+  // 로그인 상태일 때 카드 + 고정지출 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
   useEffect(() => {
     if (!user) return
-    fetchCards().then(setCards).catch(() => {})
-    fetchRecurring().then(setRecurringItems).catch(() => {})
+    fetchCards().then(setCards).catch((err) => {
+      showToast(err instanceof Error ? err.message : '카드 목록을 불러오지 못했습니다', 'error')
+    })
+    fetchRecurring().then(setRecurringItems).catch((err) => {
+      showToast(err instanceof Error ? err.message : '고정지출 목록을 불러오지 못했습니다', 'error')
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   // 홈 탭: 선택 월 데이터 로드 (로그인 후에만)
-  useEffect(() => {
-    if (!user || activeTab !== 'home') return
+  function loadHomeData() {
     setLoading(true)
     setError('')
     Promise.all([
@@ -76,8 +83,14 @@ function App() {
         setTransactions(txs)
         setBudgetStatuses(budgets)
       })
-      .catch(() => setError('불러오기에 실패했습니다'))
+      .catch((err) => setError(err instanceof Error ? err.message : '불러오기에 실패했습니다'))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    if (!user || activeTab !== 'home') return
+    loadHomeData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, activeTab, user])
 
   // 예산 탭 전환 시 현재 월 예산 새로고침
@@ -101,8 +114,14 @@ function App() {
   }
 
   async function handleDelete(id: string) {
+    const backup = transactions
     setTransactions((prev) => prev.filter((t) => t.id !== id))
-    await deleteTransaction(id)
+    try {
+      await deleteTransaction(id)
+    } catch (err) {
+      setTransactions(backup)  // 삭제 실패 시 낙관적 업데이트 롤백
+      throw err
+    }
   }
 
   async function handleUpdate(id: string, data: UpdateTransaction) {
@@ -232,11 +251,21 @@ function App() {
               <TransactionForm onSubmit={handleAdd} cards={cards} budgetStatuses={budgetStatuses} />
             </div>
             <div className="mt-4 space-y-4 lg:mt-0">
-              {error && (
-                <p className="rounded-xl bg-red-50 p-3 text-base font-semibold text-red-700">{error}</p>
-              )}
               {loading ? (
-                <p className="text-base text-neutral-500">불러오는 중...</p>
+                <p className="flex items-center gap-2 text-base text-neutral-500">
+                  <LoadingSpinner size={18} /> 불러오는 중...
+                </p>
+              ) : error ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-base font-semibold text-red-700">{error}</p>
+                  <button
+                    type="button"
+                    onClick={loadHomeData}
+                    className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                  >
+                    <RotateCw size={13} /> 다시 시도
+                  </button>
+                </div>
               ) : (
                 <>
                   <CategoryBreakdown transactions={transactions} month={selectedMonth} />

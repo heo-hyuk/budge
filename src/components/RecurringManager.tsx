@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { createRecurring, deleteRecurring, updateRecurring } from '../lib/api'
 import { formatNumberInput, formatWon } from '../lib/format'
@@ -40,10 +42,13 @@ const defaultForm = (): FormState => ({
 })
 
 function RecurringManager({ items, cards, onRefresh }: Props) {
+  const { showToast } = useToast()
   const [showForm, setShowForm]     = useState(false)
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [form, setForm]             = useState<FormState>(defaultForm)
   const [saving, setSaving]         = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const cardMap = new Map(cards.map((c) => [c.id, c]))
 
@@ -110,20 +115,39 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
       }
       await onRefresh()
       cancelForm()
+      showToast(editingId ? '고정항목을 수정했습니다' : '고정항목을 추가했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '고정항목을 저장하지 못했습니다', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   async function handleToggle(item: RecurringTransaction) {
-    await updateRecurring(item.id, { active: item.active === 1 ? 0 : 1 })
-    await onRefresh()
+    setTogglingId(item.id)
+    try {
+      await updateRecurring(item.id, { active: item.active === 1 ? 0 : 1 })
+      await onRefresh()
+      showToast(item.active === 1 ? '비활성화했습니다' : '활성화했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '상태를 변경하지 못했습니다', 'error')
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   async function handleDelete(id: string, name: string) {
     if (!window.confirm(`"${name}" 고정항목을 삭제할까요?\n이미 생성된 거래 내역은 유지됩니다.`)) return
-    await deleteRecurring(id)
-    await onRefresh()
+    setDeletingId(id)
+    try {
+      await deleteRecurring(id)
+      await onRefresh()
+      showToast('고정항목을 삭제했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '고정항목을 삭제하지 못했습니다', 'error')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const categories = getCategories(form.type)
@@ -302,9 +326,9 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="min-h-10 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '저장 중...' : '저장'}
+              {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
             </button>
             <button
               type="button"
@@ -379,13 +403,14 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleToggle(item)}
-                      className={`min-h-8 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+                      disabled={togglingId === item.id}
+                      className={`min-h-8 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1 ${
                         isActive
                           ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                           : 'bg-green-100 text-green-700 hover:bg-green-200'
                       }`}
                     >
-                      {isActive ? '비활성화' : '활성화'}
+                      {togglingId === item.id ? <LoadingSpinner size={12} /> : (isActive ? '비활성화' : '활성화')}
                     </button>
                     <button
                       type="button"
@@ -397,9 +422,10 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleDelete(item.id, item.name)}
-                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                      disabled={deletingId === item.id}
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1"
                     >
-                      삭제
+                      {deletingId === item.id ? <LoadingSpinner size={12} /> : '삭제'}
                     </button>
                   </div>
                 </div>

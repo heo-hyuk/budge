@@ -1,4 +1,7 @@
+import { RotateCw } from 'lucide-react'
 import { useState } from 'react'
+import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { createBenefit, createCard, deleteBenefit, deleteCard, fetchBenefits, updateBenefit, updateCard } from '../lib/api'
 import { getCardBillingPeriod } from '../lib/billing'
 import { suggestClosingDay } from '../lib/cardDateUtils'
@@ -65,21 +68,40 @@ interface Props {
 }
 
 function CardManager({ cards, onRefresh }: Props) {
+  const { showToast } = useToast()
   const [showForm, setShowForm]   = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm]           = useState<CardFormState>(defaultForm)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null)
 
   // 카드별 혜택 규칙 상태
   const [openBenefitCardId, setOpenBenefitCardId] = useState<string | null>(null)
   const [cardBenefits, setCardBenefits]           = useState<CardBenefit[]>([])
+  const [benefitsLoading, setBenefitsLoading]     = useState(false)
+  const [benefitsError, setBenefitsError]         = useState('')
   const [benefitForm, setBenefitForm]             = useState<BenefitFormState>(defaultBenefitForm)
   const [editingBenefitId, setEditingBenefitId]   = useState<string | null>(null)
   const [showBenefitForm, setShowBenefitForm]     = useState(false)
   const [savingBenefit, setSavingBenefit]         = useState(false)
+  const [deletingBenefitId, setDeletingBenefitId] = useState<string | null>(null)
 
   const expenseCategories = getCategories('expense')
+
+  // 혜택 목록 로드 (GET 실패는 토스트 대신 인라인 재시도)
+  async function loadBenefits(cardId: string) {
+    setBenefitsLoading(true)
+    setBenefitsError('')
+    try {
+      const list = await fetchBenefits(cardId)
+      setCardBenefits(list)
+    } catch (err) {
+      setBenefitsError(err instanceof Error ? err.message : '혜택 목록을 불러오지 못했습니다')
+    } finally {
+      setBenefitsLoading(false)
+    }
+  }
 
   // 혜택 섹션 열기
   async function openBenefits(cardId: string) {
@@ -90,14 +112,12 @@ function CardManager({ cards, onRefresh }: Props) {
     setOpenBenefitCardId(cardId)
     setShowBenefitForm(false)
     setEditingBenefitId(null)
-    const list = await fetchBenefits(cardId)
-    setCardBenefits(list)
+    await loadBenefits(cardId)
   }
 
-  // 혜택 목록 새로고침
+  // 혜택 목록 새로고침 (등록/수정/삭제 성공 후 호출)
   async function refreshBenefits(cardId: string) {
-    const list = await fetchBenefits(cardId)
-    setCardBenefits(list)
+    await loadBenefits(cardId)
   }
 
   // ── 카드 CRUD ──────────────────────────────────────
@@ -160,6 +180,9 @@ function CardManager({ cards, onRefresh }: Props) {
       }
       await onRefresh()
       cancelForm()
+      showToast(editingId ? '카드를 수정했습니다' : '카드를 추가했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '카드를 저장하지 못했습니다', 'error')
     } finally {
       setSaving(false)
     }
@@ -167,8 +190,16 @@ function CardManager({ cards, onRefresh }: Props) {
 
   async function handleDelete(id: string, name: string) {
     if (!window.confirm(`"${name}" 카드를 삭제할까요?\n해당 카드로 기록된 거래는 결제방법이 현금으로 변경됩니다.`)) return
-    await deleteCard(id)
-    await onRefresh()
+    setDeletingCardId(id)
+    try {
+      await deleteCard(id)
+      await onRefresh()
+      showToast('카드를 삭제했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '카드를 삭제하지 못했습니다', 'error')
+    } finally {
+      setDeletingCardId(null)
+    }
   }
 
   // ── 혜택 규칙 CRUD ──────────────────────────────────
@@ -225,6 +256,9 @@ function CardManager({ cards, onRefresh }: Props) {
       }
       await refreshBenefits(openBenefitCardId)
       cancelBenefitForm()
+      showToast(editingBenefitId ? '혜택을 수정했습니다' : '혜택을 추가했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '혜택을 저장하지 못했습니다', 'error')
     } finally {
       setSavingBenefit(false)
     }
@@ -233,8 +267,16 @@ function CardManager({ cards, onRefresh }: Props) {
   async function handleDeleteBenefit(b: CardBenefit) {
     if (!window.confirm(`"${b.name}" 혜택을 삭제할까요?`)) return
     if (!openBenefitCardId) return
-    await deleteBenefit(b.id)
-    await refreshBenefits(openBenefitCardId)
+    setDeletingBenefitId(b.id)
+    try {
+      await deleteBenefit(b.id)
+      await refreshBenefits(openBenefitCardId)
+      showToast('혜택을 삭제했습니다')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '혜택을 삭제하지 못했습니다', 'error')
+    } finally {
+      setDeletingBenefitId(null)
+    }
   }
 
   return (
@@ -369,9 +411,9 @@ function CardManager({ cards, onRefresh }: Props) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="min-h-10 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
             >
-              {saving ? '저장 중...' : '저장'}
+              {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
             </button>
             <button
               type="button"
@@ -433,9 +475,10 @@ function CardManager({ cards, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => handleDelete(card.id, card.name)}
-                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                      disabled={deletingCardId === card.id}
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      삭제
+                      {deletingCardId === card.id ? <LoadingSpinner size={13} /> : '삭제'}
                     </button>
                   </div>
                 </div>
@@ -588,9 +631,9 @@ function CardManager({ cards, onRefresh }: Props) {
                             type="button"
                             onClick={handleSaveBenefit}
                             disabled={savingBenefit}
-                            className="min-h-9 flex-1 rounded-lg bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                            className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                           >
-                            {savingBenefit ? '저장 중...' : '저장'}
+                            {savingBenefit ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
                           </button>
                           <button
                             type="button"
@@ -604,12 +647,29 @@ function CardManager({ cards, onRefresh }: Props) {
                     )}
 
                     {/* 혜택 규칙 목록 */}
-                    {cardBenefits.length === 0 && !showBenefitForm && (
+                    {benefitsLoading && (
+                      <p className="flex items-center justify-center gap-1.5 py-3 text-xs text-neutral-400">
+                        <LoadingSpinner size={13} /> 불러오는 중...
+                      </p>
+                    )}
+                    {!benefitsLoading && benefitsError && (
+                      <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 px-3 py-2">
+                        <p className="text-xs text-red-700">{benefitsError}</p>
+                        <button
+                          type="button"
+                          onClick={() => loadBenefits(card.id)}
+                          className="shrink-0 flex items-center gap-1 rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                        >
+                          <RotateCw size={12} /> 다시 시도
+                        </button>
+                      </div>
+                    )}
+                    {!benefitsLoading && !benefitsError && cardBenefits.length === 0 && !showBenefitForm && (
                       <p className="text-xs text-neutral-400 text-center py-2">
                         등록된 혜택 규칙이 없습니다
                       </p>
                     )}
-                    {cardBenefits.map((b) => (
+                    {!benefitsLoading && !benefitsError && cardBenefits.map((b) => (
                       <div
                         key={b.id}
                         className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 flex items-start justify-between gap-2"
@@ -640,9 +700,10 @@ function CardManager({ cards, onRefresh }: Props) {
                           <button
                             type="button"
                             onClick={() => handleDeleteBenefit(b)}
-                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                            disabled={deletingBenefitId === b.id}
+                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
                           >
-                            삭제
+                            {deletingBenefitId === b.id ? <LoadingSpinner size={12} /> : '삭제'}
                           </button>
                         </div>
                       </div>
