@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { formatWon } from '../lib/format'
 import type { Transaction } from '../types'
+import ExportButton from './ExportButton'
 
 interface Props {
   year: string  // 'YYYY'
@@ -53,7 +54,10 @@ function AnnualReport({ year }: Props) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-neutral-800">{year}년 연간 정산</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-neutral-800">{year}년 연간 정산</h2>
+        <ExportButton defaultPreset="this_year" year={year} />
+      </div>
 
       {/* 연 합계 */}
       <div className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">

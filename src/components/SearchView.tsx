@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { formatWon } from '../lib/format'
 import type { Card, Transaction } from '../types'
+import ExportButton from './ExportButton'
 
 interface Props {
   cards: Card[]
@@ -39,7 +40,10 @@ function SearchView({ cards }: Props) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-neutral-800">검색</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-neutral-800">검색</h2>
+        <ExportButton defaultPreset="all" />
+      </div>
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <input

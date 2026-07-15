@@ -36,13 +36,15 @@
 
 ## 2026-07-15 (8차)
 
-### 작업 계획
-- [ ] npm install xlsx (SheetJS)
-- [ ] functions/api/export/index.ts — GET (기간별 거래+카드명 JOIN JSON)
-- [ ] src/lib/exportExcel.ts — 워크북 생성 (거래내역/월별요약/카드별정산 3시트)
-- [ ] src/lib/api.ts — fetchExportData 추가
-- [ ] src/components/ExportButton.tsx — 기간 선택 모달 + 다운로드 트리거
-- [ ] SearchView.tsx, AnnualReport.tsx — ExportButton 배치
+### 완료
+- [x] npm install xlsx (SheetJS 0.18)
+- [x] functions/api/export/index.ts — GET(기간 필터, transactions LEFT JOIN cards로 카드명 포함)
+- [x] src/lib/exportExcel.ts — 3시트 생성 (거래내역·월별요약·카드별정산), 금액 숫자 타입, 열 너비 설정
+- [x] src/lib/api.ts — fetchExportData(start_date, end_date) 추가
+- [x] src/components/ExportButton.tsx — 이번달/올해/전체/직접선택 preset, 모달 UI, 로딩 상태
+- [x] SearchView.tsx 상단, AnnualReport.tsx 상단에 ExportButton 배치
+- [x] tsc + lint + 배포 완료
+- [x] Node.js 검증: 시트 3개 ✅, 금액 number 타입 ✅, 월별 합계 일치 ✅
 
 ---
 

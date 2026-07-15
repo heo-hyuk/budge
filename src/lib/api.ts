@@ -199,3 +199,21 @@ export async function deleteBudget(id: number): Promise<void> {
 
 // Budget 타입 re-export (편의)
 export type { Budget, BudgetStatus }
+
+// ── 엑셀 내보내기 API ────────────────────────────────────
+
+import type { ExportData } from './exportExcel'
+
+export async function fetchExportData(params: {
+  start_date?: string
+  end_date?: string
+}): Promise<ExportData> {
+  const qs = new URLSearchParams()
+  if (params.start_date) qs.set('start_date', params.start_date)
+  if (params.end_date)   qs.set('end_date',   params.end_date)
+
+  const url = `/api/export${qs.toString() ? `?${qs}` : ''}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('내보내기 데이터를 불러오지 못했습니다')
+  return res.json() as Promise<ExportData>
+}
