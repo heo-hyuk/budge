@@ -39,19 +39,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const yearMonth = body.year_month ?? null
   const now       = new Date().toISOString()
+  const id        = crypto.randomUUID()
 
-  // UNIQUE(user_id, category, year_month) 충돌 시 업데이트
+  // UNIQUE(user_id, category, year_month) 충돌 시 업데이트 (id는 기존 값 유지)
   await env.DB.prepare(`
-    INSERT INTO budgets (user_id, category, monthly_limit, year_month, active, created_at)
-    VALUES (?, ?, ?, ?, 1, ?)
+    INSERT INTO budgets (id, user_id, category, monthly_limit, year_month, active, created_at)
+    VALUES (?, ?, ?, ?, ?, 1, ?)
     ON CONFLICT(user_id, category, year_month)
     DO UPDATE SET monthly_limit = excluded.monthly_limit, active = 1
-  `).bind(userId, body.category, body.monthly_limit, yearMonth, now).run()
+  `).bind(id, userId, body.category, body.monthly_limit, yearMonth, now).run()
 
   // 방금 등록/수정된 행의 id 반환
   const row = await env.DB.prepare(
     'SELECT id FROM budgets WHERE user_id = ? AND category = ? AND year_month IS ?'
-  ).bind(userId, body.category, yearMonth).first<{ id: number }>()
+  ).bind(userId, body.category, yearMonth).first<{ id: string }>()
 
   return Response.json({ id: row?.id }, { status: 201 })
 }

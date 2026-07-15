@@ -6,7 +6,7 @@ interface Env { DB: D1Database }
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
   const { env, data, params, request } = context
   const userId = (data as Record<string, string>).userId
-  const id     = parseInt(params.id as string, 10)
+  const id     = params.id as string
 
   const body = await request.json() as Record<string, unknown>
   const allowed = ['monthly_limit', 'year_month', 'active']
@@ -33,7 +33,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { env, data, params } = context
   const userId = (data as Record<string, string>).userId
-  const id     = parseInt(params.id as string, 10)
+  const id     = params.id as string
 
   await env.DB.prepare('DELETE FROM budgets WHERE id = ? AND user_id = ?')
     .bind(id, userId)

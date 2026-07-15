@@ -33,11 +33,11 @@ function calcScore(benefit: CardBenefit, merchant: string, category: string): nu
   const categoryMatch = hasCategory && category === benefit.category
 
   // 두 조건 모두 있는 경우
+  // 구매처가 지정됐는데 불일치하면 분류가 맞아도 거절 (누수 방지)
   if (hasMerchant && hasCategory) {
     if (merchantMatch && categoryMatch) return 150  // 완전 일치
     if (merchantMatch) return 100                   // 구매처만 일치
-    if (categoryMatch) return 50                    // 분류만 일치
-    return -1                                       // 매칭 실패
+    return -1                                       // 구매처 불일치 → 매칭 실패
   }
 
   if (hasMerchant) return merchantMatch ? 100 : -1

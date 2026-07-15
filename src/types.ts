@@ -118,7 +118,7 @@ export interface BenefitMatch {
 // ── 예산 ──────────────────────────────────────────────
 
 export interface Budget {
-  id: number
+  id: string
   user_id: string
   category: string        // '전체' = 전체 지출 예산
   monthly_limit: number

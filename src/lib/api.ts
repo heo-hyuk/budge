@@ -183,7 +183,7 @@ export async function createBudget(data: NewBudget): Promise<void> {
   if (!res.ok) throw new Error('예산을 등록하지 못했습니다')
 }
 
-export async function updateBudget(id: number, data: Partial<NewBudget> & { active?: number }): Promise<void> {
+export async function updateBudget(id: string, data: Partial<NewBudget> & { active?: number }): Promise<void> {
   const res = await fetch(`/api/budgets/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -192,7 +192,7 @@ export async function updateBudget(id: number, data: Partial<NewBudget> & { acti
   if (!res.ok) throw new Error('예산을 수정하지 못했습니다')
 }
 
-export async function deleteBudget(id: number): Promise<void> {
+export async function deleteBudget(id: string): Promise<void> {
   const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('예산을 삭제하지 못했습니다')
 }

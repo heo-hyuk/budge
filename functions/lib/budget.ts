@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 export interface BudgetRow {
-  id: number
+  id: string
   user_id: string
   category: string
   monthly_limit: number
