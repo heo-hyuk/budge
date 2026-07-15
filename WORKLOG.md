@@ -1,5 +1,16 @@
 # WORKLOG
 
+## 2026-07-15 (12차) — 거래 입력 금액 필드 텍스트 겹침 수정
+
+### 완료
+- [x] `src/components/TransactionForm.tsx` 금액 입력창 — 오른쪽에 절대 위치로 띄운 "원" 접미사 라벨과 입력 텍스트가 겹치던 문제 수정. 다른 금액 입력창(BudgetManager/RecurringManager)은 `pr-8`로 여백을 확보해뒀는데 이 필드만 `px-3`(여백 없음)이라 큰 금액 입력 시 숫자와 "원" 글자가 겹쳤음 → `pr-9`로 여백 추가
+- tsc --noEmit / oxlint 통과
+
+### 변경 파일
+- `src/components/TransactionForm.tsx`
+
+---
+
 ## 2026-07-15 (11차) — budgets NULL UNIQUE 중복 방지
 
 ### 작업 계획

@@ -171,7 +171,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 py-2 text-right text-lg font-bold text-neutral-900 focus:border-blue-500 focus:outline-none"
+            className="min-h-11 w-full rounded-xl border-2 border-neutral-300 pl-3 pr-9 py-2 text-right text-lg font-bold text-neutral-900 focus:border-blue-500 focus:outline-none"
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
         </div>
