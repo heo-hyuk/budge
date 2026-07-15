@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { matchBenefit } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
 import { formatWon, todayStr } from '../lib/format'
-import type { BenefitMatch, Card, NewTransaction, TransactionType } from '../types'
+import type { BenefitMatch, BudgetStatus, Card, NewTransaction, TransactionType } from '../types'
 
 interface Props {
   onSubmit: (tx: NewTransaction) => Promise<void>
   cards: Card[]
+  budgetStatuses?: BudgetStatus[]  // 현재 월 예산 현황 (홈에서 주입)
 }
 
-function TransactionForm({ onSubmit, cards }: Props) {
+function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
   const [type, setType]               = useState<TransactionType>('expense')
   const [categories, setCategories]   = useState(() => getCategories('expense'))
   const [category, setCategory]       = useState(categories[0])
@@ -270,6 +271,77 @@ function TransactionForm({ onSubmit, cards }: Props) {
           </div>
         )}
       </div>
+
+      {/* 예산 현황 인라인 표시 (지출 + 해당 카테고리 예산 있을 때만) */}
+      {type === 'expense' && (() => {
+        // 카테고리 우선, 없으면 전체 예산
+        const matched = budgetStatuses.find(
+          (s) => s.budget.active === 1 && s.budget.category === category
+        ) ?? budgetStatuses.find(
+          (s) => s.budget.active === 1 && s.budget.category === '전체'
+        )
+        if (!matched) return null
+
+        // 입력 중인 금액까지 더한 예상 지출
+        const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
+        const discountAmt = selectedMatch ? selectedMatch.estimated_discount : 0
+        const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
+        const projectedSpent = matched.spent + addingAmount
+        const projectedPct = matched.budget.monthly_limit > 0
+          ? Math.round((projectedSpent / matched.budget.monthly_limit) * 100)
+          : 0
+        const projectedExceeded = projectedSpent > matched.budget.monthly_limit
+
+        const isExceeded = matched.exceeded
+        const pct = matched.percentage
+
+        return (
+          <div className={`mt-3 rounded-xl border-2 px-3 py-2.5 ${
+            isExceeded ? 'border-red-200 bg-red-50' :
+            pct >= 80   ? 'border-amber-200 bg-amber-50' :
+                          'border-green-200 bg-green-50'
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-xs font-bold ${
+                isExceeded ? 'text-red-800' : pct >= 80 ? 'text-amber-800' : 'text-green-800'
+              }`}>
+                {matched.budget.category === '전체' ? '전체 지출' : matched.budget.category} 예산
+              </span>
+              <span className={`text-xs font-semibold ${
+                isExceeded ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-green-700'
+              }`}>
+                {pct}% 사용
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+              <div
+                className={`h-full rounded-full ${
+                  isExceeded ? 'bg-red-500' : pct >= 80 ? 'bg-amber-400' : 'bg-green-500'
+                }`}
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
+            <p className={`mt-1 text-xs font-semibold ${
+              isExceeded ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-green-700'
+            }`}>
+              {isExceeded
+                ? `⚠ 예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
+                : `${formatWon(matched.remaining)} 남음 (${formatWon(matched.spent)} / ${formatWon(matched.budget.monthly_limit)})`}
+            </p>
+            {/* 입력 중인 금액 포함 예상 초과 경고 */}
+            {addingAmount > 0 && !isExceeded && projectedExceeded && (
+              <p className="mt-0.5 text-xs font-bold text-red-700">
+                ⚠ 이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
+              </p>
+            )}
+            {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
+              <p className="mt-0.5 text-xs text-amber-700">
+                입력 후 {projectedPct}% 사용 예정
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* 날짜 */}
       <div className="mt-4">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
+import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import MonthlyReport from './components/MonthlyReport'
@@ -10,11 +11,11 @@ import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
-import { createTransaction, deleteTransaction, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
-import type { Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
+import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
+import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'search'
+type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home',      label: '홈',     icon: '🏠' },
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'annual',    label: '연정산', icon: '📈' },
   { id: 'cards',     label: '카드',   icon: '💳' },
   { id: 'recurring', label: '고정',   icon: '🔁' },
+  { id: 'budget',    label: '예산',   icon: '📋' },
   { id: 'search',    label: '검색',   icon: '🔍' },
 ]
 
@@ -48,6 +50,7 @@ function App() {
   const [transactions, setTransactions]   = useState<Transaction[]>([])
   const [cards, setCards]                 = useState<Card[]>([])
   const [recurringItems, setRecurringItems] = useState<RecurringTransaction[]>([])
+  const [budgetStatuses, setBudgetStatuses] = useState<BudgetStatus[]>([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
 
@@ -63,15 +66,36 @@ function App() {
     if (!user || activeTab !== 'home') return
     setLoading(true)
     setError('')
-    fetchTransactions({ month: selectedMonth })
-      .then(setTransactions)
+    Promise.all([
+      fetchTransactions({ month: selectedMonth }),
+      fetchBudgetStatus(selectedMonth).catch(() => []),
+    ])
+      .then(([txs, budgets]) => {
+        setTransactions(txs)
+        setBudgetStatuses(budgets)
+      })
       .catch(() => setError('불러오기에 실패했습니다'))
       .finally(() => setLoading(false))
   }, [selectedMonth, activeTab, user])
 
+  // 예산 탭 전환 시 현재 월 예산 새로고침
+  useEffect(() => {
+    if (!user || activeTab !== 'budget') return
+    fetchBudgetStatus(selectedMonth).then(setBudgetStatuses).catch(() => {})
+  }, [activeTab, selectedMonth, user])
+
   async function handleAdd(tx: NewTransaction) {
     await createTransaction(tx)
-    setTransactions(await fetchTransactions({ month: selectedMonth }))
+    const [txs, budgets] = await Promise.all([
+      fetchTransactions({ month: selectedMonth }),
+      fetchBudgetStatus(selectedMonth).catch(() => budgetStatuses),
+    ])
+    setTransactions(txs)
+    setBudgetStatuses(budgets)
+  }
+
+  async function refreshBudgets() {
+    setBudgetStatuses(await fetchBudgetStatus(selectedMonth).catch(() => []))
   }
 
   async function handleDelete(id: string) {
@@ -118,8 +142,8 @@ function App() {
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
-          {/* 월/연도 네비게이션 (홈·월정산 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'monthly') && (
+          {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
+          {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700"
@@ -172,7 +196,27 @@ function App() {
           <div className="lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-6">
             <div className="space-y-4 lg:sticky lg:top-20">
               <SummaryCard transactions={transactions} month={selectedMonth} />
-              <TransactionForm onSubmit={handleAdd} cards={cards} />
+              {/* 예산 초과 카테고리 요약 배너 */}
+              {(() => {
+                const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
+                if (exceeded.length === 0) return null
+                return (
+                  <div className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3">
+                    <p className="text-sm font-bold text-red-800">⚠ 예산 초과 {exceeded.length}건</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {exceeded.map((s) => (
+                        <li key={s.budget.id} className="text-xs text-red-700">
+                          • {s.budget.category}: {s.percentage}% 사용
+                          ({s.budget.monthly_limit > 0
+                            ? `${Math.abs(s.remaining).toLocaleString()}원 초과`
+                            : '초과'})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })()}
+              <TransactionForm onSubmit={handleAdd} cards={cards} budgetStatuses={budgetStatuses} />
             </div>
             <div className="mt-4 space-y-4 lg:mt-0">
               {error && (
@@ -219,6 +263,15 @@ function App() {
           />
         )}
 
+        {/* 예산 관리 탭 */}
+        {activeTab === 'budget' && (
+          <BudgetManager
+            statuses={budgetStatuses}
+            month={selectedMonth}
+            onRefresh={refreshBudgets}
+          />
+        )}
+
         {/* 검색 탭 */}
         {activeTab === 'search' && (
           <SearchView cards={cards} />
@@ -227,7 +280,7 @@ function App() {
 
       {/* 하단 탭 네비게이션 */}
       <nav className="fixed bottom-0 left-0 right-0 z-10 border-t-2 border-neutral-200 bg-white">
-        <div className="mx-auto max-w-5xl grid grid-cols-6">
+        <div className="mx-auto max-w-5xl grid grid-cols-7">
           {TABS.map((tab) => (
             <button
               key={tab.id}

@@ -1,4 +1,4 @@
-import type { BenefitMatch, Card, CardBenefit, NewBenefit, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 // ── 거래 API ──────────────────────────────────────────
 
@@ -164,3 +164,38 @@ export async function matchBenefit(params: {
   const body = (await res.json()) as { data: BenefitMatch[] }
   return body.data
 }
+
+// ── 예산 API ──────────────────────────────────────────
+
+export async function fetchBudgetStatus(yearMonth: string): Promise<BudgetStatus[]> {
+  const res = await fetch(`/api/budgets?year_month=${encodeURIComponent(yearMonth)}`)
+  if (!res.ok) throw new Error('예산 정보를 불러오지 못했습니다')
+  const body = (await res.json()) as { data: BudgetStatus[] }
+  return body.data
+}
+
+export async function createBudget(data: NewBudget): Promise<void> {
+  const res = await fetch('/api/budgets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('예산을 등록하지 못했습니다')
+}
+
+export async function updateBudget(id: number, data: Partial<NewBudget> & { active?: number }): Promise<void> {
+  const res = await fetch(`/api/budgets/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('예산을 수정하지 못했습니다')
+}
+
+export async function deleteBudget(id: number): Promise<void> {
+  const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('예산을 삭제하지 못했습니다')
+}
+
+// Budget 타입 re-export (편의)
+export type { Budget, BudgetStatus }

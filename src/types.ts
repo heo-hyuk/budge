@@ -115,6 +115,32 @@ export interface BenefitMatch {
   monthly_remaining: number  // 0 = 무제한
 }
 
+// ── 예산 ──────────────────────────────────────────────
+
+export interface Budget {
+  id: number
+  user_id: string
+  category: string        // '전체' = 전체 지출 예산
+  monthly_limit: number
+  year_month: string | null  // null = 매월 반복
+  active: number
+  created_at: string
+}
+
+export interface BudgetStatus {
+  budget: Budget
+  spent: number
+  remaining: number
+  percentage: number    // 0~100+ (초과 시 100 이상)
+  exceeded: boolean
+}
+
+export interface NewBudget {
+  category: string
+  monthly_limit: number
+  year_month?: string | null
+}
+
 export interface NewRecurring {
   name: string
   type: TransactionType

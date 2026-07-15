@@ -20,7 +20,8 @@
       "Bash(grep -v \"^$\\\\|wrangler\\\\|──\\\\|Resource\\\\|local\")",
       "Bash(powershell.exe -Command '[System.IO.File]::WriteAllText\\('\\\\''C:/Users/SBS/AppData/Local/Temp/b1.json'\\\\'', '\\\\''{\"card_id\":\"28445537-f3a6-4e97-bf7b-a10243fd1b85\",\"name\":\"편의점 10% 할인\",\"merchant_pattern\":\"편의점\",\"discount_type\":\"percent\",\"discount_value\":10,\"monthly_cap\":3000}'\\\\'', [System.Text.Encoding]::UTF8\\)')",
       "Bash(powershell.exe -Command '[System.IO.File]::WriteAllText\\('\\\\''C:/Users/SBS/AppData/Local/Temp/b2.json'\\\\'', '\\\\''{\"card_id\":\"28445537-f3a6-4e97-bf7b-a10243fd1b85\",\"name\":\"카페 500원 할인\",\"category\":\"카페/음료\",\"discount_type\":\"fixed\",\"discount_value\":500,\"monthly_cap\":5000}'\\\\'', [System.Text.Encoding]::UTF8\\)')",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(grep -v \"^$\\\\|oxlint\\\\|Lint\")"
     ]
   }
 }

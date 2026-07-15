@@ -36,16 +36,18 @@
 
 ## 2026-07-15 (7차)
 
-### 작업 계획
-- [ ] migrations/005_add_budgets.sql — budgets 테이블 (004는 benefits에서 사용 중)
-- [ ] functions/lib/budget.ts — calculateBudgetStatus (월별 지출 집계 + 예산 매칭)
-- [ ] functions/api/budgets/index.ts — GET(월 예산+초과현황) / POST
-- [ ] functions/api/budgets/[id].ts — PATCH / DELETE
-- [ ] src/types.ts — Budget, BudgetStatus 타입 추가
-- [ ] src/lib/api.ts — budget API 함수 추가
-- [ ] src/components/BudgetManager.tsx — 예산 설정 폼 + 진행률 바 목록
-- [ ] src/components/TransactionForm.tsx — 카테고리별 예산 현황 인라인 표시
-- [ ] src/App.tsx — 예산 탭 추가, 초과 카테고리 배너
+### 완료
+- [x] migrations/005_add_budgets.sql — budgets 테이블 + UNIQUE(user_id, category, year_month) (로컬+원격 적용)
+- [x] functions/lib/budget.ts — calculateBudgetStatus: year_month 우선, 카테고리별+전체 지출 집계, exceeded 판단
+- [x] functions/api/budgets/index.ts — GET(연월별 현황 포함) / POST(ON CONFLICT DO UPDATE)
+- [x] functions/api/budgets/[id].ts — PATCH / DELETE
+- [x] src/types.ts — Budget, BudgetStatus, NewBudget 타입 추가
+- [x] src/lib/api.ts — fetchBudgetStatus, createBudget, updateBudget, deleteBudget 추가
+- [x] src/components/BudgetManager.tsx — 진행률 바(🟢<80%/🟡80~100%/🔴초과), 초과 배너, 매월반복/이번달만 선택, 활성화 토글
+- [x] src/components/TransactionForm.tsx — 카테고리 선택 시 예산 현황 인라인 표시, 입력 중 초과 예상 경고
+- [x] src/App.tsx — 예산 탭(📋) 추가(7탭), 홈 화면 초과 배너, budgetStatuses 상태 관리
+- [x] tsc + lint + vite 빌드 + Cloudflare Pages 배포 완료
+- [x] 테스트: 🟢정상 → 🟡80%(식비 81%) → 🔴초과(식비 106%, 카페 110%) 시나리오 전부 통과
 
 ---
 
