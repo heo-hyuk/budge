@@ -7,7 +7,7 @@ import { getCardBillingPeriod } from '../lib/billing'
 import { suggestClosingDay } from '../lib/cardDateUtils'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
-import type { Card, CardBenefit, NewBenefit, NewCard } from '../types'
+import type { Card, CardBenefit, NewBenefit, NewCard, RecurringTransaction } from '../types'
 
 const MONTH_BACK_LABELS = ['당월', '전월', '전전월', '전전전월']
 
@@ -64,10 +64,11 @@ const defaultBenefitForm = (): BenefitFormState => ({
 
 interface Props {
   cards: Card[]
+  recurringItems: RecurringTransaction[]
   onRefresh: () => Promise<void>
 }
 
-function CardManager({ cards, onRefresh }: Props) {
+function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const { showToast } = useToast()
   const [showForm, setShowForm]   = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -189,7 +190,16 @@ function CardManager({ cards, onRefresh }: Props) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!window.confirm(`"${name}" 카드를 삭제할까요?\n해당 카드로 기록된 거래는 결제방법이 현금으로 변경됩니다.`)) return
+    // 삭제 전 영향 범위(혜택 규칙 개수, 연결된 고정지출 개수)를 확인 문구에 포함
+    // — 그냥 삭제하면 사용자가 모르는 사이 혜택 규칙이 통째로 사라질 수 있음
+    const linkedBenefits = await fetchBenefits(id).catch(() => [] as CardBenefit[])
+    const linkedRecurring = recurringItems.filter((r) => r.card_id === id)
+
+    const warnings: string[] = ['해당 카드로 기록된 거래는 결제방법이 현금으로 변경됩니다.']
+    if (linkedBenefits.length > 0) warnings.push(`이 카드에 연결된 혜택 규칙 ${linkedBenefits.length}개도 함께 삭제됩니다.`)
+    if (linkedRecurring.length > 0) warnings.push(`이 카드로 등록된 고정지출 ${linkedRecurring.length}건은 결제수단이 현금으로 변경됩니다.`)
+
+    if (!window.confirm(`"${name}" 카드를 삭제할까요?\n${warnings.join('\n')}`)) return
     setDeletingCardId(id)
     try {
       await deleteCard(id)

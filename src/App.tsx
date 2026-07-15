@@ -295,7 +295,7 @@ function App() {
 
         {/* 카드 관리 탭 */}
         {activeTab === 'cards' && (
-          <CardManager cards={cards} onRefresh={refreshCards} />
+          <CardManager cards={cards} recurringItems={recurringItems} onRefresh={refreshCards} />
         )}
 
         {/* 고정 수입/지출 탭 */}
