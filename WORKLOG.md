@@ -48,6 +48,10 @@
   파싱, 네트워크 실패 모킹) 검증으로 대체. 다음 세션에서 Chrome 확장 연결되면
   반드시 실제 화면으로 재확인 필요
 
+### 배포
+- `npm run deploy` 완료 — https://627bfe95.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 헬스체크 200 정상 확인
+
 ### 완료
 - [x] `src/lib/api.ts` — `ApiError` 클래스 + `apiFetch`/`parseErrorMessage`/
   `apiRequest` 공통 헬퍼로 전체 함수 재작성. 네트워크 실패는
