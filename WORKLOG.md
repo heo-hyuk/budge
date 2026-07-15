@@ -12,6 +12,10 @@
 - `functions/api/budgets/index.ts`, `functions/api/budgets/[id].ts`
 - `src/lib/api.ts`, `src/components/BudgetManager.tsx`
 
+### 상태
+- 작업 중단 (집에서 이어서 진행 예정)
+- 미완료 항목 전부 미착수 상태로 초기화
+
 ---
 
 ## 2026-07-15 (10차) — 코드 리뷰 4가지 수정
