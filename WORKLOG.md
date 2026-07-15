@@ -1,6 +1,46 @@
 # WORKLOG
 
-## 2026-07-15 (19차) — UI/UX 디자인 시스템 정비 (진행 중)
+## 2026-07-15 (20차) — 에러/로딩 처리 공통 패턴 통일 (진행 중)
+
+사용자 요청: 여러 기능(고정지출/할인추적/예산/엑셀내보내기)이 순차 추가되며
+컴포넌트마다 로딩/에러 처리 방식이 제각각이라 하나의 공통 패턴으로 통일.
+
+### 조사 결과 (기존 상태)
+- `src/lib/api.ts` 전체 함수: 실패 시 각자 하드코딩된 한국어 `Error` 메시지를
+  던짐, 서버가 내려주는 원본 `{error: "..."}` 메시지는 대부분 버려짐
+  (예산 API(`createBudget`/`updateBudget`)만 409 conflict에 한해 서버 메시지 보존)
+- `TransactionForm.tsx`, `TransactionList.tsx`, `CardManager.tsx`,
+  `RecurringManager.tsx`: 저장/삭제 실패 시 **catch 자체가 없어 조용히 실패**
+  (버튼 disabled + "저장 중..." 텍스트만 있고 실패 피드백 없음)
+- `BudgetManager.tsx`: 예산 중복 등록(409)은 이미 인라인 에러로 처리됨(11차
+  작업에서 완료, alert 아님) — 이 부분은 유지
+- `ExportButton.tsx`: 인라인 에러 메시지 + 로딩 텍스트 있음 (양호)
+- `SearchView.tsx`: 검색 실패 시 catch 없음 — 조용히 실패, 결과 영역 그대로 빈 채로 남음
+- 토스트/공통 스피너 컴포넌트 전혀 없음 (`showToast`, `ToastContext`, `LoadingSpinner` 검색 0건)
+
+### 작업 계획
+- [ ] `src/lib/api.ts` — `ApiError` 클래스 + 공통 `apiFetch`/`apiRequest` 헬퍼로
+  네트워크 실패("인터넷 연결을 확인해주세요")와 서버 실패(서버 메시지 우선,
+  없으면 폴백 메시지)를 구분해 전체 함수에 일괄 적용. `BudgetConflictError`
+  409 분기는 유지
+- [ ] `src/contexts/ToastContext.tsx`(신규) + `src/components/Toast.tsx`(신규) —
+  전역 `showToast(message, 'success'|'error')`, 3초 자동 소멸
+- [ ] `src/components/LoadingSpinner.tsx`(신규) — 버튼 내장용 소형 스피너
+- [ ] `src/main.tsx` — `ToastProvider`로 감싸기
+- [ ] 각 컴포넌트 mutation 호출부(저장/수정/삭제/토글)에 try/catch +
+  성공/실패 토스트 + 스피너 일괄 적용: `TransactionForm`, `TransactionList`,
+  `CardManager`(카드+혜택 규칙), `RecurringManager`, `BudgetManager`(삭제/토글만,
+  등록 폼은 기존 인라인 유지), `ExportButton`
+- [ ] GET 조회 실패는 토스트 대신 인라인 "불러오기 실패, 다시 시도" +
+  재시도 버튼: `SearchView` 검색 결과, `CardManager` 혜택 목록, `App.tsx` 홈 탭
+- [ ] `TransactionList` 삭제 optimistic update — 실패 시 롤백(재조회) 확인/수정
+- [ ] tsc/oxlint/build 통과, wrangler pages dev로 네트워크 차단/예산 중복/정상
+  저장 시나리오 확인 (Chrome 확장 미연결 상태라 실제 토스트 렌더링 육안 확인은
+  제한적일 수 있음 — 서버 응답/코드 레벨로 최대한 검증)
+
+---
+
+## 2026-07-15 (19차) — UI/UX 디자인 시스템 정비 (완료)
 
 사용자 피드백: "기능적인 부분은 잘 해결됐는데 UI/UX 디자인이 조금 부족한 느낌". 코드 리뷰로 확인한 현재 상태: 배경(neutral-50)+흰 카드+검정 텍스트 외 포인트 컬러 전무, `border-2 neutral-200` 두꺼운 테두리 반복, 탭/버튼 아이콘이 전부 이모지(OS별 렌더링 불일치), hover/active 트랜지션 거의 없음, 폰트 굵기만으로 위계 표현.
 
