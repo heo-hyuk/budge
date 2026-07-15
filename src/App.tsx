@@ -4,23 +4,25 @@ import AuthPage from './components/AuthPage'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import MonthlyReport from './components/MonthlyReport'
+import RecurringManager from './components/RecurringManager'
 import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
-import { createTransaction, deleteTransaction, fetchCards, fetchTransactions, updateTransaction } from './lib/api'
-import type { Card, NewTransaction, Transaction, UpdateTransaction } from './types'
+import { createTransaction, deleteTransaction, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
+import type { Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'search'
+type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'search'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',    label: '홈',     icon: '🏠' },
-  { id: 'monthly', label: '월정산', icon: '📊' },
-  { id: 'annual',  label: '연정산', icon: '📈' },
-  { id: 'cards',   label: '카드',   icon: '💳' },
-  { id: 'search',  label: '검색',   icon: '🔍' },
+  { id: 'home',      label: '홈',     icon: '🏠' },
+  { id: 'monthly',   label: '월정산', icon: '📊' },
+  { id: 'annual',    label: '연정산', icon: '📈' },
+  { id: 'cards',     label: '카드',   icon: '💳' },
+  { id: 'recurring', label: '고정',   icon: '🔁' },
+  { id: 'search',    label: '검색',   icon: '🔍' },
 ]
 
 function currentMonth() {
@@ -45,13 +47,15 @@ function App() {
   const [selectedYear, setSelectedYear]   = useState(currentYear)
   const [transactions, setTransactions]   = useState<Transaction[]>([])
   const [cards, setCards]                 = useState<Card[]>([])
+  const [recurringItems, setRecurringItems] = useState<RecurringTransaction[]>([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
 
-  // 로그인 상태일 때만 카드 로드
+  // 로그인 상태일 때 카드 + 고정지출 로드
   useEffect(() => {
     if (!user) return
     fetchCards().then(setCards).catch(() => {})
+    fetchRecurring().then(setRecurringItems).catch(() => {})
   }, [user])
 
   // 홈 탭: 선택 월 데이터 로드 (로그인 후에만)
@@ -81,8 +85,11 @@ function App() {
   }
 
   async function refreshCards() {
-    const updated = await fetchCards()
-    setCards(updated)
+    setCards(await fetchCards())
+  }
+
+  async function refreshRecurring() {
+    setRecurringItems(await fetchRecurring())
   }
 
   const isCurrentMonth = selectedMonth === currentMonth()
@@ -203,6 +210,15 @@ function App() {
           <CardManager cards={cards} onRefresh={refreshCards} />
         )}
 
+        {/* 고정 수입/지출 탭 */}
+        {activeTab === 'recurring' && (
+          <RecurringManager
+            items={recurringItems}
+            cards={cards}
+            onRefresh={refreshRecurring}
+          />
+        )}
+
         {/* 검색 탭 */}
         {activeTab === 'search' && (
           <SearchView cards={cards} />
@@ -211,7 +227,7 @@ function App() {
 
       {/* 하단 탭 네비게이션 */}
       <nav className="fixed bottom-0 left-0 right-0 z-10 border-t-2 border-neutral-200 bg-white">
-        <div className="mx-auto max-w-5xl grid grid-cols-5">
+        <div className="mx-auto max-w-5xl grid grid-cols-6">
           {TABS.map((tab) => (
             <button
               key={tab.id}

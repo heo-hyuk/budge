@@ -1,4 +1,4 @@
-import type { Card, NewCard, NewTransaction, Transaction, UpdateTransaction } from '../types'
+import type { Card, NewCard, NewRecurring, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 // ── 거래 API ──────────────────────────────────────────
 
@@ -78,4 +78,36 @@ export async function updateCard(id: string, data: Partial<NewCard>): Promise<vo
 export async function deleteCard(id: string): Promise<void> {
   const res = await fetch(`/api/cards/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('카드를 삭제하지 못했습니다')
+}
+
+// ── 고정지출 API ──────────────────────────────────────
+
+export async function fetchRecurring(): Promise<RecurringTransaction[]> {
+  const res = await fetch('/api/recurring')
+  if (!res.ok) throw new Error('고정지출 목록을 불러오지 못했습니다')
+  const body = (await res.json()) as { data: RecurringTransaction[] }
+  return body.data
+}
+
+export async function createRecurring(data: NewRecurring): Promise<void> {
+  const res = await fetch('/api/recurring', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('고정지출을 추가하지 못했습니다')
+}
+
+export async function updateRecurring(id: string, data: Partial<NewRecurring> & { active?: number }): Promise<void> {
+  const res = await fetch(`/api/recurring/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('고정지출을 수정하지 못했습니다')
+}
+
+export async function deleteRecurring(id: string): Promise<void> {
+  const res = await fetch(`/api/recurring/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('고정지출을 삭제하지 못했습니다')
 }

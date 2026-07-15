@@ -1,4 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
+import { generateDueRecurringTransactions } from '../../lib/recurring'
 
 interface Env { DB: D1Database }
 
@@ -18,6 +19,10 @@ export const onRequestOptions: PagesFunction<Env> = async () =>
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) => {
   const userId = (data as { userId: string }).userId
+
+  // 고정지출 자동 생성 — 매 조회 시 실행 (중복 방지 로직 내장)
+  await generateDueRecurringTransactions(env.DB, userId)
+
   const url    = new URL(request.url)
   const limit  = Math.min(parseInt(url.searchParams.get('limit') ?? '500', 10), 1000)
   const month      = url.searchParams.get('month')

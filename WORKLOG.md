@@ -37,17 +37,17 @@
 ## 2026-07-15 (5차)
 
 ### 작업 계획
-- [ ] migrations/003_add_benefits_and_recurring.sql 생성 (recurring_transactions 테이블 + transactions.recurring_id 컬럼)
-- [ ] 로컬 D1에 마이그레이션 적용
-- [ ] functions/lib/recurring.ts — generateDueRecurringTransactions 자동 생성 로직
-- [ ] functions/api/recurring/index.ts — GET/POST
-- [ ] functions/api/recurring/[id].ts — PATCH/DELETE
-- [ ] functions/api/transactions/index.ts — GET 시 고정지출 자동 생성 호출
-- [ ] src/types.ts — RecurringTransaction 타입 추가
-- [ ] src/lib/api.ts — recurring API 함수 추가
-- [ ] src/components/RecurringManager.tsx — 고정지출 관리 UI
-- [ ] src/App.tsx — 탭에 "고정" 추가
-- [ ] typecheck + lint + 배포
+### 완료
+- [x] migrations/003_add_benefits_and_recurring.sql — recurring_transactions 테이블, transactions.recurring_id 컬럼 (로컬+원격 적용)
+- [x] functions/lib/recurring.ts — generateDueRecurringTransactions: 놓친 달 소급 생성, 중복 방지, last_generated_date 업데이트
+- [x] functions/api/recurring/index.ts — GET/POST /api/recurring
+- [x] functions/api/recurring/[id].ts — PATCH (active 토글 포함) / DELETE
+- [x] functions/api/transactions/index.ts — GET 시 자동 생성 먼저 실행
+- [x] src/types.ts — RecurringTransaction, NewRecurring 타입 추가
+- [x] src/lib/api.ts — fetchRecurring, createRecurring, updateRecurring, deleteRecurring 추가
+- [x] src/components/RecurringManager.tsx — 항목명/금액/분류/구매처/결제방법/매월 며칠/시작~종료일 등록, 활성/비활성 토글
+- [x] src/App.tsx — 🔁 고정 탭 추가 (6탭), RecurringManager 연결
+- [x] tsc + oxlint + vite 빌드 통과, Cloudflare Pages 배포 완료
 
 ---
 

@@ -52,3 +52,34 @@ export interface NewCard {
   closing_day: number
   benefits?: string
 }
+
+export interface RecurringTransaction {
+  id: string
+  user_id: string
+  name: string
+  type: TransactionType
+  category: string
+  amount: number
+  merchant: string
+  payment_method: string
+  card_id: string
+  day_of_month: number
+  start_date: string
+  end_date: string | null
+  last_generated_date: string | null
+  active: number   // 1 = 활성, 0 = 비활성
+  created_at: string
+}
+
+export interface NewRecurring {
+  name: string
+  type: TransactionType
+  category: string
+  amount: number
+  merchant?: string
+  payment_method?: string
+  card_id?: string
+  day_of_month: number
+  start_date: string
+  end_date?: string
+}
