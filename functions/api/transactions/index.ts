@@ -16,11 +16,20 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100', 10), 500);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '200', 10), 500);
+  // YYYY-MM 형식으로 월 필터링 (없으면 전체 조회)
+  const month = url.searchParams.get('month');
 
-  const result = await env.DB.prepare(
-    'SELECT * FROM transactions ORDER BY date DESC, created_at DESC LIMIT ?'
-  ).bind(limit).all();
+  let result;
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    result = await env.DB.prepare(
+      "SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, created_at DESC LIMIT ?"
+    ).bind(`${month}-%`, limit).all();
+  } else {
+    result = await env.DB.prepare(
+      'SELECT * FROM transactions ORDER BY date DESC, created_at DESC LIMIT ?'
+    ).bind(limit).all();
+  }
 
   return json({ data: result.results }, 200);
 };

@@ -4,17 +4,16 @@ import type { Transaction, TransactionType } from '../types'
 
 interface Props {
   transactions: Transaction[]
+  month: string // 'YYYY-MM'
 }
 
-function CategoryBreakdown({ transactions }: Props) {
+function CategoryBreakdown({ transactions, month }: Props) {
   const [type, setType] = useState<TransactionType>('expense')
 
-  const now = new Date()
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-
+  // 분류별 합계 집계 (이미 월 필터된 transactions 사용)
   const totals = new Map<string, number>()
   for (const tx of transactions) {
-    if (tx.type !== type || !tx.date.startsWith(monthPrefix)) continue
+    if (tx.type !== type) continue
     totals.set(tx.category, (totals.get(tx.category) ?? 0) + tx.amount)
   }
 
@@ -22,10 +21,13 @@ function CategoryBreakdown({ transactions }: Props) {
   const max = rows.length > 0 ? rows[0][1] : 0
   const barColor = type === 'expense' ? 'bg-red-500' : 'bg-blue-500'
 
+  const [, mon] = month.split('-')
+  const label = `${parseInt(mon)}월 분류별 합계`
+
   return (
     <section className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-neutral-700">{now.getMonth() + 1}월 분류별 합계</h2>
+        <h2 className="text-base font-bold text-neutral-700">{label}</h2>
         <div className="flex gap-1 rounded-lg bg-neutral-100 p-1">
           <button
             type="button"

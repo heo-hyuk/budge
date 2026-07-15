@@ -17,3 +17,11 @@ export interface NewTransaction {
   memo?: string
   date: string
 }
+
+export interface UpdateTransaction {
+  type?: TransactionType
+  category?: string
+  amount?: number
+  memo?: string
+  date?: string
+}

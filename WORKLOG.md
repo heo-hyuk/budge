@@ -36,12 +36,13 @@
 
 ## 2026-07-15 (2차)
 
-### 작업 계획
-- [ ] 월별 필터 UI (이전/다음 버튼) — App.tsx에 selectedMonth 상태 추가
-- [ ] API month 쿼리 파라미터 지원 — `functions/api/transactions/index.ts`
-- [ ] SummaryCard, CategoryBreakdown에 month prop 전달 (내부 하드코딩 제거)
-- [ ] 거래 수정 기능 — `PATCH /api/transactions/[id]` 추가, TransactionList 인라인 편집
-- 예상 변경 파일: `App.tsx`, `index.ts`, `[id].ts`, `api.ts`, `types.ts`, `SummaryCard.tsx`, `CategoryBreakdown.tsx`, `TransactionList.tsx`
+### 완료
+- [x] 월별 필터 UI — 헤더에 ◀ 2026년 7월 ▶ 네비게이션, `오늘` 버튼으로 현재 월 복귀
+- [x] API `?month=YYYY-MM` 쿼리 파라미터 지원 (`functions/api/transactions/index.ts`)
+- [x] SummaryCard, CategoryBreakdown — month prop으로 교체, 내부 Date 하드코딩 제거
+- [x] 거래 수정 기능 — `PATCH /api/transactions/[id]`, TransactionList 인라인 편집 폼
+- [x] tsc 타입체크 + vite 빌드 + Cloudflare Pages 배포 완료
+- 배포 URL: https://budget-3wb.pages.dev
 
 ---
 

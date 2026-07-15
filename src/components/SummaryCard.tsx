@@ -3,20 +3,21 @@ import type { Transaction } from '../types'
 
 interface Props {
   transactions: Transaction[]
+  month: string // 'YYYY-MM'
 }
 
-function SummaryCard({ transactions }: Props) {
-  const now = new Date()
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const monthly = transactions.filter((t) => t.date.startsWith(monthPrefix))
-
-  const income = monthly.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-  const expense = monthly.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+function SummaryCard({ transactions, month }: Props) {
+  // 선택된 월의 수입/지출/잔액 계산
+  const income  = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const balance = income - expense
+
+  const [year, mon] = month.split('-')
+  const label = `${year}년 ${parseInt(mon)}월 요약`
 
   return (
     <section className="rounded-2xl border-2 border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="text-base font-bold text-neutral-700">{now.getMonth() + 1}월 요약</h2>
+      <h2 className="text-base font-bold text-neutral-700">{label}</h2>
 
       <dl className="mt-3 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-blue-50 p-3">
