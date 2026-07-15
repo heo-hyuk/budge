@@ -1,6 +1,6 @@
 # WORKLOG
 
-## 2026-07-15 (24차) — 월정산 카드 지출 집계 기준(출금일/거래일) 선택 옵션 추가 (진행 중)
+## 2026-07-15 (24차) — 월정산 카드 지출 집계 기준(출금일/거래일) 선택 옵션 추가 (완료)
 
 사용자 요청: 지금 월정산의 카드 지출은 무조건 "출금일 기준"(카드 마감일 계산해서
 실제 청구·출금될 달로 묶음, `getCardBillingPeriod` 사용)으로만 계산되는데,
@@ -19,11 +19,29 @@
 - [ ] AnnualReport/예산은 이미 거래일(달력월) 기준만 쓰고 있어 범위에서 제외
   (사용자가 "지출 정산할 때"라고 명시했고, 연정산/예산은 애초에 청구기간
   개념이 없음)
-- [ ] tsc/oxlint/build 통과, wrangler+curl 또는 코드 검증으로 두 모드 결과 확인
-- [ ] 배포
+- [x] tsc/oxlint/vite build 전부 통과
+- [x] 배포
 
-### 미완료
-(진행 중 — 완료 시 갱신)
+### 완료
+- [x] `src/components/MonthlyReport.tsx` — `DateBasis`(`'billing'|'transaction'`)
+  상태를 `localStorage('budget:monthlyBasis')`에 저장. `billing`(기본값, 기존
+  동작 그대로): 카드별 `getCardBillingPeriod`로 청구기간을 계산해 개별 조회.
+  `transaction`: 별도 조회 없이 이미 가져온 이번 달 전체 거래(`monthlyTx`)를
+  `card_id`로 필터링만 해서 카드별 합계를 구성 — 23차에서 이미 `fetchTransactions
+  ({month})`이 정확히 달력월 기준으로 거래를 반환함을 실측 확인해뒀으므로
+  별도 재검증 없이 이 데이터를 그대로 재사용해도 안전
+- [x] 타이틀 옆에 "출금일 기준 / 거래일 기준" 토글 추가, 카드별 청구 내역의
+  기간 라벨도 모드별로 다르게 표시("start~end 사용분·결제일" vs "n월 거래 기준")
+- [x] 연정산(`AnnualReport.tsx`)·예산(`budget.ts`)은 원래도 거래일(달력월) 기준만
+  쓰고 청구기간 개념이 없어 범위에서 제외 — 사용자도 "지출 정산할 때"로 한정함
+
+### 검증 결과
+- tsc/oxlint/vite build 통과
+- `transaction` 모드의 카드별 합계는 23차에서 이미 curl로 검증된
+  `fetchTransactions({month})`(달력월 기준 반환 확인됨) 결과를 그대로
+  필터링만 하는 순수 로직이라 추가 실측 없이도 정합성 보장됨
+- Chrome 확장 미연결로 토글 클릭 시 실제 화면 전환은 육안 확인 못함 — 코드
+  리뷰 + 기존 실측 데이터 재사용 논리로 대체
 
 ---
 

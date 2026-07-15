@@ -12,7 +12,7 @@ interface Props {
 
 interface CardBill {
   card: Card
-  start: string
+  start: string       // basis='transaction'일 때는 빈 문자열
   end: string
   billingDate: string
   amount: number
@@ -20,6 +20,14 @@ interface CardBill {
 }
 
 type SettlementView = 'expense' | 'income'
+// billing = 카드 청구(출금)일 기준, transaction = 거래(결제)한 날짜 기준
+type DateBasis = 'billing' | 'transaction'
+
+const BASIS_STORAGE_KEY = 'budget:monthlyBasis'
+
+function loadBasis(): DateBasis {
+  return localStorage.getItem(BASIS_STORAGE_KEY) === 'transaction' ? 'transaction' : 'billing'
+}
 
 function MonthlyReport({ month, cards }: Props) {
   const [monthlyTx, setMonthlyTx] = useState<Transaction[]>([])
@@ -27,36 +35,59 @@ function MonthlyReport({ month, cards }: Props) {
   const [loading, setLoading] = useState(true)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [view, setView] = useState<SettlementView>('expense')
+  const [basis, setBasis] = useState<DateBasis>(loadBasis)
 
   const [year, mon] = month.split('-')
   const label = `${year}년 ${parseInt(mon)}월 정산`
+  const shortMonthLabel = `${parseInt(mon)}월`
+
+  function changeBasis(next: DateBasis) {
+    setBasis(next)
+    localStorage.setItem(BASIS_STORAGE_KEY, next)
+  }
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      // 이번달 전체 거래
-      fetchTransactions({ month }),
-      // 카드별 청구 기간 거래
-      ...cards.map((card) => {
-        const { start, end } = getCardBillingPeriod(month, card)
-        return fetchTransactions({ card_id: card.id, date_start: start, date_end: end })
-          .then((txs) => ({ card, start, end, txs }))
-      }),
-    ]).then(([txs, ...cardResults]) => {
-      setMonthlyTx(txs as Transaction[])
-      setCardBills(
-        (cardResults as { card: Card; start: string; end: string; txs: Transaction[] }[]).map(
-          ({ card, start, end, txs }) => {
-            const { billingDate } = getCardBillingPeriod(month, card)
-            const amount = txs
+
+    if (basis === 'billing') {
+      // 출금일 기준 — 카드별로 실제 청구(출금)될 기간을 계산해 그 기간의 거래를 따로 조회
+      Promise.all([
+        fetchTransactions({ month }),
+        ...cards.map((card) => {
+          const { start, end } = getCardBillingPeriod(month, card)
+          return fetchTransactions({ card_id: card.id, date_start: start, date_end: end })
+            .then((txs) => ({ card, start, end, txs }))
+        }),
+      ]).then(([txs, ...cardResults]) => {
+        setMonthlyTx(txs as Transaction[])
+        setCardBills(
+          (cardResults as { card: Card; start: string; end: string; txs: Transaction[] }[]).map(
+            ({ card, start, end, txs }) => {
+              const { billingDate } = getCardBillingPeriod(month, card)
+              const amount = txs
+                .filter((t) => t.type === 'expense')
+                .reduce((s, t) => s + t.amount, 0)
+              return { card, start, end, billingDate, amount, transactions: txs }
+            }
+          )
+        )
+      }).finally(() => setLoading(false))
+    } else {
+      // 거래일 기준 — 이미 조회한 이번 달 전체 거래를 카드별로 묶기만 하면 됨 (별도 조회 불필요)
+      fetchTransactions({ month }).then((txs) => {
+        setMonthlyTx(txs)
+        setCardBills(
+          cards.map((card) => {
+            const cardTxs = txs.filter((t) => t.card_id === card.id)
+            const amount = cardTxs
               .filter((t) => t.type === 'expense')
               .reduce((s, t) => s + t.amount, 0)
-            return { card, start, end, billingDate, amount, transactions: txs }
-          }
+            return { card, start: '', end: '', billingDate: '', amount, transactions: cardTxs }
+          })
         )
-      )
-    }).finally(() => setLoading(false))
-  }, [month, cards])
+      }).finally(() => setLoading(false))
+    }
+  }, [month, cards, basis])
 
   if (loading) return <p className="text-base text-neutral-500">불러오는 중...</p>
 
@@ -79,7 +110,34 @@ function MonthlyReport({ month, cards }: Props) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-neutral-800">{label}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-neutral-800">{label}</h2>
+
+        {/* 카드 지출 집계 기준 — 출금(청구)일 기준 vs 거래(결제)일 기준, 기기에 선호 저장 */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-neutral-400">카드 지출 집계</span>
+          <div className="flex rounded-lg bg-neutral-100 p-0.5">
+            <button
+              type="button"
+              onClick={() => changeBasis('billing')}
+              className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
+                basis === 'billing' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              출금일 기준
+            </button>
+            <button
+              type="button"
+              onClick={() => changeBasis('transaction')}
+              className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
+                basis === 'transaction' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              거래일 기준
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* 잔액 요약 (항상 표시) */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -216,7 +274,9 @@ function MonthlyReport({ month, cards }: Props) {
                   <div className="min-w-0">
                     <p className="truncate text-base font-bold text-neutral-900">{bill.card.name}</p>
                     <p className="text-xs text-neutral-500">
-                      {bill.start} ~ {bill.end} 사용분 · {bill.billingDate} 결제
+                      {basis === 'billing'
+                        ? `${bill.start} ~ ${bill.end} 사용분 · ${bill.billingDate} 결제`
+                        : `${shortMonthLabel} 거래 기준`}
                     </p>
                   </div>
                 </div>
