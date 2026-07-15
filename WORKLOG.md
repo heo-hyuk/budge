@@ -34,6 +34,23 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (5차)
+
+### 작업 계획
+- [ ] migrations/003_add_benefits_and_recurring.sql 생성 (recurring_transactions 테이블 + transactions.recurring_id 컬럼)
+- [ ] 로컬 D1에 마이그레이션 적용
+- [ ] functions/lib/recurring.ts — generateDueRecurringTransactions 자동 생성 로직
+- [ ] functions/api/recurring/index.ts — GET/POST
+- [ ] functions/api/recurring/[id].ts — PATCH/DELETE
+- [ ] functions/api/transactions/index.ts — GET 시 고정지출 자동 생성 호출
+- [ ] src/types.ts — RecurringTransaction 타입 추가
+- [ ] src/lib/api.ts — recurring API 함수 추가
+- [ ] src/components/RecurringManager.tsx — 고정지출 관리 UI
+- [ ] src/App.tsx — 탭에 "고정" 추가
+- [ ] typecheck + lint + 배포
+
+---
+
 ## 2026-07-15 (4차)
 
 ### 작업 계획
