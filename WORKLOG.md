@@ -37,16 +37,17 @@
 ## 2026-07-15 (3차)
 
 ### 작업 계획
-- [ ] DB 마이그레이션 — transactions(merchant, payment_method, card_id), cards 테이블 신규
-- [ ] 카드 API — GET/POST /api/cards, PATCH/DELETE /api/cards/[id]
-- [ ] 거래 API 확장 — 신규 필드, 검색 파라미터
-- [ ] 탭 네비게이션 (홈/월별정산/연간정산/카드관리/검색)
-- [ ] TransactionForm — 구매처, 결제방법(현금/카드 선택) 필드 추가
-- [ ] CardManager 컴포넌트 — 카드 CRUD, 청구기간·결제일 직접 입력
-- [ ] MonthlyReport — 현금지출 + 카드별 청구액 표시
-- [ ] AnnualReport — 12개월 바 차트
-- [ ] SearchView — 구매처·메모·분류 검색
-- 예상 변경/신규 파일: schema.sql, types.ts, api.ts, App.tsx, TransactionForm, TransactionList, CardManager, MonthlyReport, AnnualReport, SearchView, functions/api/cards/*, functions/api/transactions/*
+### 완료
+- [x] DB 마이그레이션 — transactions(merchant, payment_method, card_id), cards 테이블 (`migrations/001_add_cards.sql`)
+- [x] 카드 API — GET/POST /api/cards, PATCH/DELETE /api/cards/[id]
+- [x] 거래 API 확장 — 신규 필드(merchant, payment_method, card_id), 검색(q), 연도(year), 카드기간(card_id+date_start+date_end)
+- [x] 하단 탭 네비게이션 5개 (홈/월정산/연정산/카드/검색)
+- [x] TransactionForm — 구매처, 결제방법(현금/카드 칩 선택) 추가
+- [x] CardManager — 카드 CRUD, 마감일·결제일 입력, 혜택 목록, 색상 선택
+- [x] MonthlyReport — 현금수입/지출 + 카드별 청구기간 실출금 합산, 세부내역 펼치기
+- [x] AnnualReport — 12개월 바 차트 + 월별 표
+- [x] SearchView — 구매처·분류·메모 통합 검색, 카드 뱃지 표시
+- [x] tsc + vite 빌드 통과, Cloudflare Pages 배포 완료
 
 ---
 

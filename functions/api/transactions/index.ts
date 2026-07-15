@@ -1,66 +1,101 @@
 /// <reference types="@cloudflare/workers-types" />
 
-interface Env {
-  DB: D1Database;
-}
+interface Env { DB: D1Database }
 
-const corsHeaders = {
+const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
-};
+}
 
-export const onRequestOptions: PagesFunction<Env> = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders });
-};
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...cors, 'Content-Type': 'application/json' },
+  })
+
+export const onRequestOptions: PagesFunction<Env> = async () =>
+  new Response(null, { status: 204, headers: cors })
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
-  const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '200', 10), 500);
-  // YYYY-MM 형식으로 월 필터링 (없으면 전체 조회)
-  const month = url.searchParams.get('month');
+  const url = new URL(request.url)
+  const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '500', 10), 1000)
+  const month = url.searchParams.get('month')   // YYYY-MM
+  const year  = url.searchParams.get('year')    // YYYY (연간 정산용)
+  const q     = url.searchParams.get('q')       // 검색어
+  // 카드 청구 기간 조회용 (card_id + start + end)
+  const cardId    = url.searchParams.get('card_id')
+  const dateStart = url.searchParams.get('date_start')
+  const dateEnd   = url.searchParams.get('date_end')
 
-  let result;
+  let query = 'SELECT * FROM transactions WHERE 1=1'
+  const binds: unknown[] = []
+
   if (month && /^\d{4}-\d{2}$/.test(month)) {
-    result = await env.DB.prepare(
-      "SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, created_at DESC LIMIT ?"
-    ).bind(`${month}-%`, limit).all();
-  } else {
-    result = await env.DB.prepare(
-      'SELECT * FROM transactions ORDER BY date DESC, created_at DESC LIMIT ?'
-    ).bind(limit).all();
+    query += " AND date LIKE ?"
+    binds.push(`${month}-%`)
+  } else if (year && /^\d{4}$/.test(year)) {
+    query += " AND date LIKE ?"
+    binds.push(`${year}-%`)
   }
 
-  return json({ data: result.results }, 200);
-};
+  if (q) {
+    query += " AND (category LIKE ? OR merchant LIKE ? OR memo LIKE ?)"
+    const like = `%${q}%`
+    binds.push(like, like, like)
+  }
+
+  if (cardId) {
+    query += " AND card_id = ?"
+    binds.push(cardId)
+  }
+
+  if (dateStart) {
+    query += " AND date >= ?"
+    binds.push(dateStart)
+  }
+
+  if (dateEnd) {
+    query += " AND date <= ?"
+    binds.push(dateEnd)
+  }
+
+  query += " ORDER BY date DESC, created_at DESC LIMIT ?"
+  binds.push(limit)
+
+  const result = await env.DB.prepare(query).bind(...binds).all()
+  return json({ data: result.results })
+}
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const body = await request.json() as {
-    type: 'income' | 'expense';
-    category: string;
-    amount: number;
-    memo?: string;
-    date: string;
-  };
-
-  if (!body.type || !body.category || !body.amount || !body.date) {
-    return json({ error: 'Missing required fields' }, 400);
+    type: 'income' | 'expense'
+    category: string
+    amount: number
+    memo?: string
+    date: string
+    merchant?: string
+    payment_method?: string
+    card_id?: string
   }
 
-  const id = crypto.randomUUID();
-  const created_at = new Date().toISOString();
+  if (!body.type || !body.category || !body.amount || !body.date) {
+    return json({ error: 'Missing required fields' }, 400)
+  }
+
+  const id = crypto.randomUUID()
+  const created_at = new Date().toISOString()
 
   await env.DB.prepare(
-    `INSERT INTO transactions (id, type, category, amount, memo, date, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, body.type, body.category, body.amount, body.memo ?? '', body.date, created_at).run();
+    `INSERT INTO transactions
+       (id, type, category, amount, memo, date, merchant, payment_method, card_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, body.type, body.category, body.amount,
+    body.memo ?? '', body.date,
+    body.merchant ?? '', body.payment_method ?? '현금', body.card_id ?? '',
+    created_at
+  ).run()
 
-  return json({ ok: true, id }, 201);
-};
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  return json({ ok: true, id }, 201)
 }

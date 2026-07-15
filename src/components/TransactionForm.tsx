@@ -1,37 +1,37 @@
 import { useState } from 'react'
 import { addCustomCategory, getCategories } from '../lib/categories'
 import { todayStr } from '../lib/format'
-import type { NewTransaction, TransactionType } from '../types'
+import type { Card, NewTransaction, TransactionType } from '../types'
 
 interface Props {
   onSubmit: (tx: NewTransaction) => Promise<void>
+  cards: Card[]
 }
 
-function TransactionForm({ onSubmit }: Props) {
-  const [type, setType] = useState<TransactionType>('expense')
-  const [categories, setCategories] = useState(() => getCategories('expense'))
-  const [category, setCategory] = useState(categories[0])
-  const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(todayStr())
-  const [memo, setMemo] = useState('')
-  const [saving, setSaving] = useState(false)
+function TransactionForm({ onSubmit, cards }: Props) {
+  const [type, setType]               = useState<TransactionType>('expense')
+  const [categories, setCategories]   = useState(() => getCategories('expense'))
+  const [category, setCategory]       = useState(categories[0])
+  const [amount, setAmount]           = useState('')
+  const [date, setDate]               = useState(todayStr())
+  const [memo, setMemo]               = useState('')
+  const [merchant, setMerchant]       = useState('')        // 구매처/판매처
+  const [paymentMethod, setPaymentMethod] = useState('현금') // '현금' | 카드 id
+  const [saving, setSaving]           = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
 
   function handleTypeChange(next: TransactionType) {
     setType(next)
-    const nextCategories = getCategories(next)
-    setCategories(nextCategories)
-    setCategory(nextCategories[0])
+    const nextCats = getCategories(next)
+    setCategories(nextCats)
+    setCategory(nextCats[0])
     setAddingCategory(false)
   }
 
   function handleAddCategory() {
     const trimmed = newCategory.trim()
-    if (!trimmed) {
-      setAddingCategory(false)
-      return
-    }
+    if (!trimmed) { setAddingCategory(false); return }
     const updated = addCustomCategory(type, trimmed)
     setCategories(updated)
     setCategory(trimmed)
@@ -44,11 +44,20 @@ function TransactionForm({ onSubmit }: Props) {
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
     if (!numericAmount || numericAmount <= 0) return
 
+    const selectedCard = cards.find((c) => c.id === paymentMethod)
+
     setSaving(true)
     try {
-      await onSubmit({ type, category, amount: numericAmount, date, memo: memo.trim() || undefined })
+      await onSubmit({
+        type, category, amount: numericAmount, date,
+        memo: memo.trim() || undefined,
+        merchant: merchant.trim() || undefined,
+        payment_method: selectedCard ? selectedCard.id : '현금',
+        card_id: selectedCard ? selectedCard.id : undefined,
+      })
       setAmount('')
       setMemo('')
+      setMerchant('')
     } finally {
       setSaving(false)
     }
@@ -58,31 +67,27 @@ function TransactionForm({ onSubmit }: Props) {
     <form onSubmit={handleSubmit} className="rounded-2xl border-2 border-neutral-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-bold text-neutral-700">내역 추가</h2>
 
+      {/* 수입/지출 토글 */}
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => handleTypeChange('expense')}
-          className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
-            type === 'expense' ? 'bg-red-600 text-white' : 'bg-neutral-100 text-neutral-500'
-          }`}
-        >
-          지출
-        </button>
-        <button
-          type="button"
-          onClick={() => handleTypeChange('income')}
-          className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
-            type === 'income' ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-500'
-          }`}
-        >
-          수입
-        </button>
+        {(['expense', 'income'] as TransactionType[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => handleTypeChange(t)}
+            className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
+              type === t
+                ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                : 'bg-neutral-100 text-neutral-500'
+            }`}
+          >
+            {t === 'expense' ? '지출' : '수입'}
+          </button>
+        ))}
       </div>
 
+      {/* 금액 */}
       <div className="mt-4">
-        <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700">
-          금액
-        </label>
+        <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700">금액</label>
         <div className="relative mt-1.5">
           <input
             id="amount"
@@ -98,6 +103,56 @@ function TransactionForm({ onSubmit }: Props) {
         </div>
       </div>
 
+      {/* 구매처/판매처 */}
+      <div className="mt-4">
+        <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700">
+          구매처 / 판매처 <span className="text-neutral-400 font-normal">(선택)</span>
+        </label>
+        <input
+          id="merchant"
+          type="text"
+          placeholder="예: 스타벅스, 쿠팡"
+          value={merchant}
+          onChange={(e) => setMerchant(e.target.value)}
+          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base text-neutral-900 focus:border-blue-500 focus:outline-none"
+        />
+      </div>
+
+      {/* 결제 방법 */}
+      <div className="mt-4">
+        <span className="block text-sm font-semibold text-neutral-700">결제 방법</span>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {/* 현금 버튼 */}
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('현금')}
+            className={`min-h-9 rounded-full px-3 text-sm font-semibold ${
+              paymentMethod === '현금' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+            }`}
+          >
+            현금
+          </button>
+          {/* 등록된 카드 버튼 */}
+          {cards.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => setPaymentMethod(card.id)}
+              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+                paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100'
+              }`}
+              style={paymentMethod === card.id ? { backgroundColor: card.color } : {}}
+            >
+              {card.name}
+            </button>
+          ))}
+          {cards.length === 0 && (
+            <p className="text-xs text-neutral-400 self-center">카드 관리에서 카드를 등록하면 선택할 수 있어요</p>
+          )}
+        </div>
+      </div>
+
+      {/* 분류 */}
       <div className="mt-4">
         <span className="block text-sm font-semibold text-neutral-700">분류</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
@@ -131,13 +186,8 @@ function TransactionForm({ onSubmit }: Props) {
               placeholder="새 분류 이름"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddCategory()
-                }
-              }}
-              className="min-h-9 flex-1 rounded-lg border-2 border-neutral-300 px-3 text-sm text-neutral-900 focus:border-blue-500 focus:outline-none"
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
+              className="min-h-9 flex-1 rounded-lg border-2 border-neutral-300 px-3 text-sm focus:border-blue-500 focus:outline-none"
             />
             <button
               type="button"
@@ -150,30 +200,30 @@ function TransactionForm({ onSubmit }: Props) {
         )}
       </div>
 
+      {/* 날짜 */}
       <div className="mt-4">
-        <label htmlFor="date" className="block text-sm font-semibold text-neutral-700">
-          날짜
-        </label>
+        <label htmlFor="date" className="block text-sm font-semibold text-neutral-700">날짜</label>
         <input
           id="date"
           type="date"
           required
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base text-neutral-900 focus:border-blue-500 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
         />
       </div>
 
+      {/* 메모 */}
       <div className="mt-4">
         <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700">
-          메모 (선택)
+          메모 <span className="text-neutral-400 font-normal">(선택)</span>
         </label>
         <input
           id="memo"
           type="text"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base text-neutral-900 focus:border-blue-500 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
         />
       </div>
 

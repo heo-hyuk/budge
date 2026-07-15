@@ -1,28 +1,32 @@
 import { useState } from 'react'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatWon } from '../lib/format'
-import type { Transaction, TransactionType, UpdateTransaction } from '../types'
+import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
 interface Props {
   transactions: Transaction[]
+  cards: Card[]
   onDelete: (id: string) => void
   onUpdate: (id: string, data: UpdateTransaction) => Promise<void>
 }
 
-// 인라인 편집 폼 상태
 interface EditState {
   type: TransactionType
   category: string
   amount: string
   date: string
   memo: string
+  merchant: string
+  paymentMethod: string // '현금' | card.id
 }
 
-function TransactionList({ transactions, onDelete, onUpdate }: Props) {
-  // 현재 편집 중인 거래 id
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editState, setEditState] = useState<EditState | null>(null)
-  const [saving, setSaving] = useState(false)
+function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
+  const [editingId, setEditingId]   = useState<string | null>(null)
+  const [editState, setEditState]   = useState<EditState | null>(null)
+  const [saving, setSaving]         = useState(false)
+
+  // 카드 ID → Card 매핑
+  const cardMap = new Map(cards.map((c) => [c.id, c]))
 
   if (transactions.length === 0) {
     return (
@@ -48,18 +52,18 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
       amount: String(tx.amount),
       date: tx.date,
       memo: tx.memo ?? '',
+      merchant: tx.merchant ?? '',
+      paymentMethod: tx.card_id || '현금',
     })
   }
 
-  function cancelEdit() {
-    setEditingId(null)
-    setEditState(null)
-  }
+  function cancelEdit() { setEditingId(null); setEditState(null) }
 
   async function handleSave(id: string) {
     if (!editState) return
     const numericAmount = Number(editState.amount.replace(/[^0-9]/g, ''))
     if (!numericAmount || numericAmount <= 0) return
+    const selectedCard = cards.find((c) => c.id === editState.paymentMethod)
     setSaving(true)
     try {
       await onUpdate(id, {
@@ -68,6 +72,9 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
         amount: numericAmount,
         date: editState.date,
         memo: editState.memo.trim(),
+        merchant: editState.merchant.trim(),
+        payment_method: selectedCard ? selectedCard.id : '현금',
+        card_id: selectedCard ? selectedCard.id : '',
       })
       setEditingId(null)
       setEditState(null)
@@ -77,9 +84,7 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
   }
 
   function handleDelete(id: string) {
-    if (window.confirm('이 내역을 삭제할까요?')) {
-      onDelete(id)
-    }
+    if (window.confirm('이 내역을 삭제할까요?')) onDelete(id)
   }
 
   return (
@@ -92,14 +97,12 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
           <ul>
             {items.map((tx) =>
               editingId === tx.id && editState ? (
-                /* ---- 인라인 편집 폼 ---- */
+                /* ── 인라인 편집 폼 ── */
                 <li key={tx.id} className="border-b border-neutral-100 px-4 py-3 last:border-b-0">
-                  {/* 수입/지출 토글 */}
+                  {/* 수입/지출 */}
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {(['expense', 'income'] as TransactionType[]).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
+                      <button key={t} type="button"
                         onClick={() => {
                           const cats = getCategories(t)
                           setEditState((s) => s && { ...s, type: t, category: cats[0] })
@@ -115,20 +118,40 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
                     ))}
                   </div>
                   {/* 금액 */}
-                  <input
-                    type="text"
-                    inputMode="numeric"
+                  <input type="text" inputMode="numeric"
                     value={editState.amount}
                     onChange={(e) => setEditState((s) => s && { ...s, amount: e.target.value })}
                     className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-right text-base font-bold focus:border-blue-500 focus:outline-none"
                     placeholder="금액"
                   />
-                  {/* 분류 칩 */}
+                  {/* 구매처 */}
+                  <input type="text"
+                    value={editState.merchant}
+                    onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
+                    placeholder="구매처 (선택)"
+                    className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
+                  />
+                  {/* 결제방법 */}
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {['현금', ...cards.map((c) => c.id)].map((pm) => {
+                      const card = pm !== '현금' ? cardMap.get(pm) : null
+                      return (
+                        <button key={pm} type="button"
+                          onClick={() => setEditState((s) => s && { ...s, paymentMethod: pm })}
+                          className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
+                            editState.paymentMethod === pm ? 'text-white' : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                          style={editState.paymentMethod === pm ? { backgroundColor: card?.color ?? '#1f2937' } : {}}
+                        >
+                          {card ? card.name : '현금'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* 분류 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {getCategories(editState.type).map((c) => (
-                      <button
-                        key={c}
-                        type="button"
+                      <button key={c} type="button"
                         onClick={() => setEditState((s) => s && { ...s, category: c })}
                         className={`min-h-8 rounded-full px-3 text-sm font-semibold ${
                           editState.category === c ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
@@ -139,33 +162,25 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
                     ))}
                   </div>
                   {/* 날짜 */}
-                  <input
-                    type="date"
+                  <input type="date"
                     value={editState.date}
                     onChange={(e) => setEditState((s) => s && { ...s, date: e.target.value })}
                     className="mb-2 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
                   />
                   {/* 메모 */}
-                  <input
-                    type="text"
+                  <input type="text"
                     value={editState.memo}
                     onChange={(e) => setEditState((s) => s && { ...s, memo: e.target.value })}
                     placeholder="메모 (선택)"
                     className="mb-3 min-h-10 w-full rounded-xl border-2 border-neutral-300 px-3 text-base focus:border-blue-500 focus:outline-none"
                   />
-                  {/* 저장/취소 */}
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSave(tx.id)}
-                      disabled={saving}
+                    <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}
                       className="min-h-9 flex-1 rounded-xl bg-neutral-900 text-sm font-bold text-white disabled:opacity-50"
                     >
                       {saving ? '저장 중...' : '저장'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
+                    <button type="button" onClick={cancelEdit}
                       className="min-h-9 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600"
                     >
                       취소
@@ -173,34 +188,46 @@ function TransactionList({ transactions, onDelete, onUpdate }: Props) {
                   </div>
                 </li>
               ) : (
-                /* ---- 일반 표시 ---- */
-                <li
-                  key={tx.id}
+                /* ── 일반 표시 ── */
+                <li key={tx.id}
                   className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0"
                 >
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-neutral-900">{tx.category}</p>
-                    {tx.memo && <p className="mt-0.5 truncate text-sm text-neutral-500">{tx.memo}</p>}
+                    <p className="text-base font-semibold text-neutral-900">
+                      {tx.merchant || tx.category}
+                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      {tx.merchant && (
+                        <span className="text-sm text-neutral-500">{tx.category}</span>
+                      )}
+                      {/* 결제방법 뱃지 */}
+                      {tx.card_id && cardMap.get(tx.card_id) ? (
+                        <span
+                          className="text-xs font-semibold px-1.5 py-0.5 rounded text-white"
+                          style={{ backgroundColor: cardMap.get(tx.card_id)!.color }}
+                        >
+                          {cardMap.get(tx.card_id)!.name}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-500">
+                          현금
+                        </span>
+                      )}
+                      {tx.memo && (
+                        <span className="truncate text-sm text-neutral-400">{tx.memo}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span
-                      className={`text-base font-bold ${
-                        tx.type === 'income' ? 'text-blue-700' : 'text-red-700'
-                      }`}
-                    >
-                      {tx.type === 'income' ? '+' : '-'}
-                      {formatWon(tx.amount)}
+                    <span className={`text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                      {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(tx)}
+                    <button type="button" onClick={() => startEdit(tx)}
                       className="min-h-9 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
                     >
                       수정
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(tx.id)}
+                    <button type="button" onClick={() => handleDelete(tx.id)}
                       className="min-h-9 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600"
                     >
                       삭제
