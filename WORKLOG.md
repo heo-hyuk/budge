@@ -1,5 +1,47 @@
 # WORKLOG
 
+## 2026-07-15 (21차) — 사이트명 "텅장" 적용 + 파비콘 신규 제작 + 메모장 기능 추가 (진행 중)
+
+사용자 요청 3가지:
+1. 사이트명을 "텅장"으로 확정, 전체 반영 + 파비콘 신규 제작
+2. 금융 기록과 별개로 "그날 있었던 일/누굴 만났는지" 등을 남기는 메모장 신규 기능
+   — 달력(월 단위) 스타일, 세로로 일자가 엑셀처럼 나열되고 오른쪽에 내용 표시,
+   내용이 길어지면 줄바꿈 가능, 카테고리 태그 지원
+3. 질문: 고정지출이 월정산에 합쳐져서 나오는지 → 코드 확인 후 답변 완료
+   (`functions/lib/recurring.ts`가 고정지출을 `transactions` 테이블에 실제 행으로
+   INSERT하므로 `MonthlyReport.tsx`가 조회하는 일반 거래와 완전히 동일하게 합산됨,
+   메모란에 항목명이 자동으로 들어감)
+
+### 메모장 설계 결정 (사용자 확인 없이 합리적으로 판단, 다르면 이후 조정)
+- 하루당 메모 1건(카테고리 1개 + 자유 텍스트, 길어지면 textarea가 늘어남) —
+  "내용이 추가되면 줄바꿈도 가능하게"라는 표현이 여러 건이 아니라 한 칸에 계속
+  이어 쓰는 형태로 해석됨
+- DB: `notes` 테이블 신규, `UNIQUE(user_id, date)` — 카테고리는 기존
+  `categories.ts` 패턴처럼 기본값 제공 + localStorage 커스텀 추가 가능
+- UI: 새 "메모" 탭 추가, 월 선택은 기존 App.tsx의 selectedMonth 재사용, 좌측에
+  해당 월 1일~말일 세로 목록(엑셀 행처럼), 우측에 카테고리 뱃지+내용, 클릭하면
+  인라인 편집
+
+### 작업 계획
+- [ ] 브랜딩: `index.html` title, `public/favicon.svg` 신규 디자인, `App.tsx`/
+  `AuthPage.tsx`/`exportExcel.ts`의 "가계부" 텍스트를 "텅장"으로 교체
+- [ ] `migrations/008_add_notes.sql`(신규) + `schema.sql` 동기화 — notes 테이블
+- [ ] `src/lib/noteCategories.ts`(신규) — categories.ts와 동일 패턴
+- [ ] `functions/api/notes/index.ts`(신규) — GET(월별 목록)/POST(날짜별 upsert)
+- [ ] `functions/api/notes/[id].ts`(신규) — PATCH/DELETE
+- [ ] `src/types.ts` — Note, NewNote 타입 추가
+- [ ] `src/lib/api.ts` — fetchNotes/saveNote/deleteNote 추가 (공통 apiRequest 헬퍼 사용)
+- [ ] `src/components/NotesView.tsx`(신규) — 월별 세로 목록 + 우측 내용, 카테고리
+  뱃지, 인라인 편집, 토스트/스피너 기존 패턴 적용
+- [ ] `App.tsx` — "메모" 탭 추가(사이드 메뉴), 아이콘 선정
+- [ ] tsc/oxlint/build 통과, wrangler pages dev + curl로 notes CRUD 검증
+- [ ] 원격 D1 마이그레이션 적용 + 배포(사용자 요청대로 확인 없이 진행)
+
+### 미완료
+(진행 중 — 완료 시 갱신)
+
+---
+
 ## 2026-07-15 (20차) — 에러/로딩 처리 공통 패턴 통일 (완료)
 
 사용자 요청: 여러 기능(고정지출/할인추적/예산/엑셀내보내기)이 순차 추가되며
