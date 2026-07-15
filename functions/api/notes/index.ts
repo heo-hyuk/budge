@@ -25,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     query += ' AND date LIKE ?'
     binds.push(`${month}-%`)
   }
-  query += ' ORDER BY date ASC'
+  query += ' ORDER BY date ASC, created_at ASC'
 
   const result = await env.DB.prepare(query).bind(...binds).all<NoteRow>()
   return Response.json({ data: result.results })
@@ -37,7 +37,7 @@ interface NoteBody {
   content: string
 }
 
-/** POST /api/notes — 날짜별 upsert (이미 있으면 내용 갱신) */
+/** POST /api/notes — 새 메모 생성 (하루 여러 건 가능, 항상 새 행 추가) */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, data, request } = context
   const userId = (data as Record<string, string>).userId
@@ -51,19 +51,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const now = new Date().toISOString()
+  const id  = crypto.randomUUID()
 
-  const existing = await env.DB.prepare(
-    'SELECT id FROM notes WHERE user_id = ? AND date = ?'
-  ).bind(userId, body.date).first<{ id: string }>()
-
-  if (existing) {
-    await env.DB.prepare(
-      'UPDATE notes SET category = ?, content = ?, updated_at = ? WHERE id = ?'
-    ).bind(body.category || '일상', body.content.trim(), now, existing.id).run()
-    return Response.json({ id: existing.id })
-  }
-
-  const id = crypto.randomUUID()
   await env.DB.prepare(`
     INSERT INTO notes (id, user_id, date, category, content, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)

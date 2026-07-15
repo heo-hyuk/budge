@@ -1,6 +1,6 @@
 # WORKLOG
 
-## 2026-07-15 (22차) — 메모장 하루 여러 건 허용으로 수정 (진행 중)
+## 2026-07-15 (22차) — 메모장 하루 여러 건 허용으로 수정 (완료)
 
 21차에서 "하루 1건, 내용만 이어 씀"으로 판단했었는데, 사용자가 "하루에 여러건도
 가능이 맞아"로 확인 — 스키마/API/화면을 하루 여러 건 구조로 재작업.
@@ -14,10 +14,34 @@
 - [ ] `src/components/NotesView.tsx` — 날짜별로 여러 메모를 리스트로 표시,
   각 항목 개별 수정/삭제, 날짜당 "메모 추가" 버튼으로 새 항목 계속 추가 가능하게 재작성
 - [ ] tsc/oxlint/build 통과, curl로 같은 날짜 여러 건 생성/개별 수정삭제 검증
-- [ ] 원격 D1 마이그레이션 적용 + 배포
+- [x] 원격 D1 마이그레이션 적용 + 배포
 
-### 미완료
-(진행 중 — 완료 시 갱신)
+### 완료
+- [x] `migrations/009_notes_allow_multiple_per_day.sql`(신규) — SQLite는 제약을
+  직접 DROP 못해 `ALTER TABLE RENAME` → 새 테이블 생성(제약 없이) → 데이터 복사
+  → old 테이블 삭제 방식으로 `UNIQUE(user_id, date)` 제거. 로컬+원격 D1 적용 완료
+  (원격 적용 시 기존 21차 테스트 데이터 22행 정상 이관 확인)
+- [x] `schema.sql` 동기화 (UNIQUE 제거, 001~009 반영)
+- [x] `functions/api/notes/index.ts` — POST에서 날짜별 upsert 로직 제거, 항상
+  새 행 INSERT. GET 정렬에 `created_at ASC` 보조 정렬 추가(같은 날짜 여러 건일
+  때 입력 순서 유지)
+- [x] `src/components/NotesView.tsx` — 전면 재작성: 날짜별로 `Note[]` 배열로
+  그룹화해 여러 건을 세로로 쌓아 표시, 각 항목 개별 수정(연필)/삭제(휴지통)
+  아이콘, 날짜당 "+ 메모 추가" 버튼은 항상 노출되어 몇 건이든 계속 추가 가능.
+  `editTarget: {date, note: Note|null}` 상태로 신규 추가/기존 수정 폼 통합 관리
+- [x] tsc/oxlint/vite build 전부 통과
+
+### 검증 결과
+- curl로 같은 날짜에 메모 2건 생성 → 각각 별도 id로 저장되고 GET 시 둘 다
+  조회됨 확인, 한쪽만 PATCH 수정 + 다른 쪽만 DELETE → 서로 영향 없이 개별
+  동작함 확인
+- Chrome 확장 미연결로 화면상 "+ 메모 추가"로 여러 건 쌓이는 모습은 육안 확인
+  못함 — API 레벨 검증으로 대체
+
+### 배포
+- 원격 D1에 `migrations/009_notes_allow_multiple_per_day.sql` 적용 완료
+- `npm run deploy` 완료 — https://3c4716a6.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 200 정상 확인
 
 ---
 
