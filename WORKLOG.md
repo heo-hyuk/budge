@@ -34,6 +34,21 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (7차)
+
+### 작업 계획
+- [ ] migrations/005_add_budgets.sql — budgets 테이블 (004는 benefits에서 사용 중)
+- [ ] functions/lib/budget.ts — calculateBudgetStatus (월별 지출 집계 + 예산 매칭)
+- [ ] functions/api/budgets/index.ts — GET(월 예산+초과현황) / POST
+- [ ] functions/api/budgets/[id].ts — PATCH / DELETE
+- [ ] src/types.ts — Budget, BudgetStatus 타입 추가
+- [ ] src/lib/api.ts — budget API 함수 추가
+- [ ] src/components/BudgetManager.tsx — 예산 설정 폼 + 진행률 바 목록
+- [ ] src/components/TransactionForm.tsx — 카테고리별 예산 현황 인라인 표시
+- [ ] src/App.tsx — 예산 탭 추가, 초과 카테고리 배너
+
+---
+
 ## 2026-07-15 (6차)
 
 ### 완료
