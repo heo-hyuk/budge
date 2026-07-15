@@ -34,6 +34,18 @@
 - [ ] Chrome 확장 연결 후 실제 화면 스크린샷으로 검증 (현재 확장 미연결로 육안 확인 필요)
 - [ ] 위 D1/배포 관련 작업
 
+## 2026-07-15 (8차)
+
+### 작업 계획
+- [ ] npm install xlsx (SheetJS)
+- [ ] functions/api/export/index.ts — GET (기간별 거래+카드명 JOIN JSON)
+- [ ] src/lib/exportExcel.ts — 워크북 생성 (거래내역/월별요약/카드별정산 3시트)
+- [ ] src/lib/api.ts — fetchExportData 추가
+- [ ] src/components/ExportButton.tsx — 기간 선택 모달 + 다운로드 트리거
+- [ ] SearchView.tsx, AnnualReport.tsx — ExportButton 배치
+
+---
+
 ## 2026-07-15 (7차)
 
 ### 완료
