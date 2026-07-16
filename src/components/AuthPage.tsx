@@ -38,10 +38,9 @@ function AuthPage() {
   return (
     <div className="min-h-svh bg-neutral-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* 로고/타이틀 */}
+        {/* 로고/타이틀 — 심볼+텅장 워드마크가 하나로 합쳐진 로고 */}
         <div className="text-center mb-8">
-          <img src="/favicon.png" alt="" className="mx-auto h-14 w-14 rounded-2xl" />
-          <h1 className="font-brand mt-3 text-3xl text-coral-600">텅장</h1>
+          <img src="/logo.svg" alt="텅장" className="mx-auto h-20 w-auto" />
           <p className="mt-2 text-sm text-neutral-500">나만의 가계부 서비스</p>
         </div>
 

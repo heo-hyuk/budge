@@ -1,5 +1,41 @@
 # WORKLOG
 
+## 2026-07-17 (32차) — 사용자 제공 실제 벡터 로고/파비콘으로 최종 교체
+
+29차부터 SVG 손그림 시도(2회 실패) → 원본 시안 PNG 크롭(3차, 임시 조치)까지 거친 로고
+작업을, 사용자가 직접 만든 실제 벡터 파일 2개를 받아 마무리:
+`C:\Users\db848\Desktop\텅장_logo\favicon.svg`(아이콘 단독), `logo_color.svg`(아이콘+
+"텅장" 커스텀 레터링이 합쳐진 전체 로고). 둘 다 읽어서 내용 확인 후 그대로 적용.
+
+### 완료
+- [x] `public/favicon.svg` — 사용자 제공 파일로 교체(흰 배경 둥근 사각형 + 코랄 지갑
+  아이콘 + 반짝임, 64×64 순수 벡터). 29~31차에서 임시로 썼던 `public/favicon.png`(원본
+  시안 크롭) 삭제
+- [x] `public/logo.svg`(신규) — 사용자 제공 전체 로고(아이콘+"텅장" 커스텀 레터링이 하나로
+  합쳐진 488×186 벡터) 추가
+- [x] `index.html` — favicon 링크를 `image/png` → `image/svg+xml`, `/favicon.png` →
+  `/favicon.svg`로 변경
+- [x] `src/App.tsx` — 헤더 + 사이드 드로어의 아이콘 `<img>` src를 `/favicon.svg`로 교체
+  (좁은 공간이라 아이콘만 쓰고, 옆의 "텅장" 텍스트는 기존 Jua 폰트 그대로 유지)
+- [x] `src/components/AuthPage.tsx` — 로그인 화면은 아이콘+텍스트를 따로 조합하던 구조를
+  버리고 `public/logo.svg`(이미 워드마크가 포함된 전체 로고) 하나로 교체, 중복되는 별도
+  `<h1>텅장</h1>` 텍스트 제거
+- [x] tsc / oxlint / vite build 전부 통과
+
+### 검증 결과
+- Chrome으로 실제 배포 화면 확인: 헤더의 작은 아이콘, 로그인 화면의 전체 로고(지갑
+  아이콘 + "텅장" 커스텀 레터링) 둘 다 정확히 렌더링됨을 확대 스크린샷으로 확인. 이번엔
+  사용자가 준 실제 디자인 파일을 그대로 쓴 거라 형태 왜곡 문제 자체가 없음
+
+### 배포
+- `npm run deploy` 완료 — https://bd9bcf17.budget-3wb.pages.dev
+
+### 변경 파일
+- `public/favicon.svg`(교체), `public/logo.svg`(신규), `public/favicon.png`(삭제)
+- `index.html`, `src/App.tsx`, `src/components/AuthPage.tsx`
+
+---
+
 ## 2026-07-17 (31차) — "한눈에 보기"에 월간/연간 탭 추가
 
 사용자 요청: "일간 월간 주간 연간 다 있어야됨 새로 작업해줘 있는건 나두면된다" — 27차에서
