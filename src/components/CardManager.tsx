@@ -177,6 +177,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       closing_day: String(card.closing_day),
       benefits: legacyBenefits.join('\n'),
     })
+    setPresetId('')  // 카드 자체엔 저장된 프리셋 값이 없어 매번 "직접 입력"부터 시작 — 선택해야만 적용됨
     setError('')
     setShowForm(true)
   }
@@ -237,21 +238,38 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       benefits,
     }
 
-    const preset = !editingId && presetId ? CARD_BENEFIT_PRESETS.find((p) => p.id === presetId) : undefined
+    const preset = presetId ? CARD_BENEFIT_PRESETS.find((p) => p.id === presetId) : undefined
 
     setSaving(true)
     try {
+      let cardId: string
       if (editingId) {
         await updateCard(editingId, data)
+        cardId = editingId
       } else {
-        const newCardId = await createCard(data)
-        if (preset) await applyPreset(newCardId, preset)
+        cardId = await createCard(data)
       }
+
+      let presetApplied = false
+      if (preset) {
+        // 기존 카드는 이미 등록된 혜택 규칙이 있을 수 있어, 프리셋을 새로 추가하기 전에
+        // 중복 등록될 수 있음을 한 번 확인시킴 (새 카드는 처음이라 확인 없이 바로 적용)
+        const shouldApply = !editingId || window.confirm(
+          `"${preset.label}" 프리셋의 혜택 규칙을 이 카드에 추가할까요?\n기존에 등록된 혜택 규칙은 그대로 유지되고 새로 추가됩니다.`
+        )
+        if (shouldApply) {
+          await applyPreset(cardId, preset)
+          presetApplied = true
+        }
+      }
+
       await onRefresh()
       cancelForm()
       showToast(
-        preset?.requiresPackageChoice
-          ? '카드와 프리셋 혜택을 추가했습니다. 혜택 목록에서 매달 사용할 패키지 하나만 켜두세요'
+        presetApplied && preset?.requiresPackageChoice
+          ? '프리셋 혜택을 추가했습니다. 혜택 목록에서 매달 사용할 패키지 하나만 켜두세요'
+          : presetApplied
+          ? '프리셋 혜택을 추가했습니다'
           : editingId ? '카드를 수정했습니다' : '카드를 추가했습니다'
       )
     } catch (err) {
@@ -471,31 +489,28 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
           />
 
-          {/* 카드 프리셋 (새 카드 등록 시만) */}
-          {!editingId && (
-            <>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">카드 상품 선택 (선택사항)</label>
-              <select
-                value={presetId}
-                onChange={(e) => setPresetId(e.target.value)}
-                className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
-              >
-                <option value="">직접 입력</option>
-                {CARD_BENEFIT_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-              {presetId && (
-                <p className="mb-4 text-xs text-neutral-400">
-                  저장하면 이 카드 상품의 혜택 규칙이 자동으로 등록돼요. AI가 조사한 정보라 실제
-                  카드 약관과 다를 수 있으니 등록 후 꼭 확인하세요
-                  {CARD_BENEFIT_PRESETS.find((p) => p.id === presetId)?.requiresPackageChoice &&
-                    ' — 이 카드는 매달 패키지 중 하나만 선택해 쓰는 방식이라, 등록 후 혜택 목록에서 사용할 패키지 하나만 켜두세요.'}
-                </p>
-              )}
-              {!presetId && <div className="mb-4" />}
-            </>
+          {/* 카드 프리셋 — 새 카드 등록은 물론, 기존 카드 수정 중에도 나중에 선택해 혜택 규칙을
+              추가할 수 있음 */}
+          <label className="block text-sm font-semibold text-neutral-700 mb-1">카드 상품 선택 (선택사항)</label>
+          <select
+            value={presetId}
+            onChange={(e) => setPresetId(e.target.value)}
+            className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+          >
+            <option value="">직접 입력</option>
+            {CARD_BENEFIT_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+          {presetId && (
+            <p className="mb-4 text-xs text-neutral-400">
+              저장하면 이 카드 상품의 혜택 규칙이 {editingId ? '추가로' : '자동으로'} 등록돼요.
+              AI가 조사한 정보라 실제 카드 약관과 다를 수 있으니 등록 후 꼭 확인하세요
+              {CARD_BENEFIT_PRESETS.find((p) => p.id === presetId)?.requiresPackageChoice &&
+                ' — 이 카드는 매달 패키지 중 하나만 선택해 쓰는 방식이라, 등록 후 혜택 목록에서 사용할 패키지 하나만 켜두세요.'}
+            </p>
           )}
+          {!presetId && <div className="mb-4" />}
 
           {/* 색상 */}
           <label className="block text-sm font-semibold text-neutral-700 mb-2">카드 색상</label>
