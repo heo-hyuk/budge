@@ -1,5 +1,46 @@
 # WORKLOG
 
+## 2026-07-16 (26차) — 카드 프리셋 4번째 추가: NH농협카드 zgm.the pay
+
+25차에서 만든 `src/lib/cardBenefitPresets.ts`에 4번째 프리셋만 추가하는 작은 작업.
+
+### 완료
+- [x] `src/lib/cardBenefitPresets.ts` — `nh-zgm-the-pay` 프리셋 추가. `benefit_groups`에
+  "zgm.the pay 통합한도"(월 100,000원) 생성 후 discount 타입 혜택 3개를 전부 이 그룹에
+  연결(개별 monthly_cap 없음, 그룹 한도로 통합 관리): 전 가맹점 1%, NH페이 온라인 1.7%,
+  기타 간편결제 1.2%. 무실적 카드라 memo에 "전월실적 조건 없음"만 기록(다른 프리셋처럼
+  "전월실적 N원 이상" 문구 없음)
+- [x] **매칭 우선순위 처리**: 지금 거래 데이터 모델은 "카드로 결제했다"는 것만 기록하고
+  그 카드가 실제 어떤 앱(NH페이/삼성페이/네이버페이 등)으로 결제됐는지는 추적하지 않아서,
+  어떤 혜택이 실제로 적용될지 자동 판별이 불가능함 — 3개 혜택 전부 `category`/
+  `merchant_pattern`을 비워둬서 `benefitMatcher.ts`의 `calcScore`가 셋 다 동일하게
+  10점("전체 적용 규칙")을 받게 함. 이러면 자동으로 하나를 우선시키지 않고 매칭 시
+  셋 다 후보로 함께 뜨며(`findMatchingBenefits`가 최고 점수 동점 전부 반환하는 기존
+  로직 그대로 재사용), 사용자가 실제 결제 방식에 맞는 걸 직접 선택. NH페이 혜택에
+  `merchant_pattern="NH페이"`를 넣는 방안도 검토했으나, 그러면 calcScore가 100/-1로
+  갈려서 다른 두 혜택(10점)과 동점이 안 되고 오히려 자동으로 우선/배제되는 문제가 생겨
+  요청한 "직접 선택" 방식과 맞지 않아 채택 안 함 — 대신 각 memo에 어떤 결제수단일 때
+  해당하는지 안내 문구로만 남김
+- [x] `src/components/CardManager.tsx` — **변경 불필요**: "카드 상품 선택" 드롭다운이
+  이미 `CARD_BENEFIT_PRESETS` 배열을 그대로 매핑해 렌더링하고, 그룹 표시("그룹명 ·
+  통합한도 N원/월")도 `benefit_group_id` 기준으로 이미 일반화돼 있어서 프리셋 데이터
+  추가만으로 프론트가 자동으로 새 옵션/그룹 표시를 지원함
+- [x] tsc -b / oxlint 통과
+
+### 검증 결과
+- tsc/oxlint 통과. 사용자 요청대로 이번엔 curl/wrangler dev/Chrome 화면 검증은
+  진행하지 않음(요청 시에만 진행하기로 함)
+
+### 배포
+- 원격 DB 마이그레이션 불필요(기존 benefit_groups/card_benefits 스키마 그대로 사용,
+  신규 프리셋은 프론트 정적 데이터 추가일 뿐)
+- `npm run deploy` 완료 — https://f0cc9af5.budget-3wb.pages.dev
+
+### 변경 파일
+- `src/lib/cardBenefitPresets.ts`
+
+---
+
 ## 2026-07-16 (25차) — 카드 혜택 그룹 공유한도 / 캐시백 적립 / 카드 프리셋 기능 추가
 
 > 병합 메모: 이 세션과 별개로 origin/main에 12~14차(coral 컬러 시스템 적용, 카드형 레이아웃,

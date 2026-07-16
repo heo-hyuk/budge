@@ -166,4 +166,44 @@ export const CARD_BENEFIT_PRESETS: CardPreset[] = [
       },
     ],
   },
+  {
+    id: 'nh-zgm-the-pay',
+    label: 'NH농협카드 zgm.the pay',
+    requiresPackageChoice: false,
+    groups: [
+      { name: 'zgm.the pay 통합한도', monthly_cap: 100000 },
+    ],
+    benefits: [
+      // 아래 3개 혜택은 실제로는 "어떤 결제 방식으로 냈는지"에 따라 하나만 적용되지만,
+      // 지금 거래 데이터 모델은 카드 결제라는 것만 기록하고 그 카드가 어느 앱(NH페이/
+      // 삼성페이 등)으로 결제됐는지는 추적하지 않음 — category/merchant_pattern을 전부
+      // 비워 셋 다 calcScore가 동일하게 10점(전체 적용 규칙)을 받도록 해서 자동으로
+      // 하나를 우선시키지 않고 매칭 후보로 셋 다 띄운 뒤 사용자가 실제 결제수단에 맞는
+      // 걸 직접 고르게 함
+      {
+        name: '전 가맹점 기본 1% 할인',
+        discount_type: 'percent',
+        discount_value: 1,
+        benefit_type: 'discount',
+        groupName: 'zgm.the pay 통합한도',
+        memo: withNotice('전월실적 조건 없음'),
+      },
+      {
+        name: 'NH페이 온라인 결제 1.7% 할인',
+        discount_type: 'percent',
+        discount_value: 1.7,
+        benefit_type: 'discount',
+        groupName: 'zgm.the pay 통합한도',
+        memo: withNotice('NH페이 앱 결제 시에만 적용, 수기 확인 필요 · 전월실적 조건 없음'),
+      },
+      {
+        name: '기타 간편결제 1.2% 할인',
+        discount_type: 'percent',
+        discount_value: 1.2,
+        benefit_type: 'discount',
+        groupName: 'zgm.the pay 통합한도',
+        memo: withNotice('삼성페이·네이버페이 등 간편결제 이용 시 해당, 실제 결제수단 확인 필요 · 전월실적 조건 없음'),
+      },
+    ],
+  },
 ]
