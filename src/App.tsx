@@ -284,21 +284,50 @@ function App() {
   if (!user) return <AuthPage />
 
   return (
-    <div className="min-h-svh bg-neutral-50 text-neutral-900">
+    <div className="min-h-svh bg-neutral-50 text-neutral-900 lg:flex">
+      {/* 데스크탑 전용 상시 사이드바 — 모바일은 기존처럼 햄버거+드로어 유지 */}
+      <aside className="hidden lg:flex lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 lg:bg-white">
+        <div className="px-4 py-4">
+          <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+        </div>
+        <nav className="flex flex-col gap-1 p-2">
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                  active
+                    ? 'bg-coral-400 text-white'
+                    : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <Icon size={18} strokeWidth={2} />
+                {tab.label}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+
+      <div className="min-w-0 flex-1">
       {/* 헤더 */}
       <header className="border-b border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
-            {/* 햄버거 버튼 */}
+            {/* 햄버거 버튼 — 모바일 전용 (데스크탑은 좌측 상시 사이드바로 대체) */}
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="메뉴 열기"
-              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 active:bg-neutral-200"
+              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 active:bg-neutral-200 lg:hidden"
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+            <img src="/logo.svg" alt="텅장" className="h-8 w-auto lg:hidden" />
           </div>
 
           {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
@@ -502,18 +531,19 @@ function App() {
           <SearchView cards={cards} />
         )}
       </main>
+      </div>
 
-      {/* 사이드 메뉴 오버레이 */}
+      {/* 사이드 메뉴 오버레이 — 모바일 전용 (데스크탑은 좌측 상시 사이드바 사용) */}
       {menuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
           onClick={() => setMenuOpen(false)}
         />
       )}
 
-      {/* 사이드 메뉴 드로어 */}
+      {/* 사이드 메뉴 드로어 — 모바일 전용 */}
       <nav
-        className={`fixed left-0 top-0 z-40 h-full w-64 max-w-[80vw] transform bg-white shadow-xl transition-transform duration-200 ${
+        className={`fixed left-0 top-0 z-40 h-full w-64 max-w-[80vw] transform bg-white shadow-xl transition-transform duration-200 lg:hidden ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

@@ -72,14 +72,17 @@ function MyPage({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8 sm:items-center">
-      <div className="w-full max-w-md space-y-4">
-        <div className="flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8 sm:items-center"
+      onClick={onClose}
+    >
+      <div className="w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
           <h2 className="text-lg font-bold text-neutral-900">내 정보</h2>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-9 rounded-lg px-3 text-sm font-semibold text-neutral-500 transition-colors hover:bg-white/60"
+            className="min-h-9 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
           >
             닫기
           </button>
