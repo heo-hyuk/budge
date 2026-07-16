@@ -83,7 +83,7 @@
 
 ### 배포
 - 원격 D1에 `migrations/010_add_quick_templates.sql` 적용 완료
-- `npm run deploy` 완료 — https://DEPLOY_URL_PLACEHOLDER
+- `npm run deploy` 완료 — https://d4a6fa26.budget-3wb.pages.dev
 - 배포 후 `/api/auth/me` 200 정상 확인
 
 ### 변경 파일
