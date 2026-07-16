@@ -43,9 +43,13 @@
 ### 참고 — 기존 가입자 대응
 - `nickname`이 NULL이면 로그인 응답에서 name으로 폴백 표시(헤더 텍스트: `user.nickname
   ?? user.name`)
-- 로컬 D1은 아직 `npm run d1:init`으로 마이그레이션 미적용 상태 — 실제 배포/로컬
-  테스트 전 반드시 실행 필요 (본 세션에서는 Chrome 실동작 검증은 미실시, 사용자
-  요청 시 진행)
+- 로컬 D1은 아직 `npm run d1:init`으로 마이그레이션 미적용 상태 — 로컬 테스트 시
+  실행 필요. 원격 D1은 아래에서 바로 적용함
+- 본 세션에서는 Chrome 실동작 검증은 미실시 (사용자 요청 시 진행)
+
+### 배포
+- 원격 D1에 `migrations/012_add_nickname.sql` 적용 완료
+- `npm run deploy` 완료 — https://17914796.budget-3wb.pages.dev
 
 ### 변경 파일
 `migrations/012_add_nickname.sql`, `schema.sql`, `functions/lib/auth.ts`,
