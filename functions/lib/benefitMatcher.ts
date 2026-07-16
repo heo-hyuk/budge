@@ -12,15 +12,19 @@ export interface CardBenefit {
   monthly_cap: number
   min_spend: number
   memo: string
+  benefit_group_id: string | null
+  benefit_type: 'discount' | 'cashback'
+  active: number
   created_at: string
 }
 
 export interface BenefitMatch {
   benefit: CardBenefit
   score: number
-  estimated_discount: number  // 이번 거래에 적용될 예상 할인액
-  monthly_used: number        // 이번 달 이미 사용된 할인액
-  monthly_remaining: number   // 이번 달 남은 한도 (0 = 무제한)
+  estimated_discount: number  // 이번 거래에 적용될 예상 할인액 (cashback이면 예상 적립액)
+  monthly_used: number        // 이번 달 이미 사용된 할인액 (그룹 소속이면 그룹 전체 사용액)
+  monthly_remaining: number   // 이번 달 남은 한도 (0 = 무제한, 그룹 소속이면 그룹 잔여 한도)
+  benefit_type: 'discount' | 'cashback'
 }
 
 /** 혜택 규칙과 거래의 매칭 점수 계산 */
@@ -60,23 +64,24 @@ export async function findMatchingBenefits(
 ): Promise<BenefitMatch[]> {
   if (!cardId || cardId === '현금') return []
 
-  // 해당 카드의 모든 혜택 규칙 조회
+  // 해당 카드의 활성 혜택 규칙만 조회 (비활성은 매칭 후보에서 제외)
   const { results: benefits } = await db
-    .prepare('SELECT * FROM card_benefits WHERE card_id = ? AND user_id = ? ORDER BY created_at ASC')
+    .prepare('SELECT * FROM card_benefits WHERE card_id = ? AND user_id = ? AND active = 1 ORDER BY created_at ASC')
     .bind(cardId, userId)
     .all<CardBenefit>()
 
   if (!benefits || benefits.length === 0) return []
 
-  // 이번 달 benefit_id별 사용 할인액 집계
+  // 이번 달 benefit_id별 사용액 집계 — discount_amount(할인)와 cashback_amount(적립)는
+  // 거래 하나당 둘 중 하나만 채워지므로(혜택 유형이 배타적) 합산해도 이중 계산 안 됨
   const dateStart = `${month}-01`
   const dateEnd = `${month}-31`
   const { results: usedRows } = await db
     .prepare(`
-      SELECT benefit_id, SUM(discount_amount) AS total_used
+      SELECT benefit_id, SUM(discount_amount + cashback_amount) AS total_used
       FROM transactions
       WHERE user_id = ? AND date >= ? AND date <= ?
-        AND benefit_id != '' AND discount_amount > 0
+        AND benefit_id != '' AND (discount_amount > 0 OR cashback_amount > 0)
       GROUP BY benefit_id
     `)
     .bind(userId, dateStart, dateEnd)
@@ -85,6 +90,29 @@ export async function findMatchingBenefits(
   const usedMap = new Map<string, number>()
   for (const row of usedRows ?? []) {
     usedMap.set(row.benefit_id, row.total_used)
+  }
+
+  // 그룹 소속 혜택이 있으면 그룹별 월 한도 + 그룹 전체 사용액 조회
+  const groupIds = [...new Set(benefits.map((b) => b.benefit_group_id).filter((id): id is string => !!id))]
+  const groupCapMap = new Map<string, number>()   // group_id -> monthly_cap
+  const groupUsedMap = new Map<string, number>()  // group_id -> 그룹 전체 이번달 사용액
+  if (groupIds.length > 0) {
+    const placeholders = groupIds.map(() => '?').join(',')
+    const { results: groups } = await db
+      .prepare(`SELECT id, monthly_cap FROM benefit_groups WHERE id IN (${placeholders})`)
+      .bind(...groupIds)
+      .all<{ id: string; monthly_cap: number }>()
+    for (const g of groups ?? []) groupCapMap.set(g.id, g.monthly_cap)
+
+    // 그룹에 속한 모든 benefit_id(활성/비활성 무관 — 과거 비활성화 전에 쌓인 사용액도 한도에 반영)
+    const { results: groupBenefits } = await db
+      .prepare(`SELECT id, benefit_group_id FROM card_benefits WHERE benefit_group_id IN (${placeholders})`)
+      .bind(...groupIds)
+      .all<{ id: string; benefit_group_id: string }>()
+    for (const gb of groupBenefits ?? []) {
+      const used = usedMap.get(gb.id) ?? 0
+      groupUsedMap.set(gb.benefit_group_id, (groupUsedMap.get(gb.benefit_group_id) ?? 0) + used)
+    }
   }
 
   const matches: BenefitMatch[] = []
@@ -96,7 +124,7 @@ export async function findMatchingBenefits(
     // 최소 결제 금액 조건
     if (benefit.min_spend > 0 && amount < benefit.min_spend) continue
 
-    // 예상 할인액 계산
+    // 예상 할인액(또는 예상 적립액) 계산
     let estimated: number
     if (benefit.discount_type === 'percent') {
       estimated = Math.floor(amount * benefit.discount_value / 100)
@@ -105,10 +133,18 @@ export async function findMatchingBenefits(
     }
     if (estimated <= 0) continue
 
-    // 월 한도 확인
-    const monthlyUsed = usedMap.get(benefit.id) ?? 0
-    if (benefit.monthly_cap > 0) {
-      const remaining = benefit.monthly_cap - monthlyUsed
+    // 월 한도 확인 — 그룹 소속이면 그룹 공유 한도, 아니면 개별 한도
+    let monthlyUsed: number
+    let cap: number
+    if (benefit.benefit_group_id) {
+      cap = groupCapMap.get(benefit.benefit_group_id) ?? 0
+      monthlyUsed = groupUsedMap.get(benefit.benefit_group_id) ?? 0
+    } else {
+      cap = benefit.monthly_cap
+      monthlyUsed = usedMap.get(benefit.id) ?? 0
+    }
+    if (cap > 0) {
+      const remaining = cap - monthlyUsed
       if (remaining <= 0) continue  // 한도 소진
       if (estimated > remaining) estimated = remaining
     }
@@ -118,7 +154,8 @@ export async function findMatchingBenefits(
       score,
       estimated_discount: estimated,
       monthly_used: monthlyUsed,
-      monthly_remaining: benefit.monthly_cap > 0 ? benefit.monthly_cap - monthlyUsed : 0,
+      monthly_remaining: cap > 0 ? cap - monthlyUsed : 0,
+      benefit_type: benefit.benefit_type,
     })
   }
 

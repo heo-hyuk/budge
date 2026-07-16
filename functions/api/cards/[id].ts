@@ -63,6 +63,10 @@ export const onRequestDelete: PagesFunction<Env> = async ({ params, env, data })
   await env.DB.prepare(
     'DELETE FROM card_benefits WHERE card_id = ? AND user_id = ?'
   ).bind(params.id, userId).run()
+  // benefit_groups도 동일한 이유로 명시적 삭제 필요 (migration 011)
+  await env.DB.prepare(
+    'DELETE FROM benefit_groups WHERE card_id = ?'
+  ).bind(params.id).run()
   await env.DB.prepare(
     'DELETE FROM cards WHERE id = ? AND user_id = ?'
   ).bind(params.id, userId).run()

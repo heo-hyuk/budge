@@ -13,33 +13,97 @@
 2. "즉시 할인"이 아닌 "포인트/캐시 적립"(cashback) 방식 혜택 지원 (예: KB 쿠팡와우카드)
 3. 자주 쓰는 카드 프리셋 등록 시 혜택 룰 자동 생성 (삼성 taptap O / KB 쿠팡와우 / 롯데 LOCA LIKIT)
 
-### 작업 계획
-- [ ] `migrations/011_add_benefit_groups_and_presets.sql`(신규, 007~010은 이미 사용 중이라
-  011로 번호 조정) — `benefit_groups` 테이블 신규, `card_benefits`에
-  `benefit_group_id`/`benefit_type`('discount'|'cashback')/`active` 컬럼 추가,
-  `transactions`에 `cashback_amount` 컬럼 추가. `schema.sql` 동기화
-- [ ] `functions/lib/benefitMatcher.ts` — `WHERE active = 1` 추가, `benefit_group_id`가
-  있으면 그룹 전체 이번달 사용액 합계로 그룹 잔여한도 계산해 적용, `BenefitMatch`에
-  `benefit_type` 필드 추가
-- [ ] `functions/api/benefits/index.ts`,`[id].ts` — `benefit_group_id`/`benefit_type`/
-  `active` 필드 처리, `benefit_group_id` 지정 시 같은 `card_id` 소속 검증
-- [ ] `functions/api/benefit-groups/index.ts`(신규 GET/POST), `[id].ts`(신규 PATCH/DELETE)
-  — 그룹 CRUD API (카드 목록 index/[id] 패턴과 동일 구조)
-- [ ] `src/types.ts`, `src/lib/api.ts` — `BenefitGroup`/`NewBenefitGroup` 타입, `CardBenefit`
-  확장, `Transaction`/`NewTransaction`에 `cashback_amount` 추가, benefit-groups API 함수 추가
-- [ ] `src/lib/cardBenefitPresets.ts`(신규) — 3개 카드 프리셋 데이터 (AI 조사 정보 확인 필요
-  안내 문구 포함)
-- [ ] `src/components/TransactionForm.tsx` — cashback 타입 매칭 시 결제액 유지 + "적립 예정"
-  정보 배지만 표시 (discount와 분기)
-- [ ] `src/components/CardManager.tsx` — 카드 등록 폼에 프리셋 드롭다운 추가(프리셋 적용 시
-  혜택/그룹 자동 생성), 혜택 목록에서 그룹 묶어 표시(그룹명+통합한도+이번달 사용액),
-  cashback 배지, taptap O처럼 패키지택1인 경우 활성/비활성 토글 UI
-- [ ] `src/lib/exportExcel.ts`, `functions/api/export/index.ts` — 적립예정액 컬럼 추가
-- [ ] `functions/api/cards/[id].ts` — 카드 삭제 시 `benefit_groups`도 명시적 DELETE (기존
-  card_benefits와 동일한 이유 — D1은 CASCADE 미적용)
-- [ ] tsc/oxlint/vite build 통과
-- [ ] wrangler pages dev + curl로 3개 시나리오 검증(그룹 통합한도, cashback 결제액 유지,
-  active=0 매칭 제외)
+### 완료
+- [x] `migrations/011_add_benefit_groups_and_presets.sql`(신규) — `benefit_groups` 테이블,
+  `card_benefits.benefit_group_id`/`benefit_type`/`active`, `transactions.cashback_amount`.
+  `schema.sql` 동기화. 로컬+원격 D1 적용 완료
+- [x] `functions/lib/benefitMatcher.ts` — `WHERE active = 1` 추가. 월 한도 계산을
+  `benefit_group_id` 유무로 분기: 없으면 기존처럼 개별 `monthly_cap`, 있으면
+  `benefit_groups.monthly_cap`에서 그룹 소속 전체 benefit_id의 이번달
+  `discount_amount + cashback_amount` 합계를 뺀 잔여한도 사용. 사용액 집계 쿼리 자체를
+  `discount_amount`만 보던 것에서 `discount_amount + cashback_amount`로 확장 —
+  거래 하나당 두 컬럼 중 하나만 채워지므로(혜택 유형이 배타적) 합산해도 이중계산 안 됨.
+  이걸 안 하면 cashback 혜택은 월한도가 영원히 안 줄어드는 버그가 생겨서 발견 후 수정
+- [x] `functions/api/benefits/index.ts`,`[id].ts` — 신규 필드 처리, `benefit_group_id` 지정 시
+  같은 `card_id` 소속인지 검증(POST는 body.card_id, PATCH는 기존 혜택의 card_id 조회 후 검증)
+- [x] `functions/api/benefit-groups/index.ts`(신규 GET/POST), `[id].ts`(신규 PATCH/DELETE) —
+  cards index/[id] 패턴과 동일 구조. DELETE 시 소속 혜택은 `benefit_group_id`만 NULL로
+  되돌리고 혜택 자체는 안 지움(그룹만 해제, 개별 한도 없음 상태로 남음)
+- [x] `functions/api/cards/[id].ts` — 카드 삭제 시 `benefit_groups`도 명시적 DELETE 추가
+  (기존 `card_benefits`와 동일한 이유 — D1이 `ON DELETE CASCADE` 미적용)
+- [x] `functions/api/transactions/index.ts`, `functions/api/export/index.ts` —
+  `cashback_amount` 저장/조회 추가
+- [x] `src/types.ts`, `src/lib/api.ts` — `BenefitGroup`/`NewBenefitGroup`,
+  `CardBenefit`/`NewBenefit`/`BenefitMatch` 확장, `Transaction`/`NewTransaction`에
+  `cashback_amount`. `createCard`가 이제 신규 카드 id를 반환하도록 변경(프리셋 적용 시
+  방금 만든 카드에 혜택을 붙이려면 id가 필요해서) — 호출부가 CardManager 한 곳뿐이라 안전
+- [x] `src/lib/cardBenefitPresets.ts`(신규) — 삼성 taptap O(개별 한도 5개, 택1 패키지)/
+  KB 쿠팡와우(cashback 2개)/롯데 LOCA LIKIT(그룹 공유한도 5개) 프리셋 데이터, 전부
+  "AI가 조사한 정보이니 확인 필요" 안내 memo 기본 포함. 이 앱 기본 분류(식비/교통/
+  주거공과금/의료/문화여가/쇼핑/교육/경조사/기타)에 없는 통신비/문화비/카페는 프리셋
+  적용 시 `addCustomCategory`로 자동 등록해 TransactionForm에서 바로 선택 가능하게 함
+- [x] `src/components/TransactionForm.tsx` — `selectedMatch.benefit_type`으로 분기:
+  discount면 기존처럼 실결제액 자동계산, cashback이면 결제 금액(amount)은 그대로 두고
+  "이 결제로 예상 적립: N원" 정보 배지만 표시(파란 톤으로 discount의 초록 톤과 구분),
+  제출 시 `cashback_amount`만 채우고 `discount_amount`/`original_amount`는 안 건드림.
+  예산 미리보기 두 곳도 cashback이면 차감하지 않도록 수정(기존엔 무조건 estimated_discount
+  를 차감해 cashback도 예산에서 깎이는 버그가 될 뻔함)
+- [x] `src/components/CardManager.tsx` — 새 카드 등록 폼에 "카드 상품 선택" 드롭다운(수정
+  모드에서는 안 보임), 프리셋 선택 시 저장할 때 그룹→혜택 순으로 자동 생성. 혜택 목록에서
+  `benefit_group_id` 기준으로 묶어서 그룹명+통합한도+이번달 그룹 전체 사용액 표시(이번달
+  사용액은 카드의 이번달 거래를 별도 조회해 그룹 소속 benefit_id들의 discount+cashback
+  합산으로 계산). cashback 혜택은 "적립" 배지, 각 혜택에 활성/비활성 토글 버튼(taptap O
+  같은 택1 패키지 카드용) 추가. 수동 등록 폼에도 "혜택 방식"(즉시 할인/포인트 적립) 토글 추가
+- [x] `src/lib/exportExcel.ts` — 거래내역 시트에 "적립예정액" 컬럼 추가(정산 계산 미포함,
+  정보 표시 전용)
+- [x] tsc -b / oxlint / vite build 전부 통과 (functions/는 `tsc --ignoreConfig --lib es2022`로 별도 확인)
+
+### 스코프 결정 (사용자 확인 없이 판단, 다르면 이후 조정)
+- 수동 혜택 등록/수정 폼에는 그룹 지정 UI를 넣지 않음 — 요청에서 그룹 생성은 LOCA LIKIT
+  프리셋 예시로만 언급됐고, 수동으로 그룹을 만들고 배정하는 전체 UI는 범위를 크게 늘려서
+  일단 프리셋 자동생성 경로로만 그룹이 만들어지게 함(API 자체는 benefit-groups로 열려있어
+  나중에 수동 UI를 추가해도 백엔드 변경 불필요)
+
+### 검증 결과
+- tsc/oxlint/vite build 전부 통과
+- wrangler pages dev + curl로 실제 D1에 데이터 생성해 3개 핵심 시나리오 검증:
+  - **그룹 통합한도**: LOCA LIKIT 그룹(13,000원) 생성 후 스타벅스 50% 혜택으로 6,000원
+    결제(3,000원 할인) 기록 → 통신비 10% 혜택 매칭 조회 시 그룹 잔여한도가 정확히
+    10,000원(13,000-3,000)으로 반영, 할인액도 그룹 잔여한도 기준으로 정확히 계산됨 확인.
+    이어서 통신비 5,000원(500원 할인) 기록 후 잔여 9,500원 확인, 그 상태에서 스타벅스
+    40,000원(원래 50%=20,000원이어야 함)을 매칭했더니 그룹 잔여한도(9,500원)로 정확히
+    클램핑됨 확인 — 개별 한도가 아니라 그룹 합산 기준으로 동작함을 실측 확인
+  - **cashback 결제액 유지**: 쿠팡 2% 적립(월한도 20,000) 혜택으로 50,000원 결제 매칭 →
+    `estimated_discount=1,000`, `benefit_type=cashback` 정상 반환. 실제 거래 등록 후 저장된
+    행 확인 → `amount=50,000`(원금 그대로), `discount_amount=0`, `original_amount=0`,
+    `cashback_amount=1,000` — 실결제액이 전혀 안 깎이고 적립액만 별도 기록됨을 확인.
+    이어서 10,000원 추가 매칭 시 `monthly_used=1,000`으로 정확히 누적 반영됨도 확인
+    (cashback도 월한도가 정상적으로 줄어듦 — 위에서 발견한 버그가 실제로 고쳐졌는지 재검증)
+  - **택1 패키지 active 매칭 제외**: taptap O 스타일 통신비 혜택(active=1 기본값)이
+    매칭 후보에 정상적으로 뜸을 먼저 확인 → PATCH로 `active=0`으로 변경 → 동일 조건 재매칭
+    시 `{"data":[]}`로 매칭 후보에서 완전히 빠짐을 확인
+  - 부가로 benefit-groups GET/PATCH 확인 + 카드 삭제 시 `benefit_groups`가 명시적으로
+    정리되는지(삭제 후 그룹 조회 시 빈 배열)도 확인
+  - CardManager의 프리셋 드롭다운 UI, 그룹 묶음 표시, cashback/active 배지 등 React 화면
+    렌더링은 Chrome 확장 미연결로 육안 확인 못함 — 백엔드 API 레벨 검증 + 코드 리뷰로 대체.
+    다음 세션에서 화면 도구 연결되면 재확인 필요
+- 테스트로 만든 카드/혜택/그룹/거래는 전부 로컬 D1에서 삭제 정리함
+
+### 배포
+- 원격 D1에 `migrations/011_add_benefit_groups_and_presets.sql` 적용 완료
+- `npm run deploy` 완료 — https://f1a818c6.budget-3wb.pages.dev (exportExcel 컬럼 추가
+  누락분 재배포 포함, 최초 배포는 https://6d1648c8.budget-3wb.pages.dev)
+- 배포 후 `/api/auth/me` 200, `{"user":null}` 정상 확인
+
+### 변경 파일
+- `migrations/011_add_benefit_groups_and_presets.sql`(신규), `schema.sql`
+- `functions/lib/benefitMatcher.ts`
+- `functions/api/benefits/index.ts`, `[id].ts`
+- `functions/api/benefit-groups/index.ts`(신규), `[id].ts`(신규)
+- `functions/api/cards/[id].ts`, `functions/api/transactions/index.ts`, `functions/api/export/index.ts`
+- `src/types.ts`, `src/lib/api.ts`
+- `src/lib/cardBenefitPresets.ts`(신규), `src/lib/exportExcel.ts`
+- `src/components/TransactionForm.tsx`, `src/components/CardManager.tsx`
 
 ---
 

@@ -1,4 +1,4 @@
-import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -86,8 +86,9 @@ export async function fetchCards(): Promise<Card[]> {
   return body.data
 }
 
-export async function createCard(card: NewCard): Promise<void> {
-  await apiRequest('/api/cards', jsonInit('POST', card), '카드를 추가하지 못했습니다')
+export async function createCard(card: NewCard): Promise<string> {
+  const body = await apiRequest<{ id: string }>('/api/cards', jsonInit('POST', card), '카드를 추가하지 못했습니다')
+  return body.id
 }
 
 export async function updateCard(id: string, data: Partial<NewCard>): Promise<void> {
@@ -135,6 +136,27 @@ export async function updateBenefit(id: string, data: Partial<NewBenefit>): Prom
 
 export async function deleteBenefit(id: string): Promise<void> {
   await apiRequest(`/api/benefits/${id}`, { method: 'DELETE' }, '혜택을 삭제하지 못했습니다')
+}
+
+// ── 혜택 그룹 API (통합 월한도 공유) ───────────────────────
+
+export async function fetchBenefitGroups(cardId?: string): Promise<BenefitGroup[]> {
+  const url = cardId ? `/api/benefit-groups?card_id=${encodeURIComponent(cardId)}` : '/api/benefit-groups'
+  const body = await apiRequest<{ data: BenefitGroup[] }>(url, undefined, '혜택 그룹을 불러오지 못했습니다')
+  return body.data
+}
+
+export async function createBenefitGroup(data: NewBenefitGroup): Promise<string> {
+  const body = await apiRequest<{ id: string }>('/api/benefit-groups', jsonInit('POST', data), '혜택 그룹을 추가하지 못했습니다')
+  return body.id
+}
+
+export async function updateBenefitGroup(id: string, data: Partial<NewBenefitGroup>): Promise<void> {
+  await apiRequest(`/api/benefit-groups/${id}`, jsonInit('PATCH', data), '혜택 그룹을 수정하지 못했습니다')
+}
+
+export async function deleteBenefitGroup(id: string): Promise<void> {
+  await apiRequest(`/api/benefit-groups/${id}`, { method: 'DELETE' }, '혜택 그룹을 삭제하지 못했습니다')
 }
 
 /** 혜택 매칭은 거래 입력 중 실시간 보조 기능이라, 실패해도 조용히 빈 배열 반환(사용자 흐름 방해 안 함) */

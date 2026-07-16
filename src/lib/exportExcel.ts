@@ -35,15 +35,16 @@ function dateRange(txs: ExportTransaction[]): { min: string; max: string } {
 // ── 시트 1: 거래내역 ────────────────────────────────────
 
 function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
-  // 헤더
+  // 헤더 — 적립예정액은 정산 계산에 영향 없는 정보성 컬럼(cashback 혜택 전용)
   const header = [
     '날짜', '구분', '분류', '구매처', '결제방법', '카드명',
-    '원금액', '할인액', '실결제액', '메모',
+    '원금액', '할인액', '실결제액', '적립예정액', '메모',
   ]
 
   const rows = txs.map((t) => {
     const originalAmt = t.original_amount > 0 ? t.original_amount : t.amount
     const discountAmt = t.discount_amount ?? 0
+    const cashbackAmt = t.cashback_amount ?? 0
 
     return [
       t.date,                                         // 날짜 (YYYY-MM-DD)
@@ -55,6 +56,7 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
       originalAmt,                                    // 원금액 (숫자)
       discountAmt,                                    // 할인액 (숫자)
       t.amount,                                       // 실결제액 (숫자)
+      cashbackAmt,                                    // 적립예정액 (숫자, 정보용)
       t.memo ?? '',                                   // 메모
     ]
   })
@@ -72,14 +74,15 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
     { wch: 12 },  // 원금액
     { wch: 10 },  // 할인액
     { wch: 12 },  // 실결제액
+    { wch: 12 },  // 적립예정액
     { wch: 24 },  // 메모
   ]
 
-  // 금액 컬럼(G, H, I)을 숫자 포맷으로 지정
+  // 금액 컬럼(G, H, I, J)을 숫자 포맷으로 지정
   const numFmt = '#,##0'
   const rowCount = rows.length
   for (let r = 1; r <= rowCount; r++) {
-    for (const col of ['G', 'H', 'I']) {
+    for (const col of ['G', 'H', 'I', 'J']) {
       const cellRef = `${col}${r + 1}`
       if (ws[cellRef]) ws[cellRef].t = 'n'
       if (ws[cellRef] && ws[cellRef].v !== undefined) {

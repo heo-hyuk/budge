@@ -2,12 +2,16 @@ import { RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
-import { createBenefit, createCard, deleteBenefit, deleteCard, fetchBenefits, updateBenefit, updateCard } from '../lib/api'
+import {
+  createBenefit, createBenefitGroup, createCard, deleteBenefit, deleteCard,
+  fetchBenefitGroups, fetchBenefits, fetchTransactions, updateBenefit, updateCard,
+} from '../lib/api'
 import { getCardBillingPeriod } from '../lib/billing'
+import { CARD_BENEFIT_PRESETS, type CardPreset } from '../lib/cardBenefitPresets'
 import { suggestClosingDay } from '../lib/cardDateUtils'
-import { getCategories } from '../lib/categories'
-import { formatWon } from '../lib/format'
-import type { Card, CardBenefit, NewBenefit, NewCard, RecurringTransaction } from '../types'
+import { addCustomCategory, getCategories } from '../lib/categories'
+import { formatWon, todayStr } from '../lib/format'
+import type { BenefitGroup, Card, CardBenefit, NewBenefit, NewCard, RecurringTransaction, Transaction } from '../types'
 
 const MONTH_BACK_LABELS = ['당월', '전월', '전전월', '전전전월']
 
@@ -49,6 +53,7 @@ interface BenefitFormState {
   monthly_cap: string
   min_spend: string
   memo: string
+  benefit_type: 'discount' | 'cashback'
 }
 
 const defaultBenefitForm = (): BenefitFormState => ({
@@ -60,6 +65,7 @@ const defaultBenefitForm = (): BenefitFormState => ({
   monthly_cap: '',
   min_spend: '',
   memo: '',
+  benefit_type: 'discount',
 })
 
 interface Props {
@@ -76,6 +82,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null)
+  const [presetId, setPresetId]   = useState('')  // 새 카드 등록 시 선택한 카드 프리셋 ('' = 직접 입력)
 
   // 카드별 혜택 규칙 상태
   const [openBenefitCardId, setOpenBenefitCardId] = useState<string | null>(null)
@@ -87,6 +94,11 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const [showBenefitForm, setShowBenefitForm]     = useState(false)
   const [savingBenefit, setSavingBenefit]         = useState(false)
   const [deletingBenefitId, setDeletingBenefitId] = useState<string | null>(null)
+  const [togglingBenefitId, setTogglingBenefitId] = useState<string | null>(null)
+
+  // 혜택 그룹(통합 한도) 상태 — 열린 카드의 그룹 정의 + 이번 달 그룹별 사용액 계산용 거래
+  const [benefitGroups, setBenefitGroups] = useState<BenefitGroup[]>([])
+  const [cardMonthTx, setCardMonthTx]     = useState<Transaction[]>([])
 
   const expenseCategories = getCategories('expense')
 
@@ -104,6 +116,30 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
     }
   }
 
+  // 혜택 그룹(통합 한도) + 이번 달 그룹 사용액 계산용 거래 로드 — 실패해도 개별 한도 표시엔
+  // 지장 없으므로 조용히 빈 배열로 폴백
+  async function loadBenefitGroups(cardId: string) {
+    try {
+      const [groups, tx] = await Promise.all([
+        fetchBenefitGroups(cardId),
+        fetchTransactions({ card_id: cardId, month: todayStr().slice(0, 7) }),
+      ])
+      setBenefitGroups(groups)
+      setCardMonthTx(tx)
+    } catch {
+      setBenefitGroups([])
+      setCardMonthTx([])
+    }
+  }
+
+  // 그룹에 속한 혜택들의 이번 달 합산 사용액(할인+적립)
+  function groupMonthlyUsed(groupId: string): number {
+    const memberIds = new Set(cardBenefits.filter((b) => b.benefit_group_id === groupId).map((b) => b.id))
+    return cardMonthTx
+      .filter((t) => t.benefit_id && memberIds.has(t.benefit_id))
+      .reduce((sum, t) => sum + t.discount_amount + t.cashback_amount, 0)
+  }
+
   // 혜택 섹션 열기
   async function openBenefits(cardId: string) {
     if (openBenefitCardId === cardId) {
@@ -113,12 +149,12 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
     setOpenBenefitCardId(cardId)
     setShowBenefitForm(false)
     setEditingBenefitId(null)
-    await loadBenefits(cardId)
+    await Promise.all([loadBenefits(cardId), loadBenefitGroups(cardId)])
   }
 
   // 혜택 목록 새로고침 (등록/수정/삭제 성공 후 호출)
   async function refreshBenefits(cardId: string) {
-    await loadBenefits(cardId)
+    await Promise.all([loadBenefits(cardId), loadBenefitGroups(cardId)])
   }
 
   // ── 카드 CRUD ──────────────────────────────────────
@@ -126,6 +162,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   function startAdd() {
     setEditingId(null)
     setForm(defaultForm())
+    setPresetId('')
     setError('')
     setShowForm(true)
   }
@@ -147,7 +184,35 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   function cancelForm() {
     setShowForm(false)
     setEditingId(null)
+    setPresetId('')
     setError('')
+  }
+
+  // 프리셋 적용 — 그룹 먼저 생성 후 각 혜택을 등록, 필요한 커스텀 분류도 함께 등록해
+  // TransactionForm에서 바로 선택할 수 있게 함
+  async function applyPreset(cardId: string, preset: CardPreset) {
+    const groupIdByName = new Map<string, string>()
+    for (const g of preset.groups) {
+      const id = await createBenefitGroup({ card_id: cardId, name: g.name, monthly_cap: g.monthly_cap })
+      groupIdByName.set(g.name, id)
+    }
+    for (const b of preset.benefits) {
+      if (b.category) addCustomCategory('expense', b.category)
+    }
+    for (const b of preset.benefits) {
+      await createBenefit({
+        card_id: cardId,
+        name: b.name,
+        category: b.category,
+        merchant_pattern: b.merchant_pattern,
+        discount_type: b.discount_type,
+        discount_value: b.discount_value,
+        monthly_cap: b.monthly_cap,
+        memo: b.memo,
+        benefit_type: b.benefit_type,
+        benefit_group_id: b.groupName ? groupIdByName.get(b.groupName) : undefined,
+      })
+    }
   }
 
   async function handleSave() {
@@ -172,16 +237,23 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       benefits,
     }
 
+    const preset = !editingId && presetId ? CARD_BENEFIT_PRESETS.find((p) => p.id === presetId) : undefined
+
     setSaving(true)
     try {
       if (editingId) {
         await updateCard(editingId, data)
       } else {
-        await createCard(data)
+        const newCardId = await createCard(data)
+        if (preset) await applyPreset(newCardId, preset)
       }
       await onRefresh()
       cancelForm()
-      showToast(editingId ? '카드를 수정했습니다' : '카드를 추가했습니다')
+      showToast(
+        preset?.requiresPackageChoice
+          ? '카드와 프리셋 혜택을 추가했습니다. 혜택 목록에서 매달 사용할 패키지 하나만 켜두세요'
+          : editingId ? '카드를 수정했습니다' : '카드를 추가했습니다'
+      )
     } catch (err) {
       showToast(err instanceof Error ? err.message : '카드를 저장하지 못했습니다', 'error')
     } finally {
@@ -231,6 +303,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       monthly_cap: b.monthly_cap > 0 ? String(b.monthly_cap) : '',
       min_spend: b.min_spend > 0 ? String(b.min_spend) : '',
       memo: b.memo,
+      benefit_type: b.benefit_type,
     })
     setShowBenefitForm(true)
   }
@@ -255,6 +328,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       monthly_cap: benefitForm.monthly_cap ? parseInt(benefitForm.monthly_cap) : undefined,
       min_spend: benefitForm.min_spend ? parseInt(benefitForm.min_spend) : undefined,
       memo: benefitForm.memo.trim() || undefined,
+      benefit_type: benefitForm.benefit_type,
     }
 
     setSavingBenefit(true)
@@ -289,6 +363,84 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
     }
   }
 
+  // 활성/비활성 토글 — taptap O처럼 "패키지 중 택1"인 카드에서 미선택 패키지를 끄는 용도
+  async function handleToggleBenefitActive(b: CardBenefit) {
+    if (!openBenefitCardId) return
+    setTogglingBenefitId(b.id)
+    try {
+      await updateBenefit(b.id, { active: b.active ? 0 : 1 })
+      await refreshBenefits(openBenefitCardId)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '혜택 상태를 변경하지 못했습니다', 'error')
+    } finally {
+      setTogglingBenefitId(null)
+    }
+  }
+
+  // 혜택 규칙 한 줄 렌더링 — 그룹/개별 공통 사용
+  function renderBenefitRow(b: CardBenefit) {
+    const isInactive = b.active === 0
+    return (
+      <div
+        key={b.id}
+        className={`rounded-xl border px-3 py-2.5 flex items-start justify-between gap-2 ${
+          isInactive ? 'border-neutral-200 bg-neutral-50 opacity-60' : 'border-neutral-200 bg-white'
+        }`}
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-neutral-900">
+            {b.name}
+            {b.benefit_type === 'cashback' && (
+              <span className="ml-1.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 align-middle">적립</span>
+            )}
+            {isInactive && (
+              <span className="ml-1.5 rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-500 align-middle">꺼짐</span>
+            )}
+          </p>
+          <p className="text-xs text-coral-600 font-bold mt-0.5">
+            {b.discount_type === 'percent'
+              ? `${b.discount_value}% ${b.benefit_type === 'cashback' ? '적립' : '할인'}`
+              : `${formatWon(b.discount_value)} ${b.benefit_type === 'cashback' ? '적립' : '정액 할인'}`}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-neutral-500">
+            {b.category && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">{b.category}</span>}
+            {b.merchant_pattern && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">"{b.merchant_pattern}" 포함</span>}
+            {!b.category && !b.merchant_pattern && <span className="text-neutral-400">전체 적용</span>}
+            {!b.benefit_group_id && b.monthly_cap > 0 && <span>한도 {formatWon(b.monthly_cap)}/월</span>}
+            {b.min_spend > 0 && <span>최소 {formatWon(b.min_spend)}</span>}
+          </div>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => handleToggleBenefitActive(b)}
+            disabled={togglingBenefitId === b.id}
+            className={`min-h-7 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1 ${
+              isInactive ? 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200' : 'bg-coral-50 text-coral-800 hover:bg-coral-100'
+            }`}
+          >
+            {togglingBenefitId === b.id ? <LoadingSpinner size={12} /> : isInactive ? '켜기' : '사용중'}
+          </button>
+          <button
+            type="button"
+            onClick={() => startEditBenefit(b)}
+            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+          >
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteBenefit(b)}
+            disabled={deletingBenefitId === b.id}
+            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
+          >
+            {deletingBenefitId === b.id ? <LoadingSpinner size={12} /> : '삭제'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -318,6 +470,32 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
           />
+
+          {/* 카드 프리셋 (새 카드 등록 시만) */}
+          {!editingId && (
+            <>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">카드 상품 선택 (선택사항)</label>
+              <select
+                value={presetId}
+                onChange={(e) => setPresetId(e.target.value)}
+                className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              >
+                <option value="">직접 입력</option>
+                {CARD_BENEFIT_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+              {presetId && (
+                <p className="mb-4 text-xs text-neutral-400">
+                  저장하면 이 카드 상품의 혜택 규칙이 자동으로 등록돼요. AI가 조사한 정보라 실제
+                  카드 약관과 다를 수 있으니 등록 후 꼭 확인하세요
+                  {CARD_BENEFIT_PRESETS.find((p) => p.id === presetId)?.requiresPackageChoice &&
+                    ' — 이 카드는 매달 패키지 중 하나만 선택해 쓰는 방식이라, 등록 후 혜택 목록에서 사용할 패키지 하나만 켜두세요.'}
+                </p>
+              )}
+              {!presetId && <div className="mb-4" />}
+            </>
+          )}
 
           {/* 색상 */}
           <label className="block text-sm font-semibold text-neutral-700 mb-2">카드 색상</label>
@@ -526,6 +704,27 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                           />
                         </div>
 
+                        {/* 혜택 방식: 즉시 할인 vs 포인트/캐시 적립 */}
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-600 mb-1">혜택 방식</label>
+                          <div className="flex gap-1">
+                            {(['discount', 'cashback'] as const).map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setBenefitForm((f) => ({ ...f, benefit_type: t }))}
+                                className={`flex-1 min-h-9 rounded-lg text-xs font-semibold transition-colors ${
+                                  benefitForm.benefit_type === t
+                                    ? 'bg-coral-400 text-white'
+                                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                }`}
+                              >
+                                {t === 'discount' ? '즉시 할인' : '포인트/캐시 적립'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         {/* 할인 유형 + 값 */}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -679,45 +878,42 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                         등록된 혜택 규칙이 없습니다
                       </p>
                     )}
-                    {!benefitsLoading && !benefitsError && cardBenefits.map((b) => (
-                      <div
-                        key={b.id}
-                        className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5 flex items-start justify-between gap-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-neutral-900">{b.name}</p>
-                          <p className="text-xs text-coral-600 font-bold mt-0.5">
-                            {b.discount_type === 'percent'
-                              ? `${b.discount_value}% 할인`
-                              : `${formatWon(b.discount_value)} 정액 할인`}
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-neutral-500">
-                            {b.category && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">{b.category}</span>}
-                            {b.merchant_pattern && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">"{b.merchant_pattern}" 포함</span>}
-                            {!b.category && !b.merchant_pattern && <span className="text-neutral-400">전체 적용</span>}
-                            {b.monthly_cap > 0 && <span>한도 {formatWon(b.monthly_cap)}/월</span>}
-                            {b.min_spend > 0 && <span>최소 {formatWon(b.min_spend)}</span>}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => startEditBenefit(b)}
-                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
-                          >
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBenefit(b)}
-                            disabled={deletingBenefitId === b.id}
-                            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
-                          >
-                            {deletingBenefitId === b.id ? <LoadingSpinner size={12} /> : '삭제'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    {!benefitsLoading && !benefitsError && (() => {
+                      // 같은 benefit_group_id를 가진 항목들을 묶어서 표시 (그룹명+통합한도+이번달 사용액)
+                      const grouped = new Map<string, CardBenefit[]>()
+                      const ungrouped: CardBenefit[] = []
+                      for (const b of cardBenefits) {
+                        if (b.benefit_group_id) {
+                          const arr = grouped.get(b.benefit_group_id) ?? []
+                          arr.push(b)
+                          grouped.set(b.benefit_group_id, arr)
+                        } else {
+                          ungrouped.push(b)
+                        }
+                      }
+                      return (
+                        <>
+                          {[...grouped.entries()].map(([groupId, members]) => {
+                            const group = benefitGroups.find((g) => g.id === groupId)
+                            const used = groupMonthlyUsed(groupId)
+                            return (
+                              <div key={groupId} className="rounded-xl border border-coral-200 bg-coral-50/40 p-2.5 space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-1 px-1">
+                                  <p className="text-xs font-bold text-coral-800">
+                                    {group?.name ?? '혜택 그룹'} · 통합한도 {formatWon(group?.monthly_cap ?? 0)}/월
+                                  </p>
+                                  <p className="text-xs font-semibold text-neutral-500">
+                                    이번 달 {formatWon(used)} 사용
+                                  </p>
+                                </div>
+                                {members.map((b) => renderBenefitRow(b))}
+                              </div>
+                            )
+                          })}
+                          {ungrouped.map((b) => renderBenefitRow(b))}
+                        </>
+                      )
+                    })()}
                   </div>
                 )}
               </div>

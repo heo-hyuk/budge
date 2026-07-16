@@ -19,6 +19,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       t.id, t.type, t.category, t.amount,
       COALESCE(t.original_amount, 0) AS original_amount,
       COALESCE(t.discount_amount, 0) AS discount_amount,
+      COALESCE(t.cashback_amount, 0) AS cashback_amount,
       t.memo, t.date, t.merchant,
       t.payment_method, t.card_id,
       COALESCE(c.name, '') AS card_name,

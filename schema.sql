@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~010 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~011 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   original_amount INTEGER DEFAULT 0,     -- 할인 전 원래 금액
   discount_amount INTEGER DEFAULT 0,     -- 적용된 할인액
   benefit_id TEXT DEFAULT '',            -- 적용된 카드 혜택 규칙 ID
+  cashback_amount INTEGER DEFAULT 0,     -- 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, migration 011)
   created_at TEXT NOT NULL
 );
 
@@ -95,15 +96,30 @@ CREATE TABLE IF NOT EXISTS card_benefits (
   merchant_pattern TEXT DEFAULT '',      -- 빈 문자열 = 전체 가맹점
   discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
   discount_value REAL NOT NULL,          -- percent: %, fixed: 원
-  monthly_cap INTEGER DEFAULT 0,         -- 0 = 월 한도 없음
+  monthly_cap INTEGER DEFAULT 0,         -- 0 = 월 한도 없음 (benefit_group_id가 있으면 무시되고 그룹 한도 사용)
   min_spend INTEGER DEFAULT 0,           -- 0 = 최소 결제금액 없음
   memo TEXT DEFAULT '',
+  benefit_group_id TEXT,                 -- NULL = 개별 한도, 값 있으면 benefit_groups 참조 (migration 011)
+  benefit_type TEXT NOT NULL DEFAULT 'discount' CHECK (benefit_type IN ('discount', 'cashback')),  -- migration 011
+  active INTEGER NOT NULL DEFAULT 1,     -- 0 = 비활성 (택1 패키지 카드에서 미선택 항목, migration 011)
   created_at TEXT NOT NULL,
   FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_benefits_card ON card_benefits(card_id);
 CREATE INDEX IF NOT EXISTS idx_benefits_user ON card_benefits(user_id);
+
+-- ── 혜택 그룹 (통합 월한도 공유, migration 011) ──────────────────
+CREATE TABLE IF NOT EXISTS benefit_groups (
+  id TEXT PRIMARY KEY,
+  card_id TEXT NOT NULL,
+  name TEXT NOT NULL,              -- 예: "LOCA LIKIT 통합한도"
+  monthly_cap INTEGER NOT NULL,    -- 그룹 전체가 공유하는 월 한도
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_benefit_groups_card ON benefit_groups(card_id);
 
 -- ── 예산 ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS budgets (

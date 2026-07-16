@@ -62,7 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   const body   = await request.json() as {
     type: 'income' | 'expense'; category: string; amount: number
     memo?: string; date: string; merchant?: string; payment_method?: string; card_id?: string
-    original_amount?: number; discount_amount?: number; benefit_id?: string
+    original_amount?: number; discount_amount?: number; benefit_id?: string; cashback_amount?: number
   }
 
   if (!body.type || !body.category || !body.amount || !body.date) {
@@ -78,13 +78,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   await env.DB.prepare(
     `INSERT INTO transactions
        (id, type, category, amount, memo, date, merchant, payment_method, card_id,
-        original_amount, discount_amount, benefit_id, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        original_amount, discount_amount, benefit_id, cashback_amount, user_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, body.type, body.category, body.amount,
     body.memo ?? '', body.date,
     body.merchant ?? '', body.payment_method ?? '현금', body.card_id ?? '',
     body.original_amount ?? 0, body.discount_amount ?? 0, body.benefit_id ?? '',
+    body.cashback_amount ?? 0,
     userId, created_at
   ).run()
 

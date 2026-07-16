@@ -250,8 +250,10 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
 
     const selectedCard = cards.find((c) => c.id === paymentMethod)
 
-    // 할인 적용 계산
-    const discountAmount = selectedMatch ? selectedMatch.estimated_discount : 0
+    // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
+    const isCashback = selectedMatch?.benefit_type === 'cashback'
+    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
+    const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
     const finalAmount = numericAmount - discountAmount
 
     setSaving(true)
@@ -265,6 +267,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         original_amount: discountAmount > 0 ? numericAmount : undefined,
         discount_amount: discountAmount > 0 ? discountAmount : undefined,
         benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
+        cashback_amount: cashbackAmount > 0 ? cashbackAmount : undefined,
       })
       setAmount('')
       setMemo('')
@@ -470,10 +473,15 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
                       onChange={() => setSelectedMatch(m)}
                     />
                     <div>
-                      <p className="text-sm font-semibold text-neutral-900">{m.benefit.name}</p>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {m.benefit.name}
+                        {m.benefit_type === 'cashback' && (
+                          <span className="ml-1.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 align-middle">적립</span>
+                        )}
+                      </p>
                       <p className="text-xs text-amber-700">
-                        {formatWon(m.estimated_discount)} 할인
-                        {m.benefit.monthly_cap > 0 && (
+                        {formatWon(m.estimated_discount)} {m.benefit_type === 'cashback' ? '적립 예정' : '할인'}
+                        {m.monthly_remaining > 0 && (
                           <span className="ml-1 text-neutral-500">
                             (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
                           </span>
@@ -494,18 +502,26 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
 
             {/* 단일 매칭 → 자동 제안 */}
             {!matchLoading && matches.length === 1 && selectedMatch && (
-              <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+              <div className={`rounded-xl border p-3 ${
+                selectedMatch.benefit_type === 'cashback' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
+              }`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-green-800">
-                      혜택 자동 적용: {selectedMatch.benefit.name}
+                    <p className={`text-xs font-bold ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-800' : 'text-green-800'}`}>
+                      {selectedMatch.benefit_type === 'cashback' ? '적립 혜택 감지' : '혜택 자동 적용'}: {selectedMatch.benefit.name}
                     </p>
-                    <p className="text-sm font-bold text-green-700 mt-0.5">
-                      {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
-                      실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
-                    </p>
-                    {selectedMatch.benefit.monthly_cap > 0 && (
-                      <p className="text-xs text-green-600 mt-0.5">
+                    {selectedMatch.benefit_type === 'cashback' ? (
+                      <p className="text-sm font-bold text-blue-700 mt-0.5">
+                        이 결제로 예상 적립: {formatWon(selectedMatch.estimated_discount)}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold text-green-700 mt-0.5">
+                        {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
+                        실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
+                      </p>
+                    )}
+                    {selectedMatch.monthly_remaining > 0 && (
+                      <p className={`text-xs mt-0.5 ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-600' : 'text-green-600'}`}>
                         이번 달 한도 {formatWon(selectedMatch.monthly_remaining)} 남음
                       </p>
                     )}
@@ -583,9 +599,9 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
           )
           if (!matched) return null
 
-          // 입력 중인 금액까지 더한 예상 지출
+          // 입력 중인 금액까지 더한 예상 지출 — cashback은 결제액을 안 깎으므로 discount일 때만 차감
           const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
-          const discountAmt = selectedMatch ? selectedMatch.estimated_discount : 0
+          const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
           const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
           const projectedSpent = matched.spent + addingAmount
           const projectedPct = matched.budget.monthly_limit > 0
@@ -719,7 +735,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         )
         if (!matched) return null
 
-        const discountAmt = selectedMatch ? selectedMatch.estimated_discount : 0
+        const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
         const addingAmount = numericAmount - discountAmt
         if (addingAmount <= 0) return null
 
@@ -743,8 +759,10 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         className="min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
-          selectedMatch
+          selectedMatch && selectedMatch.benefit_type === 'discount'
             ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
+            : selectedMatch && selectedMatch.benefit_type === 'cashback'
+            ? `저장 (적립 예정 ${formatWon(selectedMatch.estimated_discount)})`
             : '저장하기'
         )}
       </button>

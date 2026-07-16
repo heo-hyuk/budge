@@ -14,6 +14,7 @@ export interface Transaction {
   original_amount: number  // 할인 전 원래 금액 (0이면 할인 없음)
   discount_amount: number  // 적용된 할인액
   benefit_id: string       // 적용된 혜택 규칙 ID
+  cashback_amount: number  // 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, 정보 표시 전용)
   created_at: string
 }
 
@@ -29,6 +30,7 @@ export interface NewTransaction {
   original_amount?: number
   discount_amount?: number
   benefit_id?: string
+  cashback_amount?: number
 }
 
 export interface UpdateTransaction {
@@ -89,9 +91,12 @@ export interface CardBenefit {
   merchant_pattern: string
   discount_type: 'percent' | 'fixed'
   discount_value: number
-  monthly_cap: number   // 0 = 무제한
+  monthly_cap: number   // 0 = 무제한 (benefit_group_id가 있으면 무시되고 그룹 한도 사용)
   min_spend: number     // 0 = 무조건
   memo: string
+  benefit_group_id: string | null  // 있으면 benefit_groups 참조 (통합 한도 공유)
+  benefit_type: 'discount' | 'cashback'  // discount: 즉시 할인, cashback: 나중에 적립
+  active: number   // 0 = 비활성 (택1 패키지 카드에서 미선택 항목)
   created_at: string
 }
 
@@ -105,14 +110,34 @@ export interface NewBenefit {
   monthly_cap?: number
   min_spend?: number
   memo?: string
+  benefit_group_id?: string
+  benefit_type?: 'discount' | 'cashback'
+  active?: number
 }
 
 export interface BenefitMatch {
   benefit: CardBenefit
   score: number
-  estimated_discount: number
+  estimated_discount: number  // discount면 할인액, cashback이면 예상 적립액
   monthly_used: number
   monthly_remaining: number  // 0 = 무제한
+  benefit_type: 'discount' | 'cashback'
+}
+
+// ── 혜택 그룹 (통합 월한도 공유) ───────────────────────────
+
+export interface BenefitGroup {
+  id: string
+  card_id: string
+  name: string
+  monthly_cap: number
+  created_at: string
+}
+
+export interface NewBenefitGroup {
+  card_id: string
+  name: string
+  monthly_cap: number
 }
 
 // ── 예산 ──────────────────────────────────────────────
