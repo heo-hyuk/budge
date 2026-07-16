@@ -1,5 +1,23 @@
 # WORKLOG
 
+## 2026-07-17 (34차) — 로고 업데이트 (logo_color_BG.svg로 재적용)
+
+사용자가 `C:\Users\db848\Desktop\텅장_logo\logo_color_BG.svg`(흰 배경 포함 버전, 600×300)를
+제공. 읽어서 이전 `public/logo.svg`(투명 배경, 488×186)와 비교 확인 후 그대로 교체.
+
+### 완료
+- [x] `public/logo.svg` — 사용자 제공 버전으로 교체
+- [x] `npm run deploy` 완료
+- [x] Chrome으로 로그인 화면 실제 렌더링 확인 — 정상 표시
+
+### 배포
+- https://65ff68d7.budget-3wb.pages.dev
+
+### 변경 파일
+- `public/logo.svg`
+
+---
+
 ## 2026-07-17 (33차) — 파비콘 업데이트 (사용자가 수정한 버전으로 재적용)
 
 사용자가 같은 경로(`favicon.svg`)의 파일을 다시 다듬어서 재적용 요청 — 아이콘 비율/여백이
