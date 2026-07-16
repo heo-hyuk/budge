@@ -272,8 +272,7 @@ function App() {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <img src="/favicon.svg" alt="" className="h-7 w-7 rounded-md" />
-            <h1 className="font-brand text-lg text-coral-600">텅장</h1>
+            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
@@ -471,8 +470,7 @@ function App() {
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
           <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="" className="h-7 w-7 rounded-md" />
-            <h2 className="font-brand text-lg text-coral-600">텅장</h2>
+            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
           </div>
           <button
             type="button"
