@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && cp -r public/. dist/",
     "lint": "oxlint",
     "preview": "vite preview",
     "d1:init": "wrangler d1 execute budget-db --local --file=./schema.sql",
     "d1:init:remote": "wrangler d1 execute budget-db --remote --file=./schema.sql",
-    "deploy": "vite build && wrangler pages deploy dist"
+    "deploy": "npm run build && wrangler pages deploy dist"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",

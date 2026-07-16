@@ -183,7 +183,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 초과 경고 배너 */}
       {exceededList.length > 0 && (
-        <div className="rounded-2xl border border-coral-200 bg-coral-50 p-4">
+        <div className="rounded-xl border border-coral-200 bg-coral-50 p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold text-coral-800">
             예산 초과 항목 {exceededList.length}건
           </p>
@@ -200,7 +200,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 등록/수정 폼 */}
       {showForm && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-neutral-700">
             {editingId !== null ? '예산 수정' : '새 예산 등록'}
           </h3>
@@ -316,7 +316,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 예산 목록 */}
       {statuses.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <p className="text-base text-neutral-500">설정된 예산이 없습니다</p>
           <p className="mt-1 text-sm text-neutral-400">카테고리별 월 지출 한도를 설정해 보세요</p>
         </div>
@@ -328,7 +328,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
             return (
               <div
                 key={s.budget.id}
-                className={`rounded-2xl border bg-white p-4 shadow-sm transition-opacity ${
+                className={`rounded-xl border bg-white p-4 shadow-sm transition-opacity ${
                   isActive ? bgColor(s.percentage) : 'border-neutral-100 opacity-50'
                 }`}
               >

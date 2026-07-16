@@ -167,7 +167,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
 
       {/* 등록/수정 폼 */}
       {showForm && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-neutral-700">
             {editingId ? '고정항목 수정' : '새 고정항목 등록'}
           </h3>
@@ -343,7 +343,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
 
       {/* 목록 */}
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <p className="text-base text-neutral-500">등록된 고정항목이 없습니다</p>
           <p className="mt-1 text-sm text-neutral-400">월세, 구독료, 급여 등을 등록하면 매달 자동으로 기록됩니다</p>
         </div>
@@ -356,7 +356,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
             return (
               <div
                 key={item.id}
-                className={`rounded-2xl border bg-white p-4 shadow-sm transition-opacity ${
+                className={`rounded-xl border bg-white p-4 shadow-sm transition-opacity ${
                   isActive ? 'border-neutral-200' : 'border-neutral-100 opacity-50'
                 }`}
               >

@@ -447,15 +447,15 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           {cards.map((card) => {
             const isOpen = openBenefitCardId === card.id
             return (
-              <div key={card.id} className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div
+                key={card.id}
+                className="rounded-2xl border border-l-4 border-neutral-200 bg-white shadow-sm overflow-hidden"
+                style={{ borderLeftColor: card.color }}
+              >
                 {/* 카드 헤더 — 좁은 화면에서는 이름 줄과 버튼 줄을 분리해야 이름이
                     "테스..."처럼 과도하게 줄어들지 않음. sm 이상에서는 한 줄로 합침 */}
                 <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="h-10 w-16 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: card.color }}
-                    />
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold text-neutral-900">{card.name}</p>
                       <p className="truncate text-sm text-neutral-500">

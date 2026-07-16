@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import UiCard from './ui/Card'
 import { useToast } from '../contexts/ToastContext'
 import { matchBenefit } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
@@ -144,94 +145,172 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
   const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <h2 className="text-base font-bold text-neutral-700">내역 추가</h2>
 
-      {/* 수입/지출 토글 */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {(['expense', 'income'] as TransactionType[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => handleTypeChange(t)}
-            className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
-              type === t
-                ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
-                : 'bg-neutral-100 text-neutral-500'
-            }`}
-          >
-            {t === 'expense' ? '지출' : '수입'}
-          </button>
-        ))}
-      </div>
-
-      {/* 금액 */}
-      <div className="mt-4">
-        <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700">금액</label>
-        <div className="relative mt-1.5">
-          <input
-            id="amount"
-            type="text"
-            inputMode="numeric"
-            required
-            placeholder="0"
-            value={amount}
-            onChange={(e) => setAmount(formatNumberInput(e.target.value))}
-            className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
-          />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
-        </div>
-      </div>
-
-      {/* 구매처/판매처 */}
-      <div className="mt-4">
-        <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700">
-          구매처 / 판매처 <span className="text-neutral-400 font-normal">(선택)</span>
-        </label>
-        <input
-          id="merchant"
-          type="text"
-          placeholder="예: 스타벅스, 쿠팡"
-          value={merchant}
-          onChange={(e) => setMerchant(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
-        />
-      </div>
-
-      {/* 결제 방법 */}
-      <div className="mt-4">
-        <span className="block text-sm font-semibold text-neutral-700">결제 방법</span>
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setPaymentMethod('현금')}
-            className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-              paymentMethod === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-            }`}
-          >
-            현금
-          </button>
-          {cards.map((card) => (
+      {/* 강조 카드: 수입/지출 + 금액 */}
+      <UiCard>
+        <div className="grid grid-cols-2 gap-2">
+          {(['expense', 'income'] as TransactionType[]).map((t) => (
             <button
-              key={card.id}
+              key={t}
               type="button"
-              onClick={() => setPaymentMethod(card.id)}
-              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100 hover:bg-neutral-200'
+              onClick={() => handleTypeChange(t)}
+              className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
+                type === t
+                  ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
+                  : 'bg-neutral-100 text-neutral-500'
               }`}
-              style={paymentMethod === card.id ? { backgroundColor: card.color } : {}}
             >
-              {card.name}
+              {t === 'expense' ? '지출' : '수입'}
             </button>
           ))}
-          {cards.length === 0 && (
-            <p className="text-xs text-neutral-400 self-center">카드 관리에서 카드를 등록하면 선택할 수 있어요</p>
-          )}
         </div>
-      </div>
 
-      {/* 분류 */}
-      <div className="mt-4">
+        <div className="mt-4">
+          <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700">금액</label>
+          <div className="relative mt-1.5">
+            <input
+              id="amount"
+              type="text"
+              inputMode="numeric"
+              required
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(formatNumberInput(e.target.value))}
+              className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
+          </div>
+        </div>
+      </UiCard>
+
+      {/* 구매처/결제 카드 */}
+      <UiCard>
+        <div>
+          <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700">
+            구매처 / 판매처 <span className="text-neutral-400 font-normal">(선택)</span>
+          </label>
+          <input
+            id="merchant"
+            type="text"
+            placeholder="예: 스타벅스, 쿠팡"
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+          />
+        </div>
+
+        <div className="mt-4">
+          <span className="block text-sm font-semibold text-neutral-700">결제 방법</span>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('현금')}
+              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+                paymentMethod === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              현금
+            </button>
+            {cards.map((card) => (
+              <button
+                key={card.id}
+                type="button"
+                onClick={() => setPaymentMethod(card.id)}
+                className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+                  paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100 hover:bg-neutral-200'
+                }`}
+                style={paymentMethod === card.id ? { backgroundColor: card.color } : {}}
+              >
+                {card.name}
+              </button>
+            ))}
+            {cards.length === 0 && (
+              <p className="text-xs text-neutral-400 self-center">카드 관리에서 카드를 등록하면 선택할 수 있어요</p>
+            )}
+          </div>
+        </div>
+
+        {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시) */}
+        {type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
+          <div className="mt-4">
+            {matchLoading && (
+              <p className="text-xs text-neutral-400">혜택 확인 중...</p>
+            )}
+
+            {/* 복수 매칭 → 라디오 선택 */}
+            {!matchLoading && matches.length > 1 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <p className="text-xs font-bold text-amber-800">적용 혜택을 선택하세요</p>
+                {matches.map((m) => (
+                  <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="benefit"
+                      className="mt-0.5"
+                      checked={selectedMatch?.benefit.id === m.benefit.id}
+                      onChange={() => setSelectedMatch(m)}
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-900">{m.benefit.name}</p>
+                      <p className="text-xs text-amber-700">
+                        {formatWon(m.estimated_discount)} 할인
+                        {m.benefit.monthly_cap > 0 && (
+                          <span className="ml-1 text-neutral-500">
+                            (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  onClick={dismissBenefit}
+                  className="text-xs text-neutral-400 underline"
+                >
+                  혜택 미적용
+                </button>
+              </div>
+            )}
+
+            {/* 단일 매칭 → 자동 제안 */}
+            {!matchLoading && matches.length === 1 && selectedMatch && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-green-800">
+                      혜택 자동 적용: {selectedMatch.benefit.name}
+                    </p>
+                    <p className="text-sm font-bold text-green-700 mt-0.5">
+                      {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
+                      실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
+                    </p>
+                    {selectedMatch.benefit.monthly_cap > 0 && (
+                      <p className="text-xs text-green-600 mt-0.5">
+                        이번 달 한도 {formatWon(selectedMatch.monthly_remaining)} 남음
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={dismissBenefit}
+                    className="shrink-0 text-xs text-neutral-400 underline"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 혜택 없음 — 조용히 표시 안 함 */}
+          </div>
+        )}
+      </UiCard>
+
+      {/* 분류/날짜/메모 카드 */}
+      <UiCard>
         <span className="block text-sm font-semibold text-neutral-700">분류</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
           {categories.map((c) => (
@@ -276,186 +355,110 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             </button>
           </div>
         )}
-      </div>
 
-      {/* 예산 현황 인라인 표시 (지출 + 해당 카테고리 예산 있을 때만) */}
-      {type === 'expense' && (() => {
-        // 카테고리 우선, 없으면 전체 예산
-        const matched = budgetStatuses.find(
-          (s) => s.budget.active === 1 && s.budget.category === category
-        ) ?? budgetStatuses.find(
-          (s) => s.budget.active === 1 && s.budget.category === '전체'
-        )
-        if (!matched) return null
+        {/* 예산 현황 인라인 표시 (지출 + 해당 카테고리 예산 있을 때만) */}
+        {type === 'expense' && (() => {
+          // 카테고리 우선, 없으면 전체 예산
+          const matched = budgetStatuses.find(
+            (s) => s.budget.active === 1 && s.budget.category === category
+          ) ?? budgetStatuses.find(
+            (s) => s.budget.active === 1 && s.budget.category === '전체'
+          )
+          if (!matched) return null
 
-        // 입력 중인 금액까지 더한 예상 지출
-        const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
-        const discountAmt = selectedMatch ? selectedMatch.estimated_discount : 0
-        const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
-        const projectedSpent = matched.spent + addingAmount
-        const projectedPct = matched.budget.monthly_limit > 0
-          ? Math.round((projectedSpent / matched.budget.monthly_limit) * 100)
-          : 0
-        const projectedExceeded = projectedSpent > matched.budget.monthly_limit
+          // 입력 중인 금액까지 더한 예상 지출
+          const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
+          const discountAmt = selectedMatch ? selectedMatch.estimated_discount : 0
+          const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
+          const projectedSpent = matched.spent + addingAmount
+          const projectedPct = matched.budget.monthly_limit > 0
+            ? Math.round((projectedSpent / matched.budget.monthly_limit) * 100)
+            : 0
+          const projectedExceeded = projectedSpent > matched.budget.monthly_limit
 
-        const isExceeded = matched.exceeded
-        const pct = matched.percentage
+          const isExceeded = matched.exceeded
+          const pct = matched.percentage
 
-        return (
-          <div className={`mt-3 rounded-xl border px-3 py-2.5 ${
-            isExceeded ? 'border-coral-200 bg-coral-50' :
-            pct >= 80   ? 'border-coral-100 bg-coral-50' :
-                          'border-neutral-200 bg-neutral-50'
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className={`text-xs font-bold ${
-                isExceeded ? 'text-coral-800' : pct >= 80 ? 'text-coral-800' : 'text-neutral-600'
-              }`}>
-                {matched.budget.category === '전체' ? '전체 지출' : matched.budget.category} 예산
-              </span>
-              <span className={`text-xs font-semibold ${
+          return (
+            <div className={`mt-3 rounded-xl border px-3 py-2.5 ${
+              isExceeded ? 'border-coral-200 bg-coral-50' :
+              pct >= 80   ? 'border-coral-100 bg-coral-50' :
+                            'border-neutral-200 bg-neutral-50'
+            }`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-xs font-bold ${
+                  isExceeded ? 'text-coral-800' : pct >= 80 ? 'text-coral-800' : 'text-neutral-600'
+                }`}>
+                  {matched.budget.category === '전체' ? '전체 지출' : matched.budget.category} 예산
+                </span>
+                <span className={`text-xs font-semibold ${
+                  isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
+                }`}>
+                  {pct}% 사용
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div
+                  className={`h-full rounded-full ${
+                    isExceeded ? 'bg-coral-600' : pct >= 80 ? 'bg-coral-200' : 'bg-neutral-300'
+                  }`}
+                  style={{ width: `${Math.min(pct, 100)}%` }}
+                />
+              </div>
+              <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
                 isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
               }`}>
-                {pct}% 사용
-              </span>
-            </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
-              <div
-                className={`h-full rounded-full ${
-                  isExceeded ? 'bg-coral-600' : pct >= 80 ? 'bg-coral-200' : 'bg-neutral-300'
-                }`}
-                style={{ width: `${Math.min(pct, 100)}%` }}
-              />
-            </div>
-            <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
-              isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
-            }`}>
-              {isExceeded
-                ? `예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
-                : `${formatWon(matched.remaining)} 남음 (${formatWon(matched.spent)} / ${formatWon(matched.budget.monthly_limit)})`}
-            </p>
-            {/* 입력 중인 금액 포함 예상 초과 경고 */}
-            {addingAmount > 0 && !isExceeded && projectedExceeded && (
-              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-coral-600">
-                이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
+                {isExceeded
+                  ? `예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
+                  : `${formatWon(matched.remaining)} 남음 (${formatWon(matched.spent)} / ${formatWon(matched.budget.monthly_limit)})`}
               </p>
-            )}
-            {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
-              <p className="mt-0.5 text-xs text-coral-600">
-                입력 후 {projectedPct}% 사용 예정
-              </p>
-            )}
-          </div>
-        )
-      })()}
+              {/* 입력 중인 금액 포함 예상 초과 경고 */}
+              {addingAmount > 0 && !isExceeded && projectedExceeded && (
+                <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-coral-600">
+                  이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
+                </p>
+              )}
+              {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
+                <p className="mt-0.5 text-xs text-coral-600">
+                  입력 후 {projectedPct}% 사용 예정
+                </p>
+              )}
+            </div>
+          )
+        })()}
 
-      {/* 날짜 */}
-      <div className="mt-4">
-        <label htmlFor="date" className="block text-sm font-semibold text-neutral-700">날짜</label>
-        <input
-          id="date"
-          type="date"
-          required
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
-        />
-      </div>
-
-      {/* 메모 */}
-      <div className="mt-4">
-        <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700">
-          메모 <span className="text-neutral-400 font-normal">(선택)</span>
-        </label>
-        <input
-          id="memo"
-          type="text"
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
-        />
-      </div>
-
-      {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시) */}
-      {type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
+        {/* 날짜 */}
         <div className="mt-4">
-          {matchLoading && (
-            <p className="text-xs text-neutral-400">혜택 확인 중...</p>
-          )}
-
-          {/* 복수 매칭 → 라디오 선택 */}
-          {!matchLoading && matches.length > 1 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <p className="text-xs font-bold text-amber-800">적용 혜택을 선택하세요</p>
-              {matches.map((m) => (
-                <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="benefit"
-                    className="mt-0.5"
-                    checked={selectedMatch?.benefit.id === m.benefit.id}
-                    onChange={() => setSelectedMatch(m)}
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">{m.benefit.name}</p>
-                    <p className="text-xs text-amber-700">
-                      {formatWon(m.estimated_discount)} 할인
-                      {m.benefit.monthly_cap > 0 && (
-                        <span className="ml-1 text-neutral-500">
-                          (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </label>
-              ))}
-              <button
-                type="button"
-                onClick={dismissBenefit}
-                className="text-xs text-neutral-400 underline"
-              >
-                혜택 미적용
-              </button>
-            </div>
-          )}
-
-          {/* 단일 매칭 → 자동 제안 */}
-          {!matchLoading && matches.length === 1 && selectedMatch && (
-            <div className="rounded-xl border border-green-200 bg-green-50 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-green-800">
-                    혜택 자동 적용: {selectedMatch.benefit.name}
-                  </p>
-                  <p className="text-sm font-bold text-green-700 mt-0.5">
-                    {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
-                    실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
-                  </p>
-                  {selectedMatch.benefit.monthly_cap > 0 && (
-                    <p className="text-xs text-green-600 mt-0.5">
-                      이번 달 한도 {formatWon(selectedMatch.monthly_remaining)} 남음
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={dismissBenefit}
-                  className="shrink-0 text-xs text-neutral-400 underline"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 혜택 없음 — 조용히 표시 안 함 */}
+          <label htmlFor="date" className="block text-sm font-semibold text-neutral-700">날짜</label>
+          <input
+            id="date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+          />
         </div>
-      )}
+
+        {/* 메모 */}
+        <div className="mt-4">
+          <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700">
+            메모 <span className="text-neutral-400 font-normal">(선택)</span>
+          </label>
+          <input
+            id="memo"
+            type="text"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+          />
+        </div>
+      </UiCard>
 
       <button
         type="submit"
         disabled={saving}
-        className="mt-5 min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
+        className="min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
           selectedMatch

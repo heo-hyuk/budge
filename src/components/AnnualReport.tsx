@@ -60,7 +60,7 @@ function AnnualReport({ year }: Props) {
       </div>
 
       {/* 연 합계 */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
         {/* 좁은 화면에서는 큰 금액이 줄바꿈되며 어색해지므로 세로로 쌓고, sm 이상에서 3열로 */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-blue-50 p-3">
@@ -81,7 +81,7 @@ function AnnualReport({ year }: Props) {
       </div>
 
       {/* 월별 바 차트 */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-4 mb-4 text-xs text-neutral-500">
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-blue-500" />수입</span>
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-red-400" />지출</span>
@@ -116,7 +116,7 @@ function AnnualReport({ year }: Props) {
       </div>
 
       {/* 월별 숫자 표 — 좁은 화면에서는 셀 안에서 줄바꿈되며 찌그러지는 대신 표 자체가 가로 스크롤되게 함 */}
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] text-sm">
             <thead>

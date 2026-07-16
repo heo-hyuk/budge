@@ -290,9 +290,9 @@ function MonthlyReport({ month, cards }: Props) {
 
               {/* 세부 내역 펼치기 */}
               {expandedCard === bill.card.id && (
-                <div className="border-t border-neutral-100">
+                <div className="border-t border-neutral-100 bg-neutral-50">
                   {bill.transactions.filter((t) => t.type === 'expense').length === 0 ? (
-                    <p className="px-5 py-3 text-sm text-neutral-400">내역 없음</p>
+                    <p className="px-6 py-3 text-sm text-neutral-400">내역 없음</p>
                   ) : (
                     <ul>
                       {bill.transactions
@@ -300,7 +300,7 @@ function MonthlyReport({ month, cards }: Props) {
                         .map((tx) => (
                           <li
                             key={tx.id}
-                            className="flex items-center justify-between gap-2 px-5 py-2.5 border-b border-neutral-100 last:border-b-0"
+                            className="flex items-center justify-between gap-2 px-6 py-2.5 border-b border-neutral-100 last:border-b-0"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-neutral-800">

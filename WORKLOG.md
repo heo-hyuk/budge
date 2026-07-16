@@ -1,28 +1,31 @@
 # WORKLOG
 
-## 2026-07-16 (13차) — 카드형 레이아웃 구조 개선 (진행 중)
+## 2026-07-16 (13차) — 카드형 레이아웃 구조 개선 (완료)
 
-### 작업 계획
-- [ ] `src/components/ui/Card.tsx` — 공통 Card 컴포넌트 생성
-- [ ] `src/components/TransactionForm.tsx` — 섹션 3분할 (강조카드 + 구매처/결제 + 분류/날짜/메모)
-- [ ] `src/components/SummaryCard.tsx` — 잔액 위계 강조 (잔액 카드 1개 + 하단 수입/지출 보조)
-- [ ] `src/components/CardManager.tsx` — 좌측 컬러 스트라이프 (h-10 w-16 박스 → 4px 세로줄)
-- [ ] `src/components/RecurringManager.tsx` — 카드 스타일 통일 (rounded-2xl→rounded-xl, shadow 명시)
-- [ ] `src/components/MonthlyReport.tsx` — 펼쳤을 때 bg-neutral-50, px-5→px-6 들여쓰기
-- [ ] `src/components/BudgetManager.tsx` — rounded-2xl→rounded-xl 통일
-- [ ] `src/components/AnnualReport.tsx` — rounded-2xl→rounded-xl 통일
-- [ ] typecheck + lint 통과
-- [ ] 배포
+### 완료
+- [x] `src/components/ui/Card.tsx` — 공통 Card 컴포넌트 생성 (rounded-xl border+shadow 기본값, `noPadding` 옵션)
+- [x] `src/components/TransactionForm.tsx` — 3개 Card 섹션으로 분리: (1) 강조카드=수입/지출 토글+금액, (2) 구매처/결제=구매처 입력+결제방법 칩+혜택 매칭 안내, (3) 분류/날짜/메모=분류 칩+예산 현황 인라인+날짜+메모. 기존 로직/상태는 그대로 두고 마크업만 재구성
+- [x] `src/components/SummaryCard.tsx` — 공통 Card로 교체, 잔액을 상단에 크게(text-3xl) 강조하고 수입/지출은 하단 2열 보조 지표(text-lg)로 축소
+- [x] `src/components/CardManager.tsx` — 카드 목록 항목의 `h-10 w-16` 색상 박스를 제거하고, 카드 컨테이너 자체에 `border-l-4`(inline `borderLeftColor`)로 좌측 컬러 스트라이프 적용
+- [x] `src/components/RecurringManager.tsx` — 폼/빈 상태/목록 항목 3곳의 `rounded-2xl`→`rounded-xl` 통일 (shadow-sm은 기존에 이미 명시돼 있어 그대로 유지)
+- [x] `src/components/MonthlyReport.tsx` — 카드별 청구 내역 펼침 영역에 `bg-neutral-50` 배경 추가, 내부 항목 `px-5`→`px-6`으로 헤더 대비 들여쓰기 표현
+- [x] `src/components/BudgetManager.tsx` — 4곳 `rounded-2xl`→`rounded-xl` 통일
+- [x] `src/components/AnnualReport.tsx` — 3곳 `rounded-2xl`→`rounded-xl` 통일
+- [x] typecheck(`tsc -b`)/lint(oxlint)/build(vite build) 전부 통과
 
-### 예상 변경 파일
-- src/components/ui/Card.tsx (신규)
-- src/components/TransactionForm.tsx
-- src/components/SummaryCard.tsx
-- src/components/CardManager.tsx
-- src/components/RecurringManager.tsx
-- src/components/MonthlyReport.tsx
-- src/components/BudgetManager.tsx
-- src/components/AnnualReport.tsx
+### 환경 이슈 발견 및 조치 (범위 내 필수 대응)
+- `npm run lint` 최초 실행 시 oxlint 네이티브 바인딩 누락 에러 → `npm i`로 옵셔널 디펜던시 재설치해 해결 (코드 변경 아님)
+- `npm run build` 시 Node의 `fs.copyFileSync`가 WSL2 DrvFs(`/mnt/c`) 마운트에서 `copy_file_range` 미지원으로 `EPERM` 발생, `public/favicon.svg`→`dist/favicon.svg` 복사 단계에서 매번 빌드 실패 확인 (일반 `cp`/read+write는 정상 동작, Node의 copyFileSync 내부 구현만 실패 — 이 세션에서 새로 생긴 게 아니라 Node 22 + WSL2 9p 마운트의 알려진 상호작용 버그로 보임). `vite.config.ts`에 `publicDir: false` 추가해 Vite의 자동 복사를 끄고, `package.json`의 `build` 스크립트 끝에 `cp -r public/. dist/`를 셸로 직접 실행하도록 변경, `deploy` 스크립트는 `npm run build`를 거치도록 수정. 부작용: `npm run dev`(Vite 개발 서버 단독 실행) 시에는 `public/` 자동 서빙도 함께 꺼지므로 로컬 개발 중 파비콘만 안 뜰 수 있음(기능에는 영향 없음) — `wrangler pages dev`는 빌드된 `dist/`를 서빙하므로 영향 없음
+
+### 검증 결과
+- `npx tsc -p tsconfig.app.json --noEmit`, `npm run lint`, `npm run build` 전부 통과
+- `wrangler pages dev dist --port 8788` + curl로 실측: `/`(200, title "텅장" 확인), `/favicon.svg`(200), `/api/auth/me`(200) — 빌드 산출물이 정상 서빙됨을 확인
+- 브라우저/스크린샷 도구가 이번 세션에서도 연결되지 않아(Chrome 확장 등 없음) 카드 레이아웃의 실제 시각적 결과(스트라이프 색상, 잔액 카드 위계, 펼침 배경 등)는 육안으로 확인하지 못함 — 코드 리뷰 + 타입체크/린트/빌드 통과 + curl 서빙 확인으로 대체. 다음 세션에서 화면 확인 도구가 연결되면 재확인 필요
+
+### 변경 파일
+- `src/components/ui/Card.tsx` (신규)
+- `src/components/TransactionForm.tsx`, `SummaryCard.tsx`, `CardManager.tsx`, `RecurringManager.tsx`, `MonthlyReport.tsx`, `BudgetManager.tsx`, `AnnualReport.tsx`
+- `vite.config.ts`, `package.json` (빌드 환경 이슈 대응)
 
 ---
 
