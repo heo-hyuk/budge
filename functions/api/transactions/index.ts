@@ -31,6 +31,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   const cardId     = url.searchParams.get('card_id')
   const dateStart  = url.searchParams.get('date_start')
   const dateEnd    = url.searchParams.get('date_end')
+  const minAmount  = url.searchParams.get('min_amount')
+  const maxAmount  = url.searchParams.get('max_amount')
 
   let query = 'SELECT * FROM transactions WHERE user_id = ?'
   const binds: unknown[] = [userId]
@@ -39,9 +41,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   else if (year && /^\d{4}$/.test(year))      { query += ' AND date LIKE ?'; binds.push(`${year}-%`) }
 
   if (q)         { query += ' AND (category LIKE ? OR merchant LIKE ? OR memo LIKE ?)'; const l = `%${q}%`; binds.push(l, l, l) }
-  if (cardId)    { query += ' AND card_id = ?';   binds.push(cardId) }
-  if (dateStart) { query += ' AND date >= ?';     binds.push(dateStart) }
-  if (dateEnd)   { query += ' AND date <= ?';     binds.push(dateEnd) }
+  // card_id='cash'는 결제수단이 현금(카드 미연결)인 거래만 필터하는 센티널 —
+  // 앱 전역에서 결제수단을 card_id로 표현하는 기존 방식(빈 값=현금)을 그대로 재사용
+  if (cardId === 'cash') { query += " AND (card_id = '' OR card_id IS NULL)" }
+  else if (cardId)       { query += ' AND card_id = ?'; binds.push(cardId) }
+  if (dateStart)  { query += ' AND date >= ?';   binds.push(dateStart) }
+  if (dateEnd)    { query += ' AND date <= ?';   binds.push(dateEnd) }
+  if (minAmount)  { query += ' AND amount >= ?'; binds.push(parseInt(minAmount, 10)) }
+  if (maxAmount)  { query += ' AND amount <= ?'; binds.push(parseInt(maxAmount, 10)) }
 
   query += ' ORDER BY date DESC, created_at DESC LIMIT ?'
   binds.push(limit)

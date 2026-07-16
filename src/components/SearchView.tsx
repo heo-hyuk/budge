@@ -66,24 +66,20 @@ function SearchView({ cards }: Props) {
     setLoading(true)
     setError('')
     try {
-      // API: q, date_start, date_end, card_id 서버 필터
+      // 서버 필터: q, date_start, date_end, card_id('cash' 센티널 포함), min/max_amount
       const txs = await fetchTransactions({
         q:          filters.q.trim() || undefined,
         date_start: filters.dateStart || undefined,
         date_end:   filters.dateEnd   || undefined,
-        card_id:    filters.cardId && filters.cardId !== 'cash' ? filters.cardId : undefined,
+        card_id:    filters.cardId || undefined,
+        min_amount: filters.amountMin ? parseInt(filters.amountMin, 10) : undefined,
+        max_amount: filters.amountMax ? parseInt(filters.amountMax, 10) : undefined,
       })
 
-      // 클라이언트 필터: type, category, 현금, 금액 범위
-      const minAmt = filters.amountMin ? parseInt(filters.amountMin, 10) : null
-      const maxAmt = filters.amountMax ? parseInt(filters.amountMax, 10) : null
-
+      // 클라이언트 필터: type, category (서버는 텍스트/날짜/금액/결제수단만 담당)
       const filtered = txs.filter((t) => {
         if (filters.type && t.type !== filters.type) return false
         if (filters.category && t.category !== filters.category) return false
-        if (filters.cardId === 'cash' && t.card_id) return false
-        if (minAmt !== null && t.amount < minAmt) return false
-        if (maxAmt !== null && t.amount > maxAmt) return false
         return true
       })
 

@@ -22,6 +22,15 @@ function Toast() {
             ? <CheckCircle2 size={18} strokeWidth={2.25} className="mt-0.5 shrink-0" />
             : <XCircle size={18} strokeWidth={2.25} className="mt-0.5 shrink-0" />}
           <p className="min-w-0 flex-1 text-sm font-semibold">{t.message}</p>
+          {t.actionLabel && t.onAction && (
+            <button
+              type="button"
+              onClick={() => { t.onAction?.(); dismissToast(t.id) }}
+              className="shrink-0 text-sm font-bold underline underline-offset-2 opacity-90 transition-opacity hover:opacity-100"
+            >
+              {t.actionLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => dismissToast(t.id)}

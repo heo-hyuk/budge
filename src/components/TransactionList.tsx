@@ -8,8 +8,9 @@ import type { Card, Transaction, TransactionType, UpdateTransaction } from '../t
 interface Props {
   transactions: Transaction[]
   cards: Card[]
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void
   onUpdate: (id: string, data: UpdateTransaction) => Promise<void>
+  onDuplicate: (tx: Transaction) => void
 }
 
 interface EditState {
@@ -22,12 +23,11 @@ interface EditState {
   paymentMethod: string // '현금' | card.id
 }
 
-function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
+function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate }: Props) {
   const { showToast } = useToast()
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [editState, setEditState]   = useState<EditState | null>(null)
   const [saving, setSaving]         = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // 카드 ID → Card 매핑
   const cardMap = new Map(cards.map((c) => [c.id, c]))
@@ -90,17 +90,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
     }
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     if (!window.confirm('이 내역을 삭제할까요?')) return
-    setDeletingId(id)
-    try {
-      await onDelete(id)
-      showToast('거래를 삭제했습니다')
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '거래를 삭제하지 못했습니다', 'error')
-    } finally {
-      setDeletingId(null)
-    }
+    // 실제 삭제는 App.tsx가 지연 처리 — 삭제됨/되돌리기 토스트도 거기서 띄움
+    onDelete(id)
   }
 
   return (
@@ -238,15 +231,20 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-coral-600'}`}>
                       {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
+                    <button type="button" onClick={() => onDuplicate(tx)}
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                    >
+                      복제
+                    </button>
                     <button type="button" onClick={() => startEdit(tx)}
                       className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
                     >
                       수정
                     </button>
-                    <button type="button" onClick={() => handleDelete(tx.id)} disabled={deletingId === tx.id}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 flex items-center gap-1.5"
+                    <button type="button" onClick={() => handleDelete(tx.id)}
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600"
                     >
-                      {deletingId === tx.id ? <LoadingSpinner size={14} /> : '삭제'}
+                      삭제
                     </button>
                   </div>
                 </li>

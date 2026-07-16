@@ -1,44 +1,92 @@
 # WORKLOG
 
-## 2026-07-16 (14차) — 사용 편의성 개선 7종 (진행 중)
+## 2026-07-16 (14차) — 사용 편의성 개선 7종 (완료)
 
 사용자 요청: 아이콘 없이, 코랄 포인트 컬러 + 카드형 레이아웃 톤 유지하며 7개 기능 추가.
 
-### 작업 계획
-- [ ] **최근 구매처 자동완성** — `functions/api/merchants/recent.ts`(신규) GET: 최근
-  90일(부족하면 최근 50건으로 폴백) 거래에서 구매처별 사용횟수+대표 분류 계산해 반환.
-  `TransactionForm.tsx` 구매처 입력에 커스텀 드롭다운(최대 5개)으로 제안, 선택 시
-  분류를 사용자가 아직 직접 고르지 않았을 때만 대표 분류로 자동 채움
-- [ ] **빠른 입력 템플릿** — `migrations/010_add_quick_templates.sql`(신규) `quick_templates`
-  테이블 + `functions/api/templates/index.ts`,`[id].ts` CRUD. `TransactionForm.tsx`
-  상단에 가로 스크롤 템플릿 버튼(탭하면 폼 채움+날짜만 오늘로, 자동저장 아님),
-  "템플릿으로 저장" 버튼(라벨 입력 후 현재 입력값 그대로 등록), 같은 영역에
-  간단한 관리(삭제/순서변경) 리스트 토글
-- [ ] **직전 거래 복제** — `TransactionList.tsx`에 "복제" 버튼(모바일 롱프레스·데스크톱
-  우클릭 대신, 신뢰성을 위해 모든 화면에서 동일한 일반 버튼으로 통일 — 이유는 완료
-  섹션에 기록) → `App.tsx`가 프리필 상태로 들어 `TransactionForm.tsx`에 전달,
-  날짜만 오늘로 재설정한 채 폼 채움(자동저장 아님)
-- [ ] **월 이동 스와이프** — `App.tsx`의 `SummaryCard` 래퍼에 순수
-  touchstart/touchend로 좌우 스와이프 감지, 라이브러리 추가 없음
-- [ ] **검색 필터 서버사이드 확장** — `functions/api/transactions/index.ts` GET에
-  `min_amount`/`max_amount` 파라미터 추가, 기존 `card_id`가 이미 앱 전역에서
-  결제수단을 표현하는 방식이라(빈 값=현금, 아니면 카드 UUID) 별도
-  `payment_method` 파라미터 대신 `card_id=cash` 센티널을 서버에서도 동일하게
-  해석하도록 확장. `SearchView.tsx`의 금액범위/현금필터를 클라이언트 후필터에서
-  서버 파라미터로 전환
-- [ ] **삭제 Undo** — `ToastContext.tsx`/`Toast.tsx`에 액션 버튼(텍스트만, 아이콘
-  없음) 지원 추가. `App.tsx`의 `handleDelete`를 각 삭제마다 독립된 타이머로
-  3초 지연 후 실제 DELETE 호출하도록 재작성, "삭제됨 · 되돌리기" 토스트에서
-  되돌리기 클릭 시 타이머 취소+원위치 복원
-- [ ] **예산 반영 미리보기** — `TransactionForm.tsx` 저장 버튼 바로 위에
+### 완료
+- [x] **최근 구매처 자동완성** — `functions/api/merchants/recent.ts`(신규) GET: 최근
+  90일 거래(20건 미만이면 최근 50건으로 폴백)에서 구매처별 사용횟수+가장 많이
+  짝지어진 분류를 집계해 빈도순 반환. `TransactionForm.tsx` 구매처 입력에 커스텀
+  드롭다운(최대 5개, `onMouseDown`에 `preventDefault`로 blur보다 먼저 클릭 처리)으로
+  제안, 선택 시 `categoryManuallySet` 플래그가 꺼져 있을 때만(사용자가 분류를 아직
+  직접 클릭하지 않았을 때) 대표 분류를 자동 채움
+- [x] **빠른 입력 템플릿** — `migrations/010_add_quick_templates.sql`(신규) `quick_templates`
+  테이블(요청 스키마 그대로) + `functions/api/templates/index.ts`(GET/POST, POST는
+  항상 `sort_order` 마지막으로 자동 배정),`[id].ts`(PATCH로 필드/순서 둘 다 수정,
+  DELETE) CRUD. `TransactionForm.tsx` 최상단에 템플릿 가로 스크롤 칩(탭하면
+  `applyPrefill`로 폼 전체 채움+날짜만 오늘로, 자동저장 아님), "관리" 토글로
+  삭제(✕)/순서변경(▲▼, 인접 항목과 `sort_order` 맞바꿔 PATCH 2회) 리스트 전환,
+  저장 버튼 위 "현재 입력값을 템플릿으로 저장" 토글→라벨 입력 후 등록
+- [x] **직전 거래 복제** — `TransactionList.tsx`에 "복제" 버튼 추가. **설계 변경**:
+  요청은 모바일 롱프레스/데스크톱 우클릭이었지만, 이 앱의 다른 모든 액션(수정/삭제
+  등)이 전부 평범한 버튼이라 롱프레스·우클릭은 발견성이 낮고(숨겨진 제스처) 기기별
+  분기 코드가 추가 복잡도만 늘림 — 신뢰성과 기존 UI 언어 일관성을 위해 모든
+  화면에서 동일한 "복제" 버튼으로 통일. `App.tsx`가 `duplicateFrom:{data,nonce}`
+  상태로 받아 `TransactionForm`에 주입(`nonce`로 같은 거래 재복제도 감지),
+  `TransactionForm`의 `applyPrefill`이 날짜만 오늘로 재설정한 채 폼 채움(자동저장 아님)
+- [x] **월 이동 스와이프** — `App.tsx`의 `SummaryCard` 래퍼 `div`에 순수
+  touchstart/touchend로 좌우 스와이프 감지(가로 60px 이상 + 세로 60px 이하일 때만
+  인식해 세로 스크롤과 혼동 방지), 좌=다음달(당월이면 무시)/우=이전달, 라이브러리 추가 없음
+- [x] **검색 필터 서버사이드 확장** — `functions/api/transactions/index.ts` GET에
+  `min_amount`/`max_amount` 파라미터 추가(AND 결합), `card_id=cash` 센티널을
+  서버에서도 해석하도록 확장(`card_id=''`인 거래만). **설계 결정**: 요청은
+  `payment_method`라는 별도 파라미터였지만, 이 앱은 이미 전역적으로 결제수단을
+  `card_id`(빈 값=현금, 아니면 카드 UUID)로만 표현하고 있어(`TransactionForm`,
+  `CardManager` 등 전부 동일 패턴) 별도 파라미터를 새로 만들면 같은 개념이 두
+  가지 방식으로 표현되는 불일치가 생김 — 기존 `card_id=cash` 센티널(이미
+  `SearchView.tsx`가 UI에서 쓰던 값)을 서버가 해석하도록 확장하는 쪽을 선택.
+  `SearchView.tsx`의 금액범위/현금필터를 클라이언트 후필터에서 서버 파라미터로 전환
+  (type/category는 원래도 목록 자체가 짧고 카드 API 호출 없이 즉시 반응해야 해서
+  클라이언트 필터 유지)
+- [x] **삭제 Undo** — `ToastContext.tsx`(`ToastOptions{actionLabel,onAction,durationMs}`)
+  /`Toast.tsx`(액션 버튼은 텍스트+밑줄만, 아이콘 없음)에 액션 버튼 지원 추가.
+  `App.tsx`의 `handleDelete`를 `pendingDeletesRef`(Map, id별 독립 타이머+원래
+  인덱스+원본 데이터)로 재작성 — 삭제 시 즉시 목록에서 제거+3초 타이머 예약, "삭제됨
+  · 되돌리기" 토스트의 되돌리기 클릭 시 타이머 취소하고 원래 인덱스 부근에 복원,
+  3초 지나면 실제 DELETE 호출. `TransactionList`는 이제 `onDelete`를 동기 트리거로만
+  호출(자체 성공 토스트/로딩스피너 제거 — App.tsx가 이미 되돌리기 토스트를 띄우므로
+  중복 방지)
+- [x] **버그 수정(같은 작업 중 발견)**: `handleAdd`/`handleUpdate`/`loadHomeData`가
+  전부 서버에서 그 달 거래를 통째로 다시 불러와 `setTransactions`하는데, 삭제
+  Undo 대기 중(3초 창)인 거래는 서버에 아직 남아있어서 이 새로고침 때 화면에
+  되살아나는 버그가 있었음(예: A를 삭제한 직후 B를 수정하면 A가 다시 나타남) —
+  `withoutPending()` 헬퍼로 세 곳 모두에서 `pendingDeletesRef`에 있는 id를
+  걸러내도록 수정
+- [x] **예산 반영 미리보기** — `TransactionForm.tsx` 저장 버튼 바로 위에
   "저장 시 이번 달 'X' 예산 68% 사용 (기존 52% → 68%)" 한 줄 미리보기, 이미
-  props로 받는 `budgetStatuses` 기준 클라이언트 계산(별도 API 호출 없음),
-  초과 시 코랄 강조
-- [ ] typecheck/lint/build 통과
-- [ ] wrangler pages dev + curl/코드리뷰로 기능별 검증, 375px 레이아웃 확인
-- [ ] 배포
+  props로 받는 `budgetStatuses` 기준 클라이언트 계산(별도 API 호출 없음, 매칭
+  카테고리 예산 없거나 금액 미입력이면 표시 안 함), 초과 시 코랄 강조
+- [x] typecheck(`tsc -b`, functions는 `tsc --ignoreConfig`)/lint(oxlint)/build 전부 통과
 
-### 예상 변경 파일
+### 검증 결과
+- `wrangler pages dev` + 로컬 D1(마이그레이션 006~010 순서대로 적용 — 로컬 dev DB가
+  세션 사이에 남아있던 오래된 상태라 006/007이 빠져있던 것도 이번에 같이 정리됨,
+  원격 D1은 이미 006/007까지 적용된 상태였음) + curl로 실제 검증:
+  - 최근 구매처 API: 거래 3건(스타벅스)+1건(쿠팡) 생성 → 사용 빈도순(스타벅스 3,
+    쿠팡 1) + 대표 분류(카페/음료) 정확히 반환 확인
+  - 템플릿 CRUD: 생성 시 `sort_order` 자동 증가, PATCH로 두 항목 `sort_order`
+    맞바꿔 순서 뒤바뀜 확인, DELETE 후 목록에서 제거 확인
+  - 검색 필터: `min_amount`/`max_amount` 단독+조합 AND 정상, `card_id=cash`가
+    카드 결제 거래(이마트)는 제외하고 현금 거래만 반환, 특정 카드 `card_id`는
+    반대로 그 카드 거래만 반환 확인
+  - 예산 미리보기 계산식을 실제 `/api/budgets` 응답(spent=13500,
+    limit=10000,percentage=135)으로 순수 함수 재현 테스트 → "저장 시 이번 달
+    '카페/음료' 예산 155% 사용 (기존 135% → 155%)" 정확히 산출, 예산 없는 카테고리·
+    금액 미입력 시 null(미표시) 확인
+  - 거래 복제/월 스와이프/Undo 타이머는 React 클라이언트 상태 로직이라 브라우저
+    도구 없이는 실제 클릭·터치로 확인 불가 — 코드 리뷰 + (Undo의 경우) 리팩터링 중
+    발견한 재조회 시 되살아남 버그를 실제로 잡아 수정한 것으로 로직 실측 신뢰도 보강
+  - Chrome 확장 등 브라우저/스크린샷 도구가 이번 세션에도 없어 375px 레이아웃 실측은
+    못함 — 기존 카드형 레이아웃 패턴(`UiCard`, `whitespace-nowrap`, `min-w-0`+`truncate`
+    조합)을 그대로 재사용해 코드 리뷰로 확인. 다음 세션에서 화면 도구 연결되면 재확인 필요
+
+### 배포
+- 원격 D1에 `migrations/010_add_quick_templates.sql` 적용 완료
+- `npm run deploy` 완료 — https://DEPLOY_URL_PLACEHOLDER
+- 배포 후 `/api/auth/me` 200 정상 확인
+
+### 변경 파일
 - `functions/api/merchants/recent.ts`, `functions/api/templates/index.ts`, `functions/api/templates/[id].ts` (신규)
 - `migrations/010_add_quick_templates.sql`(신규), `schema.sql`
 - `functions/api/transactions/index.ts`
