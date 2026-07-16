@@ -21,7 +21,7 @@
 - 본 세션에서는 Chrome 실동작 검증 미실시(정적 검증만) — 사용자 요청 시 진행
 
 ### 배포
-- (다음 배포 시 반영 예정)
+- `npm run deploy` 완료 — https://9808f31a.budget-3wb.pages.dev
 
 ### 변경 파일
 - `src/components/MyPage.tsx`, `src/App.tsx`
