@@ -1,4 +1,3 @@
-import { TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
@@ -157,7 +156,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             onClick={() => handleTypeChange(t)}
             className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
               type === t
-                ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
                 : 'bg-neutral-100 text-neutral-500'
             }`}
           >
@@ -178,7 +177,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(formatNumberInput(e.target.value))}
-            className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-lg font-bold text-neutral-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
         </div>
@@ -195,7 +194,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           placeholder="예: 스타벅스, 쿠팡"
           value={merchant}
           onChange={(e) => setMerchant(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
         />
       </div>
 
@@ -207,7 +206,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             type="button"
             onClick={() => setPaymentMethod('현금')}
             className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-              paymentMethod === '현금' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              paymentMethod === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
             }`}
           >
             현금
@@ -241,7 +240,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
               type="button"
               onClick={() => setCategory(c)}
               className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               }`}
             >
               {c}
@@ -251,7 +250,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
-              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 px-3 text-sm font-semibold text-neutral-500 transition-colors hover:border-brand-300 hover:text-brand-600"
+              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 px-3 text-sm font-semibold text-neutral-500 transition-colors hover:border-coral-200 hover:text-coral-400"
             >
               + 직접입력
             </button>
@@ -266,12 +265,12 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
-              className="min-h-9 flex-1 rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="min-h-9 flex-1 rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
             />
             <button
               type="button"
               onClick={handleAddCategory}
-              className="min-h-9 rounded-lg bg-brand-600 px-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="min-h-9 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600"
             >
               추가
             </button>
@@ -304,18 +303,18 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
 
         return (
           <div className={`mt-3 rounded-xl border px-3 py-2.5 ${
-            isExceeded ? 'border-red-200 bg-red-50' :
-            pct >= 80   ? 'border-amber-200 bg-amber-50' :
-                          'border-green-200 bg-green-50'
+            isExceeded ? 'border-coral-200 bg-coral-50' :
+            pct >= 80   ? 'border-coral-100 bg-coral-50' :
+                          'border-neutral-200 bg-neutral-50'
           }`}>
             <div className="flex items-center justify-between gap-2">
               <span className={`text-xs font-bold ${
-                isExceeded ? 'text-red-800' : pct >= 80 ? 'text-amber-800' : 'text-green-800'
+                isExceeded ? 'text-coral-800' : pct >= 80 ? 'text-coral-800' : 'text-neutral-600'
               }`}>
                 {matched.budget.category === '전체' ? '전체 지출' : matched.budget.category} 예산
               </span>
               <span className={`text-xs font-semibold ${
-                isExceeded ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-green-700'
+                isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
               }`}>
                 {pct}% 사용
               </span>
@@ -323,26 +322,26 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
               <div
                 className={`h-full rounded-full ${
-                  isExceeded ? 'bg-red-500' : pct >= 80 ? 'bg-amber-400' : 'bg-green-500'
+                  isExceeded ? 'bg-coral-600' : pct >= 80 ? 'bg-coral-200' : 'bg-neutral-300'
                 }`}
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />
             </div>
             <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
-              isExceeded ? 'text-red-700' : pct >= 80 ? 'text-amber-700' : 'text-green-700'
+              isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
             }`}>
               {isExceeded
-                ? <><TriangleAlert size={12} strokeWidth={2.5} /> 예산 초과! {formatWon(Math.abs(matched.remaining))} 초과</>
+                ? `예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
                 : `${formatWon(matched.remaining)} 남음 (${formatWon(matched.spent)} / ${formatWon(matched.budget.monthly_limit)})`}
             </p>
             {/* 입력 중인 금액 포함 예상 초과 경고 */}
             {addingAmount > 0 && !isExceeded && projectedExceeded && (
-              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-red-700">
-                <TriangleAlert size={12} strokeWidth={2.5} /> 이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
+              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-coral-600">
+                이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
               </p>
             )}
             {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
-              <p className="mt-0.5 text-xs text-amber-700">
+              <p className="mt-0.5 text-xs text-coral-600">
                 입력 후 {projectedPct}% 사용 예정
               </p>
             )}
@@ -359,7 +358,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           required
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
         />
       </div>
 
@@ -373,7 +372,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
           type="text"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
         />
       </div>
 
@@ -456,7 +455,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [] }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="mt-5 min-h-12 w-full rounded-xl bg-brand-600 text-lg font-bold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 flex items-center justify-center gap-2"
+        className="mt-5 min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
           selectedMatch

@@ -125,7 +125,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                         }}
                         className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
                           editState.type === t
-                            ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                            ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
                             : 'bg-neutral-100 text-neutral-500'
                         }`}
                       >
@@ -137,7 +137,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="text" inputMode="numeric"
                     value={editState.amount}
                     onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value) })}
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-right text-base font-bold transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                     placeholder="금액"
                   />
                   {/* 구매처 */}
@@ -145,7 +145,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     value={editState.merchant}
                     onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
                     placeholder="구매처 (선택)"
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
@@ -170,7 +170,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                       <button key={c} type="button"
                         onClick={() => setEditState((s) => s && { ...s, category: c })}
                         className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
-                          editState.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          editState.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         }`}
                       >
                         {c}
@@ -181,18 +181,18 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="date"
                     value={editState.date}
                     onChange={(e) => setEditState((s) => s && { ...s, date: e.target.value })}
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   {/* 메모 */}
                   <input type="text"
                     value={editState.memo}
                     onChange={(e) => setEditState((s) => s && { ...s, memo: e.target.value })}
                     placeholder="메모 (선택)"
-                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}
-                      className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                      className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
                     >
                       {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
                     </button>
@@ -235,7 +235,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`whitespace-nowrap text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                    <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-coral-600'}`}>
                       {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
                     <button type="button" onClick={() => startEdit(tx)}

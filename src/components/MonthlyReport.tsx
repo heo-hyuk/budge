@@ -1,4 +1,3 @@
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getCardBillingPeriod } from '../lib/billing'
 import { fetchTransactions } from '../lib/api'
@@ -121,7 +120,7 @@ function MonthlyReport({ month, cards }: Props) {
               type="button"
               onClick={() => changeBasis('billing')}
               className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
-                basis === 'billing' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+                basis === 'billing' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
               출금일 기준
@@ -130,7 +129,7 @@ function MonthlyReport({ month, cards }: Props) {
               type="button"
               onClick={() => changeBasis('transaction')}
               className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
-                basis === 'transaction' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+                basis === 'transaction' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
               거래일 기준
@@ -149,12 +148,12 @@ function MonthlyReport({ month, cards }: Props) {
           </div>
           <div>
             <p className="text-xs font-semibold text-neutral-500">지출 합계</p>
-            <p className="text-lg font-extrabold text-red-700">{formatWon(totalExpense)}</p>
+            <p className="text-lg font-extrabold text-coral-600">{formatWon(totalExpense)}</p>
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-neutral-200 flex items-baseline justify-between">
           <span className="text-base font-bold text-neutral-700">잔액</span>
-          <span className={`text-2xl font-extrabold ${balance >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+          <span className={`text-2xl font-extrabold ${balance >= 0 ? 'text-blue-700' : 'text-coral-600'}`}>
             {balance >= 0 ? '+' : ''}{formatWon(balance)}
           </span>
         </div>
@@ -166,7 +165,7 @@ function MonthlyReport({ month, cards }: Props) {
           type="button"
           onClick={() => setView('expense')}
           className={`flex-1 min-h-10 rounded-lg text-sm font-bold transition-colors ${
-            view === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+            view === 'expense' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
           }`}
         >
           지출정산
@@ -247,9 +246,9 @@ function MonthlyReport({ month, cards }: Props) {
         <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-neutral-500 mb-3">실지출</h3>
           <div className="space-y-2">
-            <Row label="현금 지출" amount={cashExpense} color="red" />
-            <Row label="카드 청구 합계" amount={totalCardBill} color="red" />
-            <Row label="합계" amount={totalExpense} color="red" bold />
+            <Row label="현금 지출" amount={cashExpense} color="coral" />
+            <Row label="카드 청구 합계" amount={totalCardBill} color="coral" />
+            <Row label="합계" amount={totalExpense} color="coral" bold />
           </div>
         </div>
       )}
@@ -282,9 +281,9 @@ function MonthlyReport({ month, cards }: Props) {
                 </div>
                 {/* 금액/화살표는 줄어들면 안 되므로 shrink-0 — 없으면 "0원"조차 글자 단위로 쪼개짐 */}
                 <div className="shrink-0 whitespace-nowrap text-right pl-2">
-                  <p className="text-base font-bold text-red-700">{formatWon(bill.amount)}</p>
+                  <p className="text-base font-bold text-coral-600">{formatWon(bill.amount)}</p>
                   <p className="mt-0.5 flex justify-end text-neutral-400">
-                    {expandedCard === bill.card.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {expandedCard === bill.card.id ? <span>▲</span> : <span>▼</span>}
                   </p>
                 </div>
               </button>
@@ -312,7 +311,7 @@ function MonthlyReport({ month, cards }: Props) {
                                 {tx.memo ? ` · ${tx.memo}` : ''}
                               </p>
                             </div>
-                            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-red-700">
+                            <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600">
                               -{formatWon(tx.amount)}
                             </span>
                           </li>
@@ -343,7 +342,7 @@ function MonthlyReport({ month, cards }: Props) {
                       {tx.date} · {tx.category}
                     </p>
                   </div>
-                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-red-700">-{formatWon(tx.amount)}</span>
+                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600">-{formatWon(tx.amount)}</span>
                 </li>
               ))}
           </ul>
@@ -359,7 +358,7 @@ function Row({
 }: {
   label: string
   amount: number
-  color: 'blue' | 'red'
+  color: 'blue' | 'coral'
   bold?: boolean
 }) {
   return (
@@ -369,7 +368,7 @@ function Row({
       </span>
       <span
         className={`text-sm font-bold ${
-          color === 'blue' ? 'text-blue-700' : 'text-red-700'
+          color === 'blue' ? 'text-blue-700' : 'text-coral-600'
         } ${bold ? 'text-base' : ''}`}
       >
         {formatWon(amount)}

@@ -170,7 +170,7 @@ function App() {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <h1 className="text-lg font-extrabold text-brand-700">텅장</h1>
+            <h1 className="text-lg font-extrabold text-coral-600">텅장</h1>
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
@@ -189,7 +189,7 @@ function App() {
               >▶</button>
               {!isCurrentMonth && (
                 <button onClick={() => setSelectedMonth(currentMonth())}
-                  className="min-h-8 rounded-lg bg-brand-600 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800"
+                  className="min-h-8 rounded-lg bg-coral-400 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-coral-600 active:bg-coral-800"
                 >오늘</button>
               )}
             </div>
@@ -342,7 +342,7 @@ function App() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-          <h2 className="text-lg font-extrabold text-brand-700">텅장</h2>
+          <h2 className="text-lg font-extrabold text-coral-600">텅장</h2>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}
@@ -363,7 +363,7 @@ function App() {
                 onClick={() => { setActiveTab(tab.id); setMenuOpen(false) }}
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
                   active
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-coral-400 text-white'
                     : 'text-neutral-600 hover:bg-neutral-100'
                 }`}
               >

@@ -121,7 +121,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                   onClick={() => setPreset(p.id)}
                   className={`min-h-10 rounded-xl text-sm font-semibold transition-colors ${
                     preset === p.id
-                      ? 'bg-brand-600 text-white'
+                      ? 'bg-coral-400 text-white'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
@@ -139,7 +139,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
-                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                 </div>
                 <div>
@@ -148,7 +148,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
-                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="min-h-9 w-full rounded-lg border border-neutral-300 px-2 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
                 type="button"
                 onClick={handleExport}
                 disabled={loading}
-                className="min-h-10 flex-1 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="min-h-10 flex-1 rounded-xl bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {loading ? (
                   <>

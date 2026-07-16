@@ -25,15 +25,15 @@ function SummaryCard({ transactions, month }: Props) {
           <dt className="text-sm font-semibold text-blue-800">수입</dt>
           <dd className="mt-1 text-xl font-bold text-blue-700">{formatWon(income)}</dd>
         </div>
-        <div className="rounded-xl bg-red-50 p-3">
-          <dt className="text-sm font-semibold text-red-800">지출</dt>
-          <dd className="mt-1 text-xl font-bold text-red-700">{formatWon(expense)}</dd>
+        <div className="rounded-xl bg-coral-50 p-3">
+          <dt className="text-sm font-semibold text-coral-800">지출</dt>
+          <dd className="mt-1 text-xl font-bold text-coral-600">{formatWon(expense)}</dd>
         </div>
       </dl>
 
-      <div className="mt-3 rounded-xl bg-brand-50 p-3">
-        <dt className="text-sm font-semibold text-brand-800">잔액</dt>
-        <dd className="mt-1 text-2xl font-extrabold text-brand-900">{formatWon(balance)}</dd>
+      <div className="mt-3 rounded-xl bg-neutral-50 p-3">
+        <dt className="text-sm font-semibold text-neutral-700">잔액</dt>
+        <dd className="mt-1 text-2xl font-extrabold text-neutral-900">{formatWon(balance)}</dd>
       </div>
     </section>
   )

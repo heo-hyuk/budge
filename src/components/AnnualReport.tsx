@@ -67,13 +67,13 @@ function AnnualReport({ year }: Props) {
             <p className="text-xs font-semibold text-blue-800">연 수입</p>
             <p className="mt-1 text-base font-bold text-blue-700">{formatWon(totalIncome)}</p>
           </div>
-          <div className="rounded-xl bg-red-50 p-3">
-            <p className="text-xs font-semibold text-red-800">연 지출</p>
-            <p className="mt-1 text-base font-bold text-red-700">{formatWon(totalExpense)}</p>
+          <div className="rounded-xl bg-coral-50 p-3">
+            <p className="text-xs font-semibold text-coral-800">연 지출</p>
+            <p className="mt-1 text-base font-bold text-coral-600">{formatWon(totalExpense)}</p>
           </div>
-          <div className="rounded-xl bg-brand-50 p-3">
-            <p className="text-xs font-semibold text-brand-800">연 잔액</p>
-            <p className={`mt-1 text-base font-bold ${totalIncome - totalExpense >= 0 ? 'text-brand-900' : 'text-red-700'}`}>
+          <div className="rounded-xl bg-neutral-50 p-3">
+            <p className="text-xs font-semibold text-neutral-700">연 잔액</p>
+            <p className={`mt-1 text-base font-bold ${totalIncome - totalExpense >= 0 ? 'text-neutral-900' : 'text-coral-600'}`}>
               {formatWon(totalIncome - totalExpense)}
             </p>
           </div>
@@ -123,7 +123,7 @@ function AnnualReport({ year }: Props) {
               <tr className="border-b border-neutral-100 bg-neutral-50">
                 <th className="whitespace-nowrap px-4 py-2.5 text-left font-semibold text-neutral-500">월</th>
                 <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-blue-700">수입</th>
-                <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-red-700">지출</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-coral-600">지출</th>
                 <th className="whitespace-nowrap px-4 py-2.5 text-right font-semibold text-neutral-700">잔액</th>
               </tr>
             </thead>
@@ -136,10 +136,10 @@ function AnnualReport({ year }: Props) {
                     <td className="whitespace-nowrap px-4 py-2.5 text-right text-blue-700">
                       {m.income > 0 ? formatWon(m.income) : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-red-700">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-coral-600">
                       {m.expense > 0 ? formatWon(m.expense) : '—'}
                     </td>
-                    <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${bal >= 0 ? 'text-neutral-800' : 'text-red-700'}`}>
+                    <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${bal >= 0 ? 'text-neutral-800' : 'text-coral-600'}`}>
                       {m.income === 0 && m.expense === 0 ? '—' : formatWon(bal)}
                     </td>
                   </tr>
