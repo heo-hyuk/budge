@@ -1,5 +1,43 @@
 # WORKLOG
 
+## 2026-07-17 (38차) — 헤더 닉네임 분리 + "내 정보" 화면 (작업 계획)
+
+헤더에서 로고명("텅장")과 사용자 실명이 붙어 보이는 게 어색하다는 피드백. 로고는
+좌측 유지, 우측에 별도 닉네임을 새로 받아 표시. 닉네임/비밀번호를 직접 관리할 수
+있는 "내 정보" 화면도 신규 추가.
+
+### 계획
+- [ ] `migrations/012_add_nickname.sql` — `users.nickname` 컬럼 추가 (NULL 허용,
+  기존 가입자는 로그인 응답에서 name으로 폴백), `schema.sql` 동기화
+- [ ] `functions/lib/auth.ts` — 닉네임 유효성 검증 헬퍼(2~12자, 공백 불가, 한글/영문/
+  숫자만) 추가
+- [ ] `functions/api/auth/register.ts` — nickname 파라미터 받아 저장, 서버 검증
+- [ ] `functions/api/auth/login.ts`, `functions/api/auth/me.ts`(GET) — 응답에
+  nickname(원본, null 가능)·created_at 포함
+- [ ] `functions/api/auth/me.ts`(PATCH 신규) — 닉네임 변경
+- [ ] `functions/api/auth/password.ts`(신규, PATCH) — 현재 비밀번호 확인 후 변경,
+  변경 시 다른 세션 전부 무효화(현재 세션은 유지)
+- [ ] `src/contexts/AuthContext.tsx` — User 타입에 nickname/created_at 추가,
+  register()에 nickname 인자, updateNickname/changePassword 함수 추가
+- [ ] `src/components/AuthPage.tsx` — 회원가입 폼에 닉네임 입력 필드 + 클라이언트
+  검증 추가
+- [ ] `src/App.tsx` — 헤더 좌측은 로고만, 우측에 닉네임(드롭다운: 내 정보/로그아웃)
+  배치. nickname이 null인 기존 가입자에게 최초 로그인 시 닉네임 설정 유도 모달 표시
+  (설정 완료 시 자연히 재노출 안 됨 — nickname null 여부로 조건 판단하므로 별도 플래그
+  불필요)
+- [ ] `src/components/MyPage.tsx`(신규) — 닉네임 인라인 수정, 이메일/가입일 읽기전용,
+  비밀번호 변경 섹션
+- [ ] typecheck / lint 통과 확인
+
+### 예상 변경 파일
+`migrations/012_add_nickname.sql`, `schema.sql`, `functions/lib/auth.ts`,
+`functions/api/auth/register.ts`, `functions/api/auth/login.ts`,
+`functions/api/auth/me.ts`, `functions/api/auth/password.ts`(신규),
+`src/contexts/AuthContext.tsx`, `src/components/AuthPage.tsx`, `src/App.tsx`,
+`src/components/MyPage.tsx`(신규)
+
+---
+
 ## 2026-07-17 (37차) — 로그인 화면 로고도 헤더와 동일하게 통일
 
 36차에서 헤더(상단바+드로어)에 적용한 `logo.svg`를 로그인 화면(AuthPage)에도 동일하게
