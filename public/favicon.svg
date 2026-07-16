@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#D85A30"/>
-  <text x="16" y="17" text-anchor="middle" dominant-baseline="central"
-    font-family="'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif"
-    font-weight="800" font-size="22" fill="#ffffff">텅</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="24" fill="#E67A54"/>
+  <g stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <line x1="40" y1="34" x2="36" y2="22"/>
+    <line x1="50" y1="32" x2="50" y2="18"/>
+    <line x1="60" y1="34" x2="64" y2="22"/>
+  </g>
+  <path d="M24,40 Q24,36 28,36 L72,36 Q76,36 76,40 L76,58 Q76,66 67,72 L56,79 Q50,82 44,79 L33,72 Q24,66 24,58 Z" fill="#ffffff"/>
+  <path d="M30,40 L50,58" stroke="#E67A54" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+  <rect x="44" y="68" width="14" height="12" rx="3" fill="#E67A54"/>
+  <circle cx="51" cy="74" r="2.6" fill="#ffffff"/>
 </svg>
