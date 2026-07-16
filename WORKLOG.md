@@ -1,5 +1,36 @@
 # WORKLOG
 
+## 2026-07-16 (12차) — 코랄 포인트 컬러 시스템 적용
+
+### 작업 계획
+- [ ] `src/index.css` — brand 팔레트 → coral 팔레트 교체, `:focus-visible` outline coral-400으로 변경
+- [ ] `src/components/TransactionForm.tsx` — brand/red/green/amber → coral, TriangleAlert 아이콘 제거, 금액 text-2xl
+- [ ] `src/components/TransactionList.tsx` — brand/red → coral, 지출금액 text-lg
+- [ ] `src/components/SummaryCard.tsx` — red/brand → coral/neutral
+- [ ] `src/components/BudgetManager.tsx` — brand/red/amber/green → coral/neutral, 아이콘 제거
+- [ ] `src/components/CardManager.tsx` — brand → coral, border-brand → border-coral
+- [ ] `src/components/RecurringManager.tsx` — brand/red → coral
+- [ ] `src/components/MonthlyReport.tsx` — brand/red → coral, ChevronDown/Up → ▼/▲ 텍스트
+- [ ] `src/components/AnnualReport.tsx` — brand/red → coral/neutral
+- [ ] `src/components/CategoryBreakdown.tsx` — barColor red-500 → coral-400
+- [ ] `src/components/SearchView.tsx` — brand/red → coral, SlidersHorizontal 제거
+- [ ] typecheck + lint 검증
+
+### 예상 변경 파일
+- src/index.css
+- src/components/TransactionForm.tsx
+- src/components/TransactionList.tsx
+- src/components/SummaryCard.tsx
+- src/components/BudgetManager.tsx
+- src/components/CardManager.tsx
+- src/components/RecurringManager.tsx
+- src/components/MonthlyReport.tsx
+- src/components/AnnualReport.tsx
+- src/components/CategoryBreakdown.tsx
+- src/components/SearchView.tsx
+
+---
+
 ## 2026-07-16 — 고정지출 삭제 후 정산이 안 바뀌는 문제 확인 (결론: 정상 동작)
 
 사용자 문의: 고정지출을 삭제해도 월정산 숫자가 안 바뀐다.
