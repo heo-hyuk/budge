@@ -29,8 +29,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!email || !password) return json({ error: '이메일과 비밀번호를 입력해주세요' }, 400)
 
   const user = await env.DB.prepare(
-    'SELECT id, email, name, password_hash, salt, iterations FROM users WHERE email = ?'
-  ).bind(email).first<{ id: string; email: string; name: string; password_hash: string; salt: string; iterations: number }>()
+    'SELECT id, email, name, nickname, created_at, password_hash, salt, iterations FROM users WHERE email = ?'
+  ).bind(email).first<{ id: string; email: string; name: string; nickname: string | null; created_at: string; password_hash: string; salt: string; iterations: number }>()
 
   if (!user) return json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' }, 401)
 
@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ).bind(newSessionId, user.id, expiresAt, now).run()
 
   return json(
-    { ok: true, user: { id: user.id, email: user.email, name: user.name } },
+    { ok: true, user: { id: user.id, email: user.email, name: user.name, nickname: user.nickname, created_at: user.created_at } },
     200,
     { 'Set-Cookie': sessionCookie(newSessionId, remember) }
   )

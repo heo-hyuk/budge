@@ -1,40 +1,58 @@
 # WORKLOG
 
-## 2026-07-17 (38차) — 헤더 닉네임 분리 + "내 정보" 화면 (작업 계획)
+## 2026-07-17 (38차) — 헤더 닉네임 분리 + "내 정보" 화면
 
 헤더에서 로고명("텅장")과 사용자 실명이 붙어 보이는 게 어색하다는 피드백. 로고는
 좌측 유지, 우측에 별도 닉네임을 새로 받아 표시. 닉네임/비밀번호를 직접 관리할 수
 있는 "내 정보" 화면도 신규 추가.
 
-### 계획
-- [ ] `migrations/012_add_nickname.sql` — `users.nickname` 컬럼 추가 (NULL 허용,
-  기존 가입자는 로그인 응답에서 name으로 폴백), `schema.sql` 동기화
-- [ ] `functions/lib/auth.ts` — 닉네임 유효성 검증 헬퍼(2~12자, 공백 불가, 한글/영문/
-  숫자만) 추가
-- [ ] `functions/api/auth/register.ts` — nickname 파라미터 받아 저장, 서버 검증
-- [ ] `functions/api/auth/login.ts`, `functions/api/auth/me.ts`(GET) — 응답에
-  nickname(원본, null 가능)·created_at 포함
-- [ ] `functions/api/auth/me.ts`(PATCH 신규) — 닉네임 변경
-- [ ] `functions/api/auth/password.ts`(신규, PATCH) — 현재 비밀번호 확인 후 변경,
-  변경 시 다른 세션 전부 무효화(현재 세션은 유지)
-- [ ] `src/contexts/AuthContext.tsx` — User 타입에 nickname/created_at 추가,
-  register()에 nickname 인자, updateNickname/changePassword 함수 추가
-- [ ] `src/components/AuthPage.tsx` — 회원가입 폼에 닉네임 입력 필드 + 클라이언트
+### 완료
+- [x] `migrations/012_add_nickname.sql` — `users.nickname` 컬럼 추가 (NULL 허용),
+  `schema.sql` 동기화 (001~012)
+- [x] `functions/lib/auth.ts` — `validateNickname` 헬퍼 추가(2~12자, 공백 불가,
+  한글/영문/숫자만)
+- [x] `functions/api/auth/register.ts` — nickname 필수 파라미터로 받아 저장, 서버
   검증 추가
-- [ ] `src/App.tsx` — 헤더 좌측은 로고만, 우측에 닉네임(드롭다운: 내 정보/로그아웃)
-  배치. nickname이 null인 기존 가입자에게 최초 로그인 시 닉네임 설정 유도 모달 표시
-  (설정 완료 시 자연히 재노출 안 됨 — nickname null 여부로 조건 판단하므로 별도 플래그
-  불필요)
-- [ ] `src/components/MyPage.tsx`(신규) — 닉네임 인라인 수정, 이메일/가입일 읽기전용,
-  비밀번호 변경 섹션
-- [ ] typecheck / lint 통과 확인
+- [x] `functions/api/auth/login.ts`, `functions/api/auth/me.ts`(GET) — 응답에
+  nickname(원본값, null 가능)·created_at 포함
+- [x] `functions/api/auth/me.ts` — `onRequestPatch` 추가(닉네임 변경, 세션 자체
+  검증 로직 내장 — `/api/auth/*`는 `_middleware.ts`에서 인증 체크를 건너뛰므로)
+- [x] `functions/api/auth/password.ts`(신규, PATCH) — 현재 비밀번호 PBKDF2 재검증 후
+  변경. **세션 처리 결정: 변경한 현재 세션은 유지하고, 같은 계정의 다른 세션은 전부
+  무효화**(다른 기기 탈취 세션 대응이 목적이므로 방금 본인 확인한 현재 기기까지
+  로그아웃시킬 필요는 없다고 판단)
+- [x] `src/lib/nickname.ts`(신규) — 닉네임 정규식/검증을 AuthPage·MyPage·App 헤더
+  프롬프트 3곳에서 공유 (서버 `validateNickname`과 규칙 동일하게 유지)
+- [x] `src/contexts/AuthContext.tsx` — User 타입에 nickname/created_at 추가,
+  register()에 nickname 인자, updateNickname/changePassword 함수 추가
+- [x] `src/components/AuthPage.tsx` — 회원가입 폼에 닉네임 입력 필드 + 클라이언트
+  검증 추가
+- [x] `src/App.tsx` — 헤더 좌측은 로고만 남기고 기존 `{user.name}` 표시 제거, 우측에
+  닉네임 버튼(드롭다운: 내 정보/로그아웃) 배치. 사이드 드로어의 중복 로그아웃
+  버튼은 헤더 드롭다운이 모든 화면 폭에서 항상 보이게 되어 제거(더 이상 필요 없는
+  `sm:hidden` 전용 버튼이었음). `user.nickname`이 null인 계정은 로그인 시 닉네임
+  설정 유도 모달 표시(별도 dismiss 플래그를 DB에 두지 않고 nickname null 여부로만
+  판단 — 설정 완료 시 자연히 다시 안 뜸, "나중에" 누르면 이번 세션에서만 숨김)
+- [x] `src/components/MyPage.tsx`(신규) — 닉네임 인라인 수정, 이메일/가입일
+  읽기전용, 비밀번호 변경 섹션(3필드), Toast/인라인 에러 처리, 코랄+카드형 톤,
+  아이콘 없이
+- [x] tsc -b(src) 통과, oxlint 통과, vite build 통과. `functions/`는 프로젝트
+  tsconfig에 포함되어 있지 않아(`tsconfig.app.json`이 `src`만 include) 별도로
+  `tsc --noEmit --ignoreConfig`로 애드혹 타입 체크 통과 확인
 
-### 예상 변경 파일
+### 참고 — 기존 가입자 대응
+- `nickname`이 NULL이면 로그인 응답에서 name으로 폴백 표시(헤더 텍스트: `user.nickname
+  ?? user.name`)
+- 로컬 D1은 아직 `npm run d1:init`으로 마이그레이션 미적용 상태 — 실제 배포/로컬
+  테스트 전 반드시 실행 필요 (본 세션에서는 Chrome 실동작 검증은 미실시, 사용자
+  요청 시 진행)
+
+### 변경 파일
 `migrations/012_add_nickname.sql`, `schema.sql`, `functions/lib/auth.ts`,
 `functions/api/auth/register.ts`, `functions/api/auth/login.ts`,
 `functions/api/auth/me.ts`, `functions/api/auth/password.ts`(신규),
-`src/contexts/AuthContext.tsx`, `src/components/AuthPage.tsx`, `src/App.tsx`,
-`src/components/MyPage.tsx`(신규)
+`src/lib/nickname.ts`(신규), `src/contexts/AuthContext.tsx`,
+`src/components/AuthPage.tsx`, `src/App.tsx`, `src/components/MyPage.tsx`(신규)
 
 ---
 

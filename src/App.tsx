@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, LogOut, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
@@ -7,6 +7,7 @@ import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import LoadingSpinner from './components/LoadingSpinner'
 import MonthlyReport from './components/MonthlyReport'
+import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
 import OverviewView from './components/OverviewView'
 import RecurringManager from './components/RecurringManager'
@@ -18,6 +19,7 @@ import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
 import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
+import { validateNicknameClient } from './lib/nickname'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
@@ -51,10 +53,16 @@ function shiftMonth(month: string, delta: number): string {
 }
 
 function App() {
-  const { user, loading: authLoading, logout } = useAuth()
+  const { user, loading: authLoading, logout, updateNickname } = useAuth()
   const { showToast } = useToast()
   const [activeTab, setActiveTab]       = useState<Tab>('home')
   const [menuOpen, setMenuOpen]         = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [myPageOpen, setMyPageOpen]     = useState(false)
+  const [nicknamePromptDismissed, setNicknamePromptDismissed] = useState(false)
+  const [nicknamePromptInput, setNicknamePromptInput] = useState('')
+  const [nicknamePromptError, setNicknamePromptError] = useState('')
+  const [nicknamePromptSaving, setNicknamePromptSaving] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [selectedYear, setSelectedYear]   = useState(currentYear)
   const [transactions, setTransactions]   = useState<Transaction[]>([])
@@ -241,6 +249,24 @@ function App() {
     setRecurringItems(await fetchRecurring())
   }
 
+  async function handleSetNickname(e: React.FormEvent) {
+    e.preventDefault()
+    const validationError = validateNicknameClient(nicknamePromptInput)
+    if (validationError) {
+      setNicknamePromptError(validationError)
+      return
+    }
+    setNicknamePromptSaving(true)
+    try {
+      await updateNickname(nicknamePromptInput)
+      showToast('닉네임이 설정되었습니다')
+    } catch (err) {
+      setNicknamePromptError(err instanceof Error ? err.message : '닉네임 설정에 실패했습니다')
+    } finally {
+      setNicknamePromptSaving(false)
+    }
+  }
+
   const isCurrentMonth = selectedMonth === currentMonth()
   const [y, mon] = selectedMonth.split('-')
   const monthLabel = `${y}년 ${parseInt(mon)}월`
@@ -273,7 +299,6 @@ function App() {
               <Menu size={22} strokeWidth={2} />
             </button>
             <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
-            <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
           {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
@@ -312,14 +337,38 @@ function App() {
             </div>
           )}
 
-          {/* 로그아웃 (좁은 화면에서는 헤더가 붐벼서 사이드 메뉴로만 노출) */}
-          <button
-            type="button"
-            onClick={logout}
-            className="hidden shrink-0 min-h-8 rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200 sm:inline-flex sm:items-center"
-          >
-            로그아웃
-          </button>
+          {/* 닉네임 — 클릭 시 드롭다운으로 내 정보/로그아웃 진입 */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className="flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100"
+            >
+              {user.nickname ?? user.name}
+              <span className="text-neutral-400">▾</span>
+            </button>
+            {userMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setUserMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-30 mt-1 w-32 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => { setMyPageOpen(true); setUserMenuOpen(false) }}
+                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
+                  >
+                    내 정보
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setUserMenuOpen(false); logout() }}
+                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -501,17 +550,48 @@ function App() {
               </button>
             )
           })}
-          {/* 로그아웃 (넓은 화면은 헤더에도 있지만, 좁은 화면은 헤더에서 숨겨서 여기가 유일한 진입점) */}
-          <button
-            type="button"
-            onClick={logout}
-            className="mt-2 flex items-center gap-3 rounded-xl border-t border-neutral-100 px-3 pt-4 pb-3 text-left text-base font-semibold text-red-600 transition-colors hover:bg-red-50 sm:hidden"
-          >
-            <LogOut size={20} strokeWidth={2} />
-            로그아웃
-          </button>
         </div>
       </nav>
+
+      {/* 내 정보 화면 */}
+      {myPageOpen && <MyPage onClose={() => setMyPageOpen(false)} />}
+
+      {/* 닉네임 미설정 기존 가입자 대상 1회성 유도 모달 — 설정 완료 시 user.nickname이 채워져 자연히 재노출 안 됨 */}
+      {!myPageOpen && !user.nickname && !nicknamePromptDismissed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-neutral-900">닉네임을 설정해주세요</h2>
+            <p className="mt-1 text-sm text-neutral-500">헤더에 표시될 닉네임이에요. 나중에 내 정보에서 바꿀 수 있어요.</p>
+            <form onSubmit={handleSetNickname} className="mt-4 space-y-2">
+              <input
+                type="text"
+                autoFocus
+                value={nicknamePromptInput}
+                onChange={(e) => setNicknamePromptInput(e.target.value)}
+                placeholder="한글/영문/숫자 2~12자"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              />
+              {nicknamePromptError && <p className="text-sm font-semibold text-red-700">{nicknamePromptError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={nicknamePromptSaving}
+                  className="min-h-11 flex-1 rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
+                >
+                  {nicknamePromptSaving ? '저장 중...' : '설정'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNicknamePromptDismissed(true)}
+                  className="min-h-11 rounded-xl bg-neutral-100 px-4 text-base font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                >
+                  나중에
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

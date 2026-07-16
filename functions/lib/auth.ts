@@ -49,6 +49,14 @@ async function derive(password: string, salt: string, iterations: number): Promi
     .join('')
 }
 
+/** 닉네임 유효성 검증 — 2~12자, 공백 불가, 한글/영문/숫자만 허용. 통과하면 null, 실패하면 에러 메시지 */
+export function validateNickname(nickname: string): string | null {
+  if (!/^[가-힣a-zA-Z0-9]{2,12}$/.test(nickname)) {
+    return '닉네임은 공백 없이 한글/영문/숫자로 2~12자여야 합니다'
+  }
+  return null
+}
+
 // ── 쿠키 유틸 ────────────────────────────────────────
 
 /** Cookie 헤더에서 특정 키 값 추출 */

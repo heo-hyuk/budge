@@ -1,5 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
-import { hashPassword, sessionCookie } from '../../lib/auth'
+import { hashPassword, sessionCookie, validateNickname } from '../../lib/auth'
 
 interface Env { DB: D1Database }
 
@@ -18,18 +18,21 @@ export const onRequestOptions: PagesFunction<Env> = async () =>
   new Response(null, { status: 204, headers: cors })
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const body = await request.json() as { email?: string; password?: string; name?: string }
+  const body = await request.json() as { email?: string; password?: string; name?: string; nickname?: string }
 
   const email    = body.email?.trim().toLowerCase()
   const password = body.password?.trim()
   const name     = body.name?.trim()
+  const nickname = body.nickname?.trim()
 
-  if (!email || !password || !name) {
-    return json({ error: '이메일, 비밀번호, 이름을 모두 입력해주세요' }, 400)
+  if (!email || !password || !name || !nickname) {
+    return json({ error: '이메일, 비밀번호, 이름, 닉네임을 모두 입력해주세요' }, 400)
   }
   if (password.length < 8) {
     return json({ error: '비밀번호는 8자 이상이어야 합니다' }, 400)
   }
+  const nicknameError = validateNickname(nickname)
+  if (nicknameError) return json({ error: nicknameError }, 400)
 
   // 이메일 중복 확인
   const existing = await env.DB.prepare(
@@ -43,8 +46,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const now    = new Date().toISOString()
 
   await env.DB.prepare(
-    'INSERT INTO users (id, email, password_hash, salt, iterations, name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(userId, email, hash, salt, iterations, name, now).run()
+    'INSERT INTO users (id, email, password_hash, salt, iterations, name, nickname, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(userId, email, hash, salt, iterations, name, nickname, now).run()
 
   // 회원가입 후 자동 로그인 — 세션 발급
   const sessionId  = crypto.randomUUID()
@@ -54,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ).bind(sessionId, userId, expiresAt, now).run()
 
   return json(
-    { ok: true, user: { id: userId, email, name } },
+    { ok: true, user: { id: userId, email, name, nickname, created_at: now } },
     201,
     { 'Set-Cookie': sessionCookie(sessionId) }
   )

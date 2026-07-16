@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { validateNicknameClient } from '../lib/nickname'
 
 type Mode = 'login' | 'register'
 
@@ -11,6 +12,7 @@ function AuthPage() {
   const [email, setEmail]   = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) ?? '')
   const [password, setPassword] = useState('')
   const [name, setName]     = useState('')
+  const [nickname, setNickname] = useState('')
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
   const [saveEmail, setSaveEmail] = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) !== null)
@@ -26,7 +28,13 @@ function AuthPage() {
         else localStorage.removeItem(SAVED_EMAIL_KEY)
         await login(email, password, autoLogin)
       } else {
-        await register(email, password, name)
+        const nicknameError = validateNicknameClient(nickname)
+        if (nicknameError) {
+          setError(nicknameError)
+          setLoading(false)
+          return
+        }
+        await register(email, password, name, nickname)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다')
@@ -78,6 +86,21 @@ function AuthPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="홍길동"
+                  className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                />
+              </div>
+            )}
+
+            {/* 닉네임 (회원가입만) — 헤더에 표시될 이름 */}
+            {mode === 'register' && (
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">닉네임</label>
+                <input
+                  type="text"
+                  required
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="한글/영문/숫자 2~12자"
                   className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                 />
               </div>

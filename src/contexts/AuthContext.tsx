@@ -4,14 +4,18 @@ interface User {
   id: string
   email: string
   name: string
+  nickname: string | null
+  created_at: string
 }
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (email: string, password: string, remember?: boolean) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
+  register: (email: string, password: string, name: string, nickname: string) => Promise<void>
   logout: () => Promise<void>
+  updateNickname: (nickname: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -40,11 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(body.user)
   }
 
-  async function register(email: string, password: string, name: string) {
+  async function register(email: string, password: string, name: string, nickname: string) {
     const res  = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, nickname }),
     })
     const body = (await res.json()) as { ok?: boolean; user?: User; error?: string }
     if (!res.ok || !body.user) throw new Error(body.error ?? '회원가입에 실패했습니다')
@@ -56,8 +60,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
+  async function updateNickname(nickname: string) {
+    const res  = await fetch('/api/auth/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname }),
+    })
+    const body = (await res.json()) as { ok?: boolean; user?: User; error?: string }
+    if (!res.ok || !body.user) throw new Error(body.error ?? '닉네임 변경에 실패했습니다')
+    setUser(body.user)
+  }
+
+  async function changePassword(currentPassword: string, newPassword: string) {
+    const res  = await fetch('/api/auth/password', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    })
+    const body = (await res.json()) as { ok?: boolean; error?: string }
+    if (!res.ok || !body.ok) throw new Error(body.error ?? '비밀번호 변경에 실패했습니다')
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateNickname, changePassword }}>
       {children}
     </AuthContext.Provider>
   )
