@@ -1,5 +1,29 @@
 # WORKLOG
 
+## 2026-07-17 (37차) — 로그인 화면 로고도 헤더와 동일하게 통일
+
+36차에서 헤더(상단바+드로어)에 적용한 `logo.svg`를 로그인 화면(AuthPage)에도 동일하게
+적용해달라는 요청. 기존 AuthPage는 `logo.png`(구버전 `logo_color_BG.png`, 흰 배경 PNG)를
+쓰고 있었음 — 헤더와 로그인 화면이 서로 다른 로고 이미지를 쓰던 상태를 통일.
+
+### 완료
+- [x] `src/components/AuthPage.tsx` — `<img src="/logo.png">` → `<img src="/logo.svg">`로 교체
+- [x] `public/logo.png` — 더 이상 참조하는 곳이 없어 삭제
+- [x] tsc / oxlint / vite build 통과
+
+### 검증 결과
+- Chrome에서 로그인 화면(비로그인 상태) 진입 후 JS로 로고 `<img>`의 `src`를 `fetch` →
+  SHA-1 계산 → `f93773261b...`로 헤더와 완전히 동일한 파일임을 확인
+
+### 배포
+- `npm run deploy` 완료 — https://1fc969b8.budget-3wb.pages.dev
+
+### 변경 파일
+- `src/components/AuthPage.tsx`
+- `public/logo.png`(삭제)
+
+---
+
 ## 2026-07-17 (36차) — 소통 오류 발견: "로고"는 헤더의 작은 아이콘 자리를 가리키는 말이었음
 
 35차까지 "로고"를 AuthPage(로그인 화면)의 큰 심볼로 이해하고 작업했는데, 사용자가 화면

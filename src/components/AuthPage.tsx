@@ -40,7 +40,7 @@ function AuthPage() {
       <div className="w-full max-w-sm">
         {/* 로고/타이틀 — 심볼+텅장 워드마크가 하나로 합쳐진 로고 */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="텅장" className="mx-auto h-20 w-auto" />
+          <img src="/logo.svg" alt="텅장" className="mx-auto h-20 w-auto" />
           <p className="mt-2 text-sm text-neutral-500">나만의 가계부 서비스</p>
         </div>
 
