@@ -1,5 +1,31 @@
 # WORKLOG
 
+## 2026-07-16 (13차) — 카드형 레이아웃 구조 개선 (진행 중)
+
+### 작업 계획
+- [ ] `src/components/ui/Card.tsx` — 공통 Card 컴포넌트 생성
+- [ ] `src/components/TransactionForm.tsx` — 섹션 3분할 (강조카드 + 구매처/결제 + 분류/날짜/메모)
+- [ ] `src/components/SummaryCard.tsx` — 잔액 위계 강조 (잔액 카드 1개 + 하단 수입/지출 보조)
+- [ ] `src/components/CardManager.tsx` — 좌측 컬러 스트라이프 (h-10 w-16 박스 → 4px 세로줄)
+- [ ] `src/components/RecurringManager.tsx` — 카드 스타일 통일 (rounded-2xl→rounded-xl, shadow 명시)
+- [ ] `src/components/MonthlyReport.tsx` — 펼쳤을 때 bg-neutral-50, px-5→px-6 들여쓰기
+- [ ] `src/components/BudgetManager.tsx` — rounded-2xl→rounded-xl 통일
+- [ ] `src/components/AnnualReport.tsx` — rounded-2xl→rounded-xl 통일
+- [ ] typecheck + lint 통과
+- [ ] 배포
+
+### 예상 변경 파일
+- src/components/ui/Card.tsx (신규)
+- src/components/TransactionForm.tsx
+- src/components/SummaryCard.tsx
+- src/components/CardManager.tsx
+- src/components/RecurringManager.tsx
+- src/components/MonthlyReport.tsx
+- src/components/BudgetManager.tsx
+- src/components/AnnualReport.tsx
+
+---
+
 ## 2026-07-16 (12차) — 코랄 포인트 컬러 시스템 적용 (완료)
 
 ### 완료
