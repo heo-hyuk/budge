@@ -39,12 +39,35 @@
   대신 구체적인 참고 이미지+지시를 줘서 그에 맞춰 바로 반영 — 추가 확인 없이 배포함.
   마음에 안 들면 다시 피드백 요청
 
+### 2차 재작업 (같은 날, 또 반려) — 아이콘이 지갑처럼 안 보이고 글자체도 안 따라감
+사용자가 실제 배포된 화면 스크린샷을 첨부하며 재반려: 1차 재작업 때 만든 지갑 아이콘이
+곡선 위주 path라 지갑이 아니라 알 수 없는 뭉툭한 도형(전구/컵 비슷하게)으로 보임. 또한
+"글자 모양도 따라가야지"라며 "텅장" 텍스트 폰트도 참고 이미지의 통통하고 둥근 손글씨풍
+서체를 따라가야 한다고 지적 — 그동안 앱 기본 시스템 폰트(Apple SD Gothic Neo 등)로만
+렌더링되던 걸 놓치고 있었음.
+- [x] `public/favicon.svg` — 곡선(Q) 위주였던 지갑 path를 각진 사각형 상단 + 대각선
+  옆면이 하단 한 점으로 모이는 "방패/연" 모양(직선 위주)으로 재작성해 지갑의 각진 윤곽을
+  분명하게 함. 상단에 접힘선을 나타내는 가로선 + 클래스프로 모이는 대각선 2개 추가, 하단에
+  걸쇠(사각+원) — 참고 이미지의 구조(사각 상단→대각선→걸쇠)를 그대로 재현
+- [x] `index.html` — Google Fonts "Jua"(둥글고 통통한 무료 한글 서체, OFL 라이선스) 로드
+  추가(preconnect 2개 + stylesheet 링크)
+- [x] `src/index.css` — `.font-brand` 유틸리티 클래스 추가(`Jua` → 시스템 고딕 순으로 폴백)
+- [x] `src/App.tsx`(헤더 h1, 사이드메뉴 드로어 h2), `src/components/AuthPage.tsx`(로그인
+  h1) — 기존 `font-extrabold` 대신 `font-brand` 클래스 적용("텅장" 워드마크 3곳)
+- [x] tsc -b / oxlint / vite build 통과
+
+### 검증 결과 (2차)
+- tsc/oxlint/vite build 통과. **Chrome 확장이 이번엔 연결되지 않아 실제 렌더링을 직접
+  보지 못한 채 배포함** — 두 번 연속 반려된 상황이라 이 사실을 사용자에게 명확히 알리고
+  재확인 요청 필요
+
 ### 배포
 - `npm run deploy` 완료 — https://9eff7bcb.budget-3wb.pages.dev (텅 글자 버전, 반려됨)
-  → 지갑 아이콘으로 재작업 후 재배포: https://9bea5cd4.budget-3wb.pages.dev
+  → 지갑 아이콘 1차 재작업(곡선 위주, 또 반려): https://9bea5cd4.budget-3wb.pages.dev
+  → 지갑 아이콘 2차 재작업(각진 구조) + Jua 폰트 적용: https://cf370d14.budget-3wb.pages.dev
 
 ### 변경 파일
-- `public/favicon.svg`
+- `public/favicon.svg`, `index.html`, `src/index.css`
 - `src/App.tsx`, `src/components/AuthPage.tsx`
 
 ---
