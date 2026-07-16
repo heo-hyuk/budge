@@ -296,7 +296,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
         <button
           type="button"
           onClick={startAdd}
-          className="min-h-9 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+          className="min-h-9 rounded-xl bg-coral-400 px-4 text-sm font-bold text-white transition-colors hover:bg-coral-600"
         >
           + 카드 추가
         </button>
@@ -316,7 +316,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             placeholder="예: 신한 Deep Dream"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
           />
 
           {/* 색상 */}
@@ -327,7 +327,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                 key={c}
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, color: c }))}
-                className={`h-8 w-8 rounded-full border-4 transition-colors ${form.color === c ? 'border-brand-600' : 'border-transparent'}`}
+                className={`h-8 w-8 rounded-full border-4 transition-colors ${form.color === c ? 'border-coral-400' : 'border-transparent'}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -361,7 +361,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
                     }))
                   }}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
               </div>
@@ -374,7 +374,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                   min={1} max={31}
                   value={form.closing_day}
                   onChange={(e) => setForm((f) => ({ ...f, closing_day: e.target.value }))}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
               </div>
@@ -421,7 +421,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
             >
               {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
             </button>
@@ -447,15 +447,15 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           {cards.map((card) => {
             const isOpen = openBenefitCardId === card.id
             return (
-              <div key={card.id} className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div
+                key={card.id}
+                className="rounded-2xl border border-l-4 border-neutral-200 bg-white shadow-sm overflow-hidden"
+                style={{ borderLeftColor: card.color }}
+              >
                 {/* 카드 헤더 — 좁은 화면에서는 이름 줄과 버튼 줄을 분리해야 이름이
                     "테스..."처럼 과도하게 줄어들지 않음. sm 이상에서는 한 줄로 합침 */}
                 <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="h-10 w-16 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: card.color }}
-                    />
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold text-neutral-900">{card.name}</p>
                       <p className="truncate text-sm text-neutral-500">
@@ -470,7 +470,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       type="button"
                       onClick={() => openBenefits(card.id)}
                       className={`min-h-8 whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition-colors ${
-                        isOpen ? 'bg-brand-100 text-brand-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        isOpen ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
                       혜택
@@ -501,7 +501,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       <button
                         type="button"
                         onClick={startAddBenefit}
-                        className="min-h-7 rounded-lg bg-brand-600 px-3 text-xs font-bold text-white transition-colors hover:bg-brand-700"
+                        className="min-h-7 rounded-lg bg-coral-400 px-3 text-xs font-bold text-white transition-colors hover:bg-coral-600"
                       >
                         + 규칙 추가
                       </button>
@@ -509,7 +509,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
                     {/* 혜택 등록/수정 폼 */}
                     {showBenefitForm && (
-                      <div className="rounded-xl border border-brand-200 bg-white p-4 space-y-3">
+                      <div className="rounded-xl border border-coral-200 bg-white p-4 space-y-3">
                         <h4 className="text-sm font-bold text-neutral-700">
                           {editingBenefitId ? '혜택 수정' : '새 혜택 규칙'}
                         </h4>
@@ -522,7 +522,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                             placeholder="예: 편의점 10% 할인"
                             value={benefitForm.name}
                             onChange={(e) => setBenefitForm((f) => ({ ...f, name: e.target.value }))}
-                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                           />
                         </div>
 
@@ -538,7 +538,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                                   onClick={() => setBenefitForm((f) => ({ ...f, discount_type: t }))}
                                   className={`flex-1 min-h-9 rounded-lg text-xs font-semibold transition-colors ${
                                     benefitForm.discount_type === t
-                                      ? 'bg-brand-600 text-white'
+                                      ? 'bg-coral-400 text-white'
                                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                   }`}
                                 >
@@ -557,7 +557,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder={benefitForm.discount_type === 'percent' ? '10' : '1000'}
                               value={benefitForm.discount_value}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, discount_value: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                             />
                           </div>
                         </div>
@@ -572,7 +572,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               type="button"
                               onClick={() => setBenefitForm((f) => ({ ...f, category: '' }))}
                               className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                                benefitForm.category === '' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                benefitForm.category === '' ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                               }`}
                             >
                               전체
@@ -583,7 +583,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                                 type="button"
                                 onClick={() => setBenefitForm((f) => ({ ...f, category: c }))}
                                 className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                                  benefitForm.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                  benefitForm.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                 }`}
                               >
                                 {c}
@@ -602,7 +602,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                             placeholder="예: 편의점, 스타벅스"
                             value={benefitForm.merchant_pattern}
                             onChange={(e) => setBenefitForm((f) => ({ ...f, merchant_pattern: e.target.value }))}
-                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                           />
                         </div>
 
@@ -618,7 +618,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder="예: 5000"
                               value={benefitForm.monthly_cap}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, monthly_cap: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                             />
                           </div>
                           <div>
@@ -631,7 +631,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder="예: 10000"
                               value={benefitForm.min_spend}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, min_spend: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                             />
                           </div>
                         </div>
@@ -641,7 +641,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                             type="button"
                             onClick={handleSaveBenefit}
                             disabled={savingBenefit}
-                            className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                            className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
                           >
                             {savingBenefit ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
                           </button>
@@ -686,7 +686,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-neutral-900">{b.name}</p>
-                          <p className="text-xs text-brand-700 font-bold mt-0.5">
+                          <p className="text-xs text-coral-600 font-bold mt-0.5">
                             {b.discount_type === 'percent'
                               ? `${b.discount_value}% 할인`
                               : `${formatWon(b.discount_value)} 정액 할인`}

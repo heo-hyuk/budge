@@ -1,4 +1,4 @@
-import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewNote, NewRecurring, NewTransaction, Note, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -46,9 +46,11 @@ export async function fetchTransactions(params?: {
   month?: string       // YYYY-MM
   year?: string        // YYYY
   q?: string           // 검색어
-  card_id?: string     // 카드별 조회
+  card_id?: string     // 카드별 조회, 'cash' = 현금만
   date_start?: string  // 날짜 범위 시작
   date_end?: string    // 날짜 범위 종료
+  min_amount?: number  // 최소 금액
+  max_amount?: number  // 최대 금액
 }): Promise<Transaction[]> {
   const qs = new URLSearchParams()
   if (params?.month)      qs.set('month', params.month)
@@ -57,6 +59,8 @@ export async function fetchTransactions(params?: {
   if (params?.card_id)    qs.set('card_id', params.card_id)
   if (params?.date_start) qs.set('date_start', params.date_start)
   if (params?.date_end)   qs.set('date_end', params.date_end)
+  if (params?.min_amount != null) qs.set('min_amount', String(params.min_amount))
+  if (params?.max_amount != null) qs.set('max_amount', String(params.max_amount))
 
   const url = `/api/transactions${qs.toString() ? `?${qs}` : ''}`
   const body = await apiRequest<{ data: Transaction[] }>(url, undefined, '거래 내역을 불러오지 못했습니다')
@@ -217,6 +221,32 @@ export async function updateNote(id: string, data: Partial<Pick<NewNote, 'catego
 
 export async function deleteNote(id: string): Promise<void> {
   await apiRequest(`/api/notes/${id}`, { method: 'DELETE' }, '메모를 삭제하지 못했습니다')
+}
+
+// ── 최근 구매처 자동완성 API ─────────────────────────────
+
+export async function fetchRecentMerchants(): Promise<RecentMerchant[]> {
+  const body = await apiRequest<{ data: RecentMerchant[] }>('/api/merchants/recent', undefined, '최근 구매처를 불러오지 못했습니다')
+  return body.data
+}
+
+// ── 빠른 입력 템플릿 API ─────────────────────────────────
+
+export async function fetchTemplates(): Promise<QuickTemplate[]> {
+  const body = await apiRequest<{ data: QuickTemplate[] }>('/api/templates', undefined, '템플릿을 불러오지 못했습니다')
+  return body.data
+}
+
+export async function createTemplate(data: NewQuickTemplate): Promise<void> {
+  await apiRequest('/api/templates', jsonInit('POST', data), '템플릿을 저장하지 못했습니다')
+}
+
+export async function updateTemplate(id: string, data: Partial<NewQuickTemplate> & { sort_order?: number }): Promise<void> {
+  await apiRequest(`/api/templates/${id}`, jsonInit('PATCH', data), '템플릿을 수정하지 못했습니다')
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  await apiRequest(`/api/templates/${id}`, { method: 'DELETE' }, '템플릿을 삭제하지 못했습니다')
 }
 
 // ── 엑셀 내보내기 API ────────────────────────────────────

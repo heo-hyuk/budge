@@ -8,8 +8,9 @@ import type { Card, Transaction, TransactionType, UpdateTransaction } from '../t
 interface Props {
   transactions: Transaction[]
   cards: Card[]
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void
   onUpdate: (id: string, data: UpdateTransaction) => Promise<void>
+  onDuplicate: (tx: Transaction) => void
 }
 
 interface EditState {
@@ -22,12 +23,11 @@ interface EditState {
   paymentMethod: string // '현금' | card.id
 }
 
-function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
+function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate }: Props) {
   const { showToast } = useToast()
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [editState, setEditState]   = useState<EditState | null>(null)
   const [saving, setSaving]         = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // 카드 ID → Card 매핑
   const cardMap = new Map(cards.map((c) => [c.id, c]))
@@ -90,17 +90,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
     }
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     if (!window.confirm('이 내역을 삭제할까요?')) return
-    setDeletingId(id)
-    try {
-      await onDelete(id)
-      showToast('거래를 삭제했습니다')
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '거래를 삭제하지 못했습니다', 'error')
-    } finally {
-      setDeletingId(null)
-    }
+    // 실제 삭제는 App.tsx가 지연 처리 — 삭제됨/되돌리기 토스트도 거기서 띄움
+    onDelete(id)
   }
 
   return (
@@ -125,7 +118,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                         }}
                         className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
                           editState.type === t
-                            ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                            ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
                             : 'bg-neutral-100 text-neutral-500'
                         }`}
                       >
@@ -137,7 +130,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="text" inputMode="numeric"
                     value={editState.amount}
                     onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value) })}
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-right text-base font-bold transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                     placeholder="금액"
                   />
                   {/* 구매처 */}
@@ -145,7 +138,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     value={editState.merchant}
                     onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
                     placeholder="구매처 (선택)"
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
@@ -170,7 +163,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                       <button key={c} type="button"
                         onClick={() => setEditState((s) => s && { ...s, category: c })}
                         className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
-                          editState.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          editState.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         }`}
                       >
                         {c}
@@ -181,18 +174,18 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                   <input type="date"
                     value={editState.date}
                     onChange={(e) => setEditState((s) => s && { ...s, date: e.target.value })}
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   {/* 메모 */}
                   <input type="text"
                     value={editState.memo}
                     onChange={(e) => setEditState((s) => s && { ...s, memo: e.target.value })}
                     placeholder="메모 (선택)"
-                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}
-                      className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                      className="min-h-9 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
                     >
                       {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
                     </button>
@@ -235,18 +228,23 @@ function TransactionList({ transactions, cards, onDelete, onUpdate }: Props) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`whitespace-nowrap text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                    <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-coral-600'}`}>
                       {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                     </span>
+                    <button type="button" onClick={() => onDuplicate(tx)}
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                    >
+                      복제
+                    </button>
                     <button type="button" onClick={() => startEdit(tx)}
                       className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
                     >
                       수정
                     </button>
-                    <button type="button" onClick={() => handleDelete(tx.id)} disabled={deletingId === tx.id}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 flex items-center gap-1.5"
+                    <button type="button" onClick={() => handleDelete(tx.id)}
+                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-600"
                     >
-                      {deletingId === tx.id ? <LoadingSpinner size={14} /> : '삭제'}
+                      삭제
                     </button>
                   </div>
                 </li>

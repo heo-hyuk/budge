@@ -159,7 +159,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
         <button
           type="button"
           onClick={startAdd}
-          className="min-h-9 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white transition-colors hover:bg-brand-700"
+          className="min-h-9 rounded-xl bg-coral-400 px-4 text-sm font-bold text-white transition-colors hover:bg-coral-600"
         >
           + 항목 추가
         </button>
@@ -167,7 +167,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
 
       {/* 등록/수정 폼 */}
       {showForm && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-neutral-700">
             {editingId ? '고정항목 수정' : '새 고정항목 등록'}
           </h3>
@@ -180,7 +180,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
               placeholder="예: 넷플릭스, 월세, 보험료"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
             />
           </div>
 
@@ -193,7 +193,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 onClick={() => handleTypeChange(t)}
                 className={`min-h-10 rounded-xl text-sm font-bold transition-colors ${
                   form.type === t
-                    ? t === 'expense' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                    ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
                     : 'bg-neutral-100 text-neutral-500'
                 }`}
               >
@@ -212,7 +212,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 placeholder="0"
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: formatNumberInput(e.target.value) }))}
-                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-right text-base font-bold transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">원</span>
             </div>
@@ -228,7 +228,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, category: c }))}
                   className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
-                    form.category === c ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    form.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   {c}
@@ -247,7 +247,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
               placeholder="예: 넷플릭스"
               value={form.merchant}
               onChange={(e) => setForm((f) => ({ ...f, merchant: e.target.value }))}
-              className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
             />
           </div>
 
@@ -259,7 +259,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, payment_method: '현금' }))}
                 className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
-                  form.payment_method === '현금' ? 'bg-brand-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  form.payment_method === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
                 현금
@@ -290,7 +290,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 max={31}
                 value={form.day_of_month}
                 onChange={(e) => setForm((f) => ({ ...f, day_of_month: e.target.value }))}
-                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
             </div>
@@ -305,7 +305,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 type="date"
                 value={form.start_date}
                 onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
             </div>
             <div>
@@ -316,7 +316,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                 type="date"
                 value={form.end_date}
                 onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
             </div>
           </div>
@@ -326,7 +326,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+              className="min-h-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-coral-400 text-sm font-bold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
             >
               {saving ? <><LoadingSpinner size={14} /> 처리 중...</> : '저장'}
             </button>
@@ -343,7 +343,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
 
       {/* 목록 */}
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <p className="text-base text-neutral-500">등록된 고정항목이 없습니다</p>
           <p className="mt-1 text-sm text-neutral-400">월세, 구독료, 급여 등을 등록하면 매달 자동으로 기록됩니다</p>
         </div>
@@ -356,7 +356,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
             return (
               <div
                 key={item.id}
-                className={`rounded-2xl border bg-white p-4 shadow-sm transition-opacity ${
+                className={`rounded-xl border bg-white p-4 shadow-sm transition-opacity ${
                   isActive ? 'border-neutral-200' : 'border-neutral-100 opacity-50'
                 }`}
               >
@@ -371,7 +371,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                         {isActive ? '활성' : '비활성'}
                       </span>
                     </div>
-                    <p className={`text-base font-bold mt-0.5 ${item.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                    <p className={`text-base font-bold mt-0.5 ${item.type === 'income' ? 'text-blue-700' : 'text-coral-600'}`}>
                       {item.type === 'income' ? '+' : '-'}{formatWon(item.amount)}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-neutral-500">

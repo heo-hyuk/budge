@@ -1,17 +1,14 @@
 @import "tailwindcss";
 
-/* 브랜드 포인트 컬러(차분한 인디고) — 기존 수입(파랑)/지출(빨강) 의미색과 겹치지 않는 중립 포인트 */
+/* 브랜드 포인트 컬러(코랄) — 지출/경고 강조에 사용, 수입(파랑)/지출 표시(레드)와 구분 */
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  --color-coral-50:  #FAECE7;
+  --color-coral-100: #F5C4B3;
+  --color-coral-200: #F0997B;
+  --color-coral-400: #D85A30;
+  --color-coral-600: #993C1D;
+  --color-coral-800: #712B13;
+  --color-coral-900: #4A1B0C;
 }
 
 :root {
@@ -23,7 +20,7 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-brand-600);
+  outline: 3px solid var(--color-coral-400);
   outline-offset: 2px;
 }
 

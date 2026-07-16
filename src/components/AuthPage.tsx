@@ -40,7 +40,7 @@ function AuthPage() {
       <div className="w-full max-w-sm">
         {/* 로고/타이틀 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-brand-700">텅장</h1>
+          <h1 className="text-3xl font-extrabold text-coral-600">텅장</h1>
           <p className="mt-2 text-sm text-neutral-500">나만의 가계부 서비스</p>
         </div>
 
@@ -51,7 +51,7 @@ function AuthPage() {
               type="button"
               onClick={() => { setMode('login'); setError('') }}
               className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                mode === 'login' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+                mode === 'login' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
               로그인
@@ -60,7 +60,7 @@ function AuthPage() {
               type="button"
               onClick={() => { setMode('register'); setError('') }}
               className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                mode === 'register' ? 'bg-white text-brand-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+                mode === 'register' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
               회원가입
@@ -78,7 +78,7 @@ function AuthPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="홍길동"
-                  className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
                 />
               </div>
             )}
@@ -92,7 +92,7 @@ function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@email.com"
-                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
             </div>
 
@@ -106,7 +106,7 @@ function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={mode === 'register' ? '8자 이상' : ''}
                 minLength={mode === 'register' ? 8 : undefined}
-                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
               />
             </div>
 
@@ -119,7 +119,7 @@ function AuthPage() {
                     type="checkbox"
                     checked={saveEmail}
                     onChange={(e) => setSaveEmail(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-neutral-300 accent-brand-600"
+                    className="h-4 w-4 rounded border-2 border-neutral-300 accent-coral-400"
                   />
                   아이디 저장
                 </label>
@@ -128,7 +128,7 @@ function AuthPage() {
                     type="checkbox"
                     checked={autoLogin}
                     onChange={(e) => setAutoLogin(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-neutral-300 accent-brand-600"
+                    className="h-4 w-4 rounded border-2 border-neutral-300 accent-coral-400"
                   />
                   자동 로그인
                 </label>
@@ -145,7 +145,7 @@ function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="min-h-12 w-full rounded-xl bg-brand-600 text-base font-bold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50"
+              className="min-h-12 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
             >
               {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
             </button>

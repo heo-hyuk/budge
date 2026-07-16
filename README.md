@@ -1,6 +1,7 @@
-# 가계부
+# 텅장
 
-개인 웹 가계부 서비스. 카드 청구 기간 기반 정산, 구매처 기록, 회원 관리를 지원합니다.
+개인 웹 가계부 서비스. 카드 청구 기간 기반 정산, 고정지출 자동화, 카드 혜택 매칭,
+예산 관리, 메모장까지 지원합니다.
 
 **배포 URL:** https://budget-3wb.pages.dev
 
@@ -14,6 +15,8 @@
 | 백엔드 | Cloudflare Pages Functions (Edge) |
 | 데이터베이스 | Cloudflare D1 (SQLite) |
 | 인증 | 자체 이메일/비밀번호 (PBKDF2 + 세션 쿠키) |
+| 아이콘 | lucide-react |
+| 엑셀 내보내기 | xlsx |
 | 배포 | Cloudflare Pages |
 
 ---
@@ -23,52 +26,49 @@
 ### 인증
 - 이메일 + 비밀번호 회원가입 / 로그인
 - 세션 쿠키 기반 로그인 유지 (30일)
-- 비밀번호 PBKDF2 해싱 (10,000회 반복 + 랜덤 salt)
+- 비밀번호 PBKDF2 해싱(유저별 반복횟수 저장, 로그인 시 자동 재해싱)
 - 모든 API 미들웨어에서 세션 검증, 사용자별 데이터 완전 격리
 
 ### 홈 (거래 입력 / 목록)
-- 수입 / 지출 구분 입력
-- 금액, 분류, 날짜, 메모 입력
-- 구매처 / 판매처 기록
-- 결제 방법 선택 (현금 또는 등록된 카드)
-- 분류 직접 추가 (localStorage 저장)
-- 날짜별 그룹 목록, 수입(파랑) / 지출(빨강) 색상 구분
-- 카드 결제 시 카드 뱃지 표시
-- 인라인 수정 / 삭제
+- 수입 / 지출 구분, 금액·분류·날짜·메모·구매처 입력
+- 결제 방법 선택 (현금 또는 등록된 카드) + 카드 혜택 자동 매칭 제안
+- 최근 사용한 구매처 자동완성(선택 시 대표 분류 자동 채움)
+- 빠른 입력 템플릿(즐겨찾기 칩으로 폼 한번에 채우기, 관리/재정렬)
+- 직전 거래 복제(날짜만 오늘로 재설정)
+- 저장 전 예산 반영 미리보기 ("저장 시 이번 달 '식비' 예산 68% 사용")
+- 날짜별 그룹 목록, 인라인 수정 / 삭제(3초 내 되돌리기 가능한 Undo)
+- 모바일에서 좌우 스와이프로 월 이동
 
 ### 월별 필터
-- 헤더 ◀ ▶ 버튼으로 월 이동
-- `오늘` 버튼으로 현재 월 복귀
-- 선택 월 데이터만 API에서 조회
+- 헤더 ◀ ▶ 버튼 또는 스와이프로 월 이동, `오늘` 버튼으로 복귀
 
-### 분류별 합계
-- 이번 달 지출 / 수입 분류별 막대그래프
-- 지출 / 수입 탭 전환
-
-### 월별 정산
-- 현금 수입 / 지출 합계
-- 카드별 청구 기간 실출금 집계 (마감일 기준 자동 계산)
-- 카드별 세부 내역 펼치기 / 접기
-- 실지출 합계 = 현금지출 + 카드 청구액
-- 최종 잔액 표시
-
-### 연간 정산
-- 12개월 수입 / 지출 바 차트
-- 연 합계 (수입 / 지출 / 잔액)
-- 월별 숫자 표
-- ◀ ▶ 연도 이동
+### 분류별 합계 / 월별 정산 / 연간 정산
+- 이번 달 지출·수입 분류별 막대그래프
+- 카드별 청구 기간(마감일 기준) 실출금 집계, 출금일/거래일 기준 선택
+- 12개월 수입·지출 바 차트 및 월별 숫자 표
 
 ### 카드 관리
-- 카드 등록 / 수정 / 삭제
-- 카드명, 색상, 청구 마감일, 결제일 직접 입력
-- 혜택 정보 여러 줄 입력
-- 청구 기간 미리보기 (예: 전월 15일 ~ 당월 14일 사용분)
-- 카드 삭제 시 해당 거래 결제방법 자동 초기화
+- 카드 등록·수정·삭제, 결제일 입력 시 마감일 자동 제안
+- 카드별 혜택 규칙(정률/정액 할인, 분류·구매처 조건, 월 한도) 등록
+- 카드 삭제 시 연결된 고정지출/혜택 영향 범위 안내 후 정리
+
+### 고정 수입/지출
+- 매월 특정일에 자동으로 거래 생성(밀린 달 소급 생성 포함)
+- 활성/비활성 토글, 카드 연결
+
+### 예산 관리
+- 카테고리별(또는 전체) 월 예산 설정, 매월 반복 또는 특정 월 한정
+- 초과 시 홈 화면 배너 + 입력 폼 인라인 경고
+
+### 메모장
+- 날짜별 자유 기록(카테고리 태그, 하루 여러 건 가능)
 
 ### 검색
-- 구매처 / 분류 / 메모 통합 검색
-- 검색 결과 날짜별 그룹 표시
-- 결제 방법 (카드 / 현금) 뱃지 표시
+- 구매처/분류/메모 통합 검색 + 날짜·분류·결제수단·금액범위 필터(서버사이드 결합)
+- 결과 요약(수입/지출 합계), 엑셀 내보내기
+
+### 엑셀 내보내기
+- 기간 지정 후 거래 내역(원금/할인/실결제 분리) 엑셀 다운로드
 
 ---
 
@@ -78,43 +78,43 @@
 budge/
 ├── functions/
 │   ├── api/
-│   │   ├── _middleware.ts          # 세션 검증 미들웨어
-│   │   ├── auth/
-│   │   │   ├── register.ts         # POST /api/auth/register
-│   │   │   ├── login.ts            # POST /api/auth/login
-│   │   │   ├── logout.ts           # POST /api/auth/logout
-│   │   │   └── me.ts               # GET  /api/auth/me
-│   │   ├── transactions/
-│   │   │   ├── index.ts            # GET / POST /api/transactions
-│   │   │   └── [id].ts             # PATCH / DELETE /api/transactions/:id
-│   │   └── cards/
-│   │       ├── index.ts            # GET / POST /api/cards
-│   │       └── [id].ts             # PATCH / DELETE /api/cards/:id
+│   │   ├── _middleware.ts          # 세션 검증 미들웨어 (userId 주입)
+│   │   ├── auth/                   # register / login / logout / me
+│   │   ├── transactions/           # GET(검색·필터)/POST, PATCH/DELETE
+│   │   ├── cards/                  # 카드 CRUD
+│   │   ├── benefits/               # 카드 혜택 CRUD + match(자동 매칭)
+│   │   ├── recurring/              # 고정 수입/지출 CRUD
+│   │   ├── budgets/                # 예산 CRUD + 현황 계산
+│   │   ├── notes/                  # 메모장 CRUD
+│   │   ├── templates/              # 빠른 입력 템플릿 CRUD
+│   │   ├── merchants/recent.ts     # 최근 구매처 자동완성
+│   │   └── export/                 # 엑셀 내보내기용 데이터
 │   └── lib/
-│       └── auth.ts                 # PBKDF2 해싱, 쿠키 유틸
+│       ├── auth.ts                 # PBKDF2 해싱, 쿠키 유틸
+│       ├── budget.ts               # 예산 현황 계산
+│       ├── benefitMatcher.ts       # 카드 혜택 매칭 로직
+│       └── recurring.ts            # 고정지출 자동 생성
 ├── src/
 │   ├── components/
-│   │   ├── AuthPage.tsx            # 로그인 / 회원가입 폼
-│   │   ├── SummaryCard.tsx         # 월 수입/지출/잔액 요약
-│   │   ├── TransactionForm.tsx     # 거래 입력 폼
-│   │   ├── TransactionList.tsx     # 거래 목록 (수정/삭제 포함)
-│   │   ├── CategoryBreakdown.tsx   # 분류별 막대 그래프
-│   │   ├── MonthlyReport.tsx       # 월별 정산
-│   │   ├── AnnualReport.tsx        # 연간 정산
-│   │   ├── CardManager.tsx         # 카드 관리
-│   │   └── SearchView.tsx          # 검색
+│   │   ├── ui/Card.tsx             # 공통 카드형 레이아웃 컴포넌트
+│   │   ├── AuthPage.tsx, SummaryCard.tsx, TransactionForm.tsx, TransactionList.tsx
+│   │   ├── CategoryBreakdown.tsx, MonthlyReport.tsx, AnnualReport.tsx
+│   │   ├── CardManager.tsx, RecurringManager.tsx, BudgetManager.tsx
+│   │   ├── NotesView.tsx, SearchView.tsx, ExportButton.tsx
+│   │   └── Toast.tsx, LoadingSpinner.tsx
 │   ├── contexts/
-│   │   └── AuthContext.tsx         # 로그인 상태 전역 관리
+│   │   ├── AuthContext.tsx         # 로그인 상태 전역 관리
+│   │   └── ToastContext.tsx        # 토스트 알림(액션 버튼 지원, Undo 등)
 │   ├── lib/
-│   │   ├── api.ts                  # API 호출 함수
+│   │   ├── api.ts                  # API 호출 함수 (ApiError 공통 처리)
 │   │   ├── billing.ts              # 카드 청구 기간 계산
-│   │   ├── categories.ts           # 기본/커스텀 분류 관리
-│   │   └── format.ts               # 금액/날짜 포맷
+│   │   ├── cardDateUtils.ts        # 마감일 자동 제안
+│   │   ├── categories.ts, noteCategories.ts
+│   │   ├── exportExcel.ts
+│   │   └── format.ts
 │   └── types.ts                    # 공통 타입 정의
-├── migrations/
-│   ├── 001_add_cards.sql           # 카드 테이블 + 거래 컬럼 추가
-│   └── 002_add_auth.sql            # 인증 테이블 + user_id 추가
-├── schema.sql                      # 전체 DB 스키마
+├── migrations/                     # 001~010, schema.sql과 항상 동기화
+├── schema.sql                      # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 └── wrangler.toml                   # Cloudflare 설정
 ```
 
@@ -123,12 +123,24 @@ budge/
 ## DB 스키마
 
 ```sql
-users        -- id, email, password_hash, salt, name
-sessions     -- id, user_id, expires_at
-transactions -- id, type, category, amount, memo, date,
-             --   merchant, payment_method, card_id, user_id
-cards        -- id, name, color, billing_day, closing_day, benefits, user_id
+users                 -- id, email, password_hash, salt, name, iterations
+sessions              -- id, user_id, expires_at
+cards                 -- id, name, color, billing_day, closing_day, benefits, user_id
+transactions           -- id, type, category, amount, memo, date, merchant,
+                       --   payment_method, card_id, recurring_id,
+                       --   original_amount, discount_amount, benefit_id, user_id
+recurring_transactions -- id, user_id, name, type, category, amount, ...,
+                       --   day_of_month, start_date, end_date, last_generated_date, active
+card_benefits          -- id, user_id, card_id, name, category, merchant_pattern,
+                       --   discount_type, discount_value, monthly_cap, min_spend
+budgets                -- id, user_id, category, monthly_limit, year_month, active
+notes                  -- id, user_id, date, category, content
+quick_templates        -- id, user_id, label, type, category, amount, merchant,
+                       --   payment_method, card_id, sort_order
 ```
+
+전체 정의는 `schema.sql` 참고. 스키마 변경 시 `migrations/`에 새 파일을 추가하고
+`schema.sql`도 함께 동기화합니다.
 
 ---
 
@@ -147,8 +159,8 @@ wrangler pages dev
 # 로컬 D1 스키마 초기화
 npm run d1:init
 
-# 타입 체크
-npm run typecheck
+# 타입 체크 (빌드에 포함되어 있음, 단독 실행 시)
+npx tsc -p tsconfig.app.json --noEmit
 
 # 린트
 npm run lint
@@ -164,11 +176,16 @@ npm run deploy
 npx wrangler d1 execute budget-db --remote --file=./migrations/파일명.sql
 ```
 
+> WSL2에서 `/mnt/c` 아래 작업할 경우 Node의 `fs.copyFileSync`가 `EPERM`으로
+> 실패하는 환경 이슈가 있어, `vite.config.ts`에서 `publicDir: false`로 끄고
+> `build` 스크립트가 `cp -r public/. dist/`로 직접 복사합니다.
+
 ---
 
 ## 카드 청구 기간 계산 방식
 
 마감일(`closing_day`)과 결제일(`billing_day`)은 사용자가 카드별로 직접 입력합니다.
+(결제일 입력 시 "마감일 = 결제일 - 11일" 패턴으로 자동 제안, 직접 수정 가능)
 
 ```
 예) 마감일 14일, 결제일 25일인 카드의 7월 정산:
@@ -176,3 +193,6 @@ npx wrangler d1 execute budget-db --remote --file=./migrations/파일명.sql
   청구 기간: 2026-06-15 ~ 2026-07-14 사용분
   실결제일:  2026-07-25
 ```
+
+월정산 화면에서는 이 "출금일 기준" 외에 "거래일 기준"(달력월 그대로 집계)도
+선택할 수 있습니다.

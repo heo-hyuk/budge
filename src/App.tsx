@@ -1,5 +1,5 @@
 import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
@@ -12,6 +12,7 @@ import RecurringManager from './components/RecurringManager'
 import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
+import type { TransactionPrefill } from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
 import { useToast } from './contexts/ToastContext'
@@ -60,6 +61,13 @@ function App() {
   const [budgetStatuses, setBudgetStatuses] = useState<BudgetStatus[]>([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
+  const [duplicateFrom, setDuplicateFrom] = useState<{ data: TransactionPrefill; nonce: number } | null>(null)
+
+  // 삭제 Undo — 각 삭제마다 독립된 타이머로 관리해 여러 건을 동시에 삭제해도
+  // 서로 덮어쓰지 않게 함 (id별로 별도 pending 항목)
+  interface PendingDelete { tx: Transaction; index: number; timer: ReturnType<typeof setTimeout> }
+  const pendingDeletesRef = useRef(new Map<string, PendingDelete>())
+  const UNDO_DELAY_MS = 3000
 
   // 로그인 상태일 때 카드 + 고정지출 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
   useEffect(() => {
@@ -73,6 +81,13 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
+  // 삭제 대기중(3초 undo 창)인 거래는 서버에서 다시 불러온 목록에도 제외해야
+  // 낙관적으로 지운 항목이 다른 새로고침(추가/수정 등) 때 되살아나지 않음
+  function withoutPending(list: Transaction[]): Transaction[] {
+    if (pendingDeletesRef.current.size === 0) return list
+    return list.filter((t) => !pendingDeletesRef.current.has(t.id))
+  }
+
   // 홈 탭: 선택 월 데이터 로드 (로그인 후에만)
   function loadHomeData() {
     setLoading(true)
@@ -82,7 +97,7 @@ function App() {
       fetchBudgetStatus(selectedMonth).catch(() => []),
     ])
       .then(([txs, budgets]) => {
-        setTransactions(txs)
+        setTransactions(withoutPending(txs))
         setBudgetStatuses(budgets)
       })
       .catch((err) => setError(err instanceof Error ? err.message : '불러오기에 실패했습니다'))
@@ -107,7 +122,7 @@ function App() {
       fetchTransactions({ month: selectedMonth }),
       fetchBudgetStatus(selectedMonth).catch(() => budgetStatuses),
     ])
-    setTransactions(txs)
+    setTransactions(withoutPending(txs))
     setBudgetStatuses(budgets)
   }
 
@@ -115,20 +130,85 @@ function App() {
     setBudgetStatuses(await fetchBudgetStatus(selectedMonth).catch(() => []))
   }
 
-  async function handleDelete(id: string) {
-    const backup = transactions
-    setTransactions((prev) => prev.filter((t) => t.id !== id))
+  function insertAt(list: Transaction[], index: number, tx: Transaction): Transaction[] {
+    const clamped = Math.min(index, list.length)
+    return [...list.slice(0, clamped), tx, ...list.slice(clamped)]
+  }
+
+  async function commitDelete(id: string) {
+    const pending = pendingDeletesRef.current.get(id)
+    if (!pending) return
+    pendingDeletesRef.current.delete(id)
     try {
       await deleteTransaction(id)
     } catch (err) {
-      setTransactions(backup)  // 삭제 실패 시 낙관적 업데이트 롤백
-      throw err
+      setTransactions((prev) => insertAt(prev, pending.index, pending.tx))
+      showToast(err instanceof Error ? err.message : '거래를 삭제하지 못했습니다', 'error')
+    }
+  }
+
+  function undoDelete(id: string) {
+    const pending = pendingDeletesRef.current.get(id)
+    if (!pending) return
+    clearTimeout(pending.timer)
+    pendingDeletesRef.current.delete(id)
+    setTransactions((prev) => insertAt(prev, pending.index, pending.tx))
+  }
+
+  function handleDelete(id: string) {
+    const index = transactions.findIndex((t) => t.id === id)
+    if (index === -1) return
+    const tx = transactions[index]
+    setTransactions((prev) => prev.filter((t) => t.id !== id))
+    const timer = setTimeout(() => { commitDelete(id) }, UNDO_DELAY_MS)
+    pendingDeletesRef.current.set(id, { tx, index, timer })
+    showToast('삭제됨', 'success', {
+      actionLabel: '되돌리기',
+      onAction: () => undoDelete(id),
+      durationMs: UNDO_DELAY_MS,
+    })
+  }
+
+  // 직전 거래 복제 — 날짜만 오늘로 재설정한 채 폼에 채워서 사용자가 확인 후 저장
+  function handleDuplicate(tx: Transaction) {
+    setActiveTab('home')
+    setDuplicateFrom({
+      data: {
+        type: tx.type,
+        category: tx.category,
+        amount: tx.amount,
+        merchant: tx.merchant,
+        paymentMethod: tx.card_id || '현금',
+        memo: tx.memo,
+      },
+      nonce: Date.now(),
+    })
+  }
+
+  // 월 이동 스와이프 (모바일) — 라이브러리 없이 순수 touch 이벤트로 감지
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  function handleSwipeStart(e: React.TouchEvent) {
+    const t = e.touches[0]
+    touchStartRef.current = { x: t.clientX, y: t.clientY }
+  }
+  function handleSwipeEnd(e: React.TouchEvent) {
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 60) return  // 세로 스크롤과 헷갈리지 않게
+    if (dx < 0) {
+      if (!isCurrentMonth) setSelectedMonth((m) => shiftMonth(m, 1))  // 좌로 스와이프 = 다음달
+    } else {
+      setSelectedMonth((m) => shiftMonth(m, -1))  // 우로 스와이프 = 이전달
     }
   }
 
   async function handleUpdate(id: string, data: UpdateTransaction) {
     await updateTransaction(id, data)
-    setTransactions(await fetchTransactions({ month: selectedMonth }))
+    setTransactions(withoutPending(await fetchTransactions({ month: selectedMonth })))
   }
 
   async function refreshCards() {
@@ -170,7 +250,7 @@ function App() {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <h1 className="text-lg font-extrabold text-brand-700">텅장</h1>
+            <h1 className="text-lg font-extrabold text-coral-600">텅장</h1>
             <span className="hidden sm:inline text-xs text-neutral-400 font-medium">{user.name}</span>
           </div>
 
@@ -189,7 +269,7 @@ function App() {
               >▶</button>
               {!isCurrentMonth && (
                 <button onClick={() => setSelectedMonth(currentMonth())}
-                  className="min-h-8 rounded-lg bg-brand-600 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800"
+                  className="min-h-8 rounded-lg bg-coral-400 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-coral-600 active:bg-coral-800"
                 >오늘</button>
               )}
             </div>
@@ -227,7 +307,10 @@ function App() {
         {activeTab === 'home' && (
           <div className="lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-6">
             <div className="space-y-4 lg:sticky lg:top-20">
-              <SummaryCard transactions={transactions} month={selectedMonth} />
+              {/* 모바일 좌우 스와이프로 월 이동 (라이브러리 없이 순수 touch 이벤트) */}
+              <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
+                <SummaryCard transactions={transactions} month={selectedMonth} />
+              </div>
               {/* 예산 초과 카테고리 요약 배너 */}
               {(() => {
                 const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
@@ -250,7 +333,13 @@ function App() {
                   </div>
                 )
               })()}
-              <TransactionForm onSubmit={handleAdd} cards={cards} budgetStatuses={budgetStatuses} />
+              <TransactionForm
+                onSubmit={handleAdd}
+                cards={cards}
+                budgetStatuses={budgetStatuses}
+                duplicateFrom={duplicateFrom}
+                onDuplicateApplied={() => setDuplicateFrom(null)}
+              />
             </div>
             <div className="mt-4 space-y-4 lg:mt-0">
               {loading ? (
@@ -276,6 +365,7 @@ function App() {
                     cards={cards}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
+                    onDuplicate={handleDuplicate}
                   />
                 </>
               )}
@@ -342,7 +432,7 @@ function App() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-          <h2 className="text-lg font-extrabold text-brand-700">텅장</h2>
+          <h2 className="text-lg font-extrabold text-coral-600">텅장</h2>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}
@@ -363,7 +453,7 @@ function App() {
                 onClick={() => { setActiveTab(tab.id); setMenuOpen(false) }}
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
                   active
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-coral-400 text-white'
                     : 'text-neutral-600 hover:bg-neutral-100'
                 }`}
               >

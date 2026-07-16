@@ -2,14 +2,20 @@
 
 ## 2026-07-16 (25차) — 카드 혜택 그룹 공유한도 / 캐시백 적립 / 카드 프리셋 기능 추가
 
+> 병합 메모: 이 세션과 별개로 origin/main에 12~14차(coral 컬러 시스템 적용, 카드형 레이아웃,
+> 사용 편의성 개선 7종 — 빠른입력 템플릿이 `migrations/010_add_quick_templates.sql` 사용)가
+> 먼저 push되어 있어 `git pull`로 병합함. 그 결과 (1) 마이그레이션 번호를 010→011로 조정,
+> (2) 이번 작업의 색상 클래스는 이미 브랜드 전체가 `brand-*`→`coral-*`로 교체된 상태이므로
+> `coral-*` 톤에 맞춰 작성 필요
+
 사용자 요청 3가지:
 1. 여러 혜택이 하나의 월 한도를 공유 (예: 롯데 LOCA LIKIT — 5개 혜택이 월 13,000원 통합한도)
 2. "즉시 할인"이 아닌 "포인트/캐시 적립"(cashback) 방식 혜택 지원 (예: KB 쿠팡와우카드)
 3. 자주 쓰는 카드 프리셋 등록 시 혜택 룰 자동 생성 (삼성 taptap O / KB 쿠팡와우 / 롯데 LOCA LIKIT)
 
 ### 작업 계획
-- [ ] `migrations/010_add_benefit_groups_and_presets.sql`(신규, 007~009는 이미 사용 중이라
-  010으로 번호 조정) — `benefit_groups` 테이블 신규, `card_benefits`에
+- [ ] `migrations/011_add_benefit_groups_and_presets.sql`(신규, 007~010은 이미 사용 중이라
+  011로 번호 조정) — `benefit_groups` 테이블 신규, `card_benefits`에
   `benefit_group_id`/`benefit_type`('discount'|'cashback')/`active` 컬럼 추가,
   `transactions`에 `cashback_amount` 컬럼 추가. `schema.sql` 동기화
 - [ ] `functions/lib/benefitMatcher.ts` — `WHERE active = 1` 추가, `benefit_group_id`가
@@ -34,6 +40,174 @@
 - [ ] tsc/oxlint/vite build 통과
 - [ ] wrangler pages dev + curl로 3개 시나리오 검증(그룹 통합한도, cashback 결제액 유지,
   active=0 매칭 제외)
+
+---
+
+## 2026-07-16 (14차) — 사용 편의성 개선 7종 (완료)
+
+사용자 요청: 아이콘 없이, 코랄 포인트 컬러 + 카드형 레이아웃 톤 유지하며 7개 기능 추가.
+
+### 완료
+- [x] **최근 구매처 자동완성** — `functions/api/merchants/recent.ts`(신규) GET: 최근
+  90일 거래(20건 미만이면 최근 50건으로 폴백)에서 구매처별 사용횟수+가장 많이
+  짝지어진 분류를 집계해 빈도순 반환. `TransactionForm.tsx` 구매처 입력에 커스텀
+  드롭다운(최대 5개, `onMouseDown`에 `preventDefault`로 blur보다 먼저 클릭 처리)으로
+  제안, 선택 시 `categoryManuallySet` 플래그가 꺼져 있을 때만(사용자가 분류를 아직
+  직접 클릭하지 않았을 때) 대표 분류를 자동 채움
+- [x] **빠른 입력 템플릿** — `migrations/010_add_quick_templates.sql`(신규) `quick_templates`
+  테이블(요청 스키마 그대로) + `functions/api/templates/index.ts`(GET/POST, POST는
+  항상 `sort_order` 마지막으로 자동 배정),`[id].ts`(PATCH로 필드/순서 둘 다 수정,
+  DELETE) CRUD. `TransactionForm.tsx` 최상단에 템플릿 가로 스크롤 칩(탭하면
+  `applyPrefill`로 폼 전체 채움+날짜만 오늘로, 자동저장 아님), "관리" 토글로
+  삭제(✕)/순서변경(▲▼, 인접 항목과 `sort_order` 맞바꿔 PATCH 2회) 리스트 전환,
+  저장 버튼 위 "현재 입력값을 템플릿으로 저장" 토글→라벨 입력 후 등록
+- [x] **직전 거래 복제** — `TransactionList.tsx`에 "복제" 버튼 추가. **설계 변경**:
+  요청은 모바일 롱프레스/데스크톱 우클릭이었지만, 이 앱의 다른 모든 액션(수정/삭제
+  등)이 전부 평범한 버튼이라 롱프레스·우클릭은 발견성이 낮고(숨겨진 제스처) 기기별
+  분기 코드가 추가 복잡도만 늘림 — 신뢰성과 기존 UI 언어 일관성을 위해 모든
+  화면에서 동일한 "복제" 버튼으로 통일. `App.tsx`가 `duplicateFrom:{data,nonce}`
+  상태로 받아 `TransactionForm`에 주입(`nonce`로 같은 거래 재복제도 감지),
+  `TransactionForm`의 `applyPrefill`이 날짜만 오늘로 재설정한 채 폼 채움(자동저장 아님)
+- [x] **월 이동 스와이프** — `App.tsx`의 `SummaryCard` 래퍼 `div`에 순수
+  touchstart/touchend로 좌우 스와이프 감지(가로 60px 이상 + 세로 60px 이하일 때만
+  인식해 세로 스크롤과 혼동 방지), 좌=다음달(당월이면 무시)/우=이전달, 라이브러리 추가 없음
+- [x] **검색 필터 서버사이드 확장** — `functions/api/transactions/index.ts` GET에
+  `min_amount`/`max_amount` 파라미터 추가(AND 결합), `card_id=cash` 센티널을
+  서버에서도 해석하도록 확장(`card_id=''`인 거래만). **설계 결정**: 요청은
+  `payment_method`라는 별도 파라미터였지만, 이 앱은 이미 전역적으로 결제수단을
+  `card_id`(빈 값=현금, 아니면 카드 UUID)로만 표현하고 있어(`TransactionForm`,
+  `CardManager` 등 전부 동일 패턴) 별도 파라미터를 새로 만들면 같은 개념이 두
+  가지 방식으로 표현되는 불일치가 생김 — 기존 `card_id=cash` 센티널(이미
+  `SearchView.tsx`가 UI에서 쓰던 값)을 서버가 해석하도록 확장하는 쪽을 선택.
+  `SearchView.tsx`의 금액범위/현금필터를 클라이언트 후필터에서 서버 파라미터로 전환
+  (type/category는 원래도 목록 자체가 짧고 카드 API 호출 없이 즉시 반응해야 해서
+  클라이언트 필터 유지)
+- [x] **삭제 Undo** — `ToastContext.tsx`(`ToastOptions{actionLabel,onAction,durationMs}`)
+  /`Toast.tsx`(액션 버튼은 텍스트+밑줄만, 아이콘 없음)에 액션 버튼 지원 추가.
+  `App.tsx`의 `handleDelete`를 `pendingDeletesRef`(Map, id별 독립 타이머+원래
+  인덱스+원본 데이터)로 재작성 — 삭제 시 즉시 목록에서 제거+3초 타이머 예약, "삭제됨
+  · 되돌리기" 토스트의 되돌리기 클릭 시 타이머 취소하고 원래 인덱스 부근에 복원,
+  3초 지나면 실제 DELETE 호출. `TransactionList`는 이제 `onDelete`를 동기 트리거로만
+  호출(자체 성공 토스트/로딩스피너 제거 — App.tsx가 이미 되돌리기 토스트를 띄우므로
+  중복 방지)
+- [x] **버그 수정(같은 작업 중 발견)**: `handleAdd`/`handleUpdate`/`loadHomeData`가
+  전부 서버에서 그 달 거래를 통째로 다시 불러와 `setTransactions`하는데, 삭제
+  Undo 대기 중(3초 창)인 거래는 서버에 아직 남아있어서 이 새로고침 때 화면에
+  되살아나는 버그가 있었음(예: A를 삭제한 직후 B를 수정하면 A가 다시 나타남) —
+  `withoutPending()` 헬퍼로 세 곳 모두에서 `pendingDeletesRef`에 있는 id를
+  걸러내도록 수정
+- [x] **예산 반영 미리보기** — `TransactionForm.tsx` 저장 버튼 바로 위에
+  "저장 시 이번 달 'X' 예산 68% 사용 (기존 52% → 68%)" 한 줄 미리보기, 이미
+  props로 받는 `budgetStatuses` 기준 클라이언트 계산(별도 API 호출 없음, 매칭
+  카테고리 예산 없거나 금액 미입력이면 표시 안 함), 초과 시 코랄 강조
+- [x] typecheck(`tsc -b`, functions는 `tsc --ignoreConfig`)/lint(oxlint)/build 전부 통과
+
+### 검증 결과
+- `wrangler pages dev` + 로컬 D1(마이그레이션 006~010 순서대로 적용 — 로컬 dev DB가
+  세션 사이에 남아있던 오래된 상태라 006/007이 빠져있던 것도 이번에 같이 정리됨,
+  원격 D1은 이미 006/007까지 적용된 상태였음) + curl로 실제 검증:
+  - 최근 구매처 API: 거래 3건(스타벅스)+1건(쿠팡) 생성 → 사용 빈도순(스타벅스 3,
+    쿠팡 1) + 대표 분류(카페/음료) 정확히 반환 확인
+  - 템플릿 CRUD: 생성 시 `sort_order` 자동 증가, PATCH로 두 항목 `sort_order`
+    맞바꿔 순서 뒤바뀜 확인, DELETE 후 목록에서 제거 확인
+  - 검색 필터: `min_amount`/`max_amount` 단독+조합 AND 정상, `card_id=cash`가
+    카드 결제 거래(이마트)는 제외하고 현금 거래만 반환, 특정 카드 `card_id`는
+    반대로 그 카드 거래만 반환 확인
+  - 예산 미리보기 계산식을 실제 `/api/budgets` 응답(spent=13500,
+    limit=10000,percentage=135)으로 순수 함수 재현 테스트 → "저장 시 이번 달
+    '카페/음료' 예산 155% 사용 (기존 135% → 155%)" 정확히 산출, 예산 없는 카테고리·
+    금액 미입력 시 null(미표시) 확인
+  - 거래 복제/월 스와이프/Undo 타이머는 React 클라이언트 상태 로직이라 브라우저
+    도구 없이는 실제 클릭·터치로 확인 불가 — 코드 리뷰 + (Undo의 경우) 리팩터링 중
+    발견한 재조회 시 되살아남 버그를 실제로 잡아 수정한 것으로 로직 실측 신뢰도 보강
+  - Chrome 확장 등 브라우저/스크린샷 도구가 이번 세션에도 없어 375px 레이아웃 실측은
+    못함 — 기존 카드형 레이아웃 패턴(`UiCard`, `whitespace-nowrap`, `min-w-0`+`truncate`
+    조합)을 그대로 재사용해 코드 리뷰로 확인. 다음 세션에서 화면 도구 연결되면 재확인 필요
+
+### 배포
+- 원격 D1에 `migrations/010_add_quick_templates.sql` 적용 완료
+- `npm run deploy` 완료 — https://d4a6fa26.budget-3wb.pages.dev
+- 배포 후 `/api/auth/me` 200 정상 확인
+
+### 변경 파일
+- `functions/api/merchants/recent.ts`, `functions/api/templates/index.ts`, `functions/api/templates/[id].ts` (신규)
+- `migrations/010_add_quick_templates.sql`(신규), `schema.sql`
+- `functions/api/transactions/index.ts`
+- `src/types.ts`, `src/lib/api.ts`
+- `src/components/TransactionForm.tsx`, `TransactionList.tsx`, `SearchView.tsx`, `Toast.tsx`
+- `src/contexts/ToastContext.tsx`
+- `src/App.tsx`
+
+---
+
+## 2026-07-16 (13차) — 카드형 레이아웃 구조 개선 (완료)
+
+### 완료
+- [x] `src/components/ui/Card.tsx` — 공통 Card 컴포넌트 생성 (rounded-xl border+shadow 기본값, `noPadding` 옵션)
+- [x] `src/components/TransactionForm.tsx` — 3개 Card 섹션으로 분리: (1) 강조카드=수입/지출 토글+금액, (2) 구매처/결제=구매처 입력+결제방법 칩+혜택 매칭 안내, (3) 분류/날짜/메모=분류 칩+예산 현황 인라인+날짜+메모. 기존 로직/상태는 그대로 두고 마크업만 재구성
+- [x] `src/components/SummaryCard.tsx` — 공통 Card로 교체, 잔액을 상단에 크게(text-3xl) 강조하고 수입/지출은 하단 2열 보조 지표(text-lg)로 축소
+- [x] `src/components/CardManager.tsx` — 카드 목록 항목의 `h-10 w-16` 색상 박스를 제거하고, 카드 컨테이너 자체에 `border-l-4`(inline `borderLeftColor`)로 좌측 컬러 스트라이프 적용
+- [x] `src/components/RecurringManager.tsx` — 폼/빈 상태/목록 항목 3곳의 `rounded-2xl`→`rounded-xl` 통일 (shadow-sm은 기존에 이미 명시돼 있어 그대로 유지)
+- [x] `src/components/MonthlyReport.tsx` — 카드별 청구 내역 펼침 영역에 `bg-neutral-50` 배경 추가, 내부 항목 `px-5`→`px-6`으로 헤더 대비 들여쓰기 표현
+- [x] `src/components/BudgetManager.tsx` — 4곳 `rounded-2xl`→`rounded-xl` 통일
+- [x] `src/components/AnnualReport.tsx` — 3곳 `rounded-2xl`→`rounded-xl` 통일
+- [x] typecheck(`tsc -b`)/lint(oxlint)/build(vite build) 전부 통과
+
+### 환경 이슈 발견 및 조치 (범위 내 필수 대응)
+- `npm run lint` 최초 실행 시 oxlint 네이티브 바인딩 누락 에러 → `npm i`로 옵셔널 디펜던시 재설치해 해결 (코드 변경 아님)
+- `npm run build` 시 Node의 `fs.copyFileSync`가 WSL2 DrvFs(`/mnt/c`) 마운트에서 `copy_file_range` 미지원으로 `EPERM` 발생, `public/favicon.svg`→`dist/favicon.svg` 복사 단계에서 매번 빌드 실패 확인 (일반 `cp`/read+write는 정상 동작, Node의 copyFileSync 내부 구현만 실패 — 이 세션에서 새로 생긴 게 아니라 Node 22 + WSL2 9p 마운트의 알려진 상호작용 버그로 보임). `vite.config.ts`에 `publicDir: false` 추가해 Vite의 자동 복사를 끄고, `package.json`의 `build` 스크립트 끝에 `cp -r public/. dist/`를 셸로 직접 실행하도록 변경, `deploy` 스크립트는 `npm run build`를 거치도록 수정. 부작용: `npm run dev`(Vite 개발 서버 단독 실행) 시에는 `public/` 자동 서빙도 함께 꺼지므로 로컬 개발 중 파비콘만 안 뜰 수 있음(기능에는 영향 없음) — `wrangler pages dev`는 빌드된 `dist/`를 서빙하므로 영향 없음
+
+### 검증 결과
+- `npx tsc -p tsconfig.app.json --noEmit`, `npm run lint`, `npm run build` 전부 통과
+- `wrangler pages dev dist --port 8788` + curl로 실측: `/`(200, title "텅장" 확인), `/favicon.svg`(200), `/api/auth/me`(200) — 빌드 산출물이 정상 서빙됨을 확인
+- 브라우저/스크린샷 도구가 이번 세션에서도 연결되지 않아(Chrome 확장 등 없음) 카드 레이아웃의 실제 시각적 결과(스트라이프 색상, 잔액 카드 위계, 펼침 배경 등)는 육안으로 확인하지 못함 — 코드 리뷰 + 타입체크/린트/빌드 통과 + curl 서빙 확인으로 대체. 다음 세션에서 화면 확인 도구가 연결되면 재확인 필요
+
+### 변경 파일
+- `src/components/ui/Card.tsx` (신규)
+- `src/components/TransactionForm.tsx`, `SummaryCard.tsx`, `CardManager.tsx`, `RecurringManager.tsx`, `MonthlyReport.tsx`, `BudgetManager.tsx`, `AnnualReport.tsx`
+- `vite.config.ts`, `package.json` (빌드 환경 이슈 대응)
+
+### 인증 환경 구축 (이번 세션에서 처음 필요해짐)
+- 이 세션에는 GitHub/Cloudflare 인증 정보가 전혀 없어 `git push`, `wrangler pages deploy` 둘 다 최초 1회 막힘 → `gh` CLI를 `~/.local/opt`에 설치(sudo 불필요, 사용자 계정 스코프)해 `gh auth login`(OAuth 디바이스 플로우, 사용자가 브라우저에서 직접 승인)으로 GitHub 인증 후 `gh auth setup-git`으로 git credential 연결, `wrangler login`(OAuth, 사용자가 브라우저에서 직접 승인)으로 Cloudflare 인증. 둘 다 사용자 계정 홈 디렉터리(`~/.config/gh`, `~/.config/.wrangler`)에 토큰이 저장되므로 다음 세션부터는 재인증 불필요할 것으로 예상
+- git `--local` 설정(`git config --local`)은 `/mnt/c` 마운트에서 `.git/config.lock`에 대한 `chmod`가 거부되어(WSL2 DrvFs 권한 이슈, 아래 항목과 동일 계열) 실패 — 대신 `git config --global`로 `user.name`/`user.email`을 설정함(홈 디렉터리는 네이티브 파일시스템이라 문제없음)
+
+---
+
+## 2026-07-16 (12차) — 코랄 포인트 컬러 시스템 적용 (완료)
+
+### 완료
+- [x] `src/index.css` — brand 팔레트 → coral 팔레트 교체 (coral-50/100/200/400/600/800/900), `:focus-visible` outline coral-400으로 변경
+- [x] `src/components/TransactionForm.tsx` — brand/red/green/amber → coral, TriangleAlert 아이콘 제거, 금액 text-2xl
+- [x] `src/components/TransactionList.tsx` — brand/red → coral, 지출금액 text-lg
+- [x] `src/components/SummaryCard.tsx` — red/brand → coral/neutral
+- [x] `src/components/BudgetManager.tsx` — brand/red/amber/green → coral/neutral, TriangleAlert+Wallet 아이콘 제거
+- [x] `src/components/CardManager.tsx` — brand → coral, border-brand → border-coral
+- [x] `src/components/RecurringManager.tsx` — brand/red → coral
+- [x] `src/components/MonthlyReport.tsx` — brand/red → coral, ChevronDown/Up → ▼/▲ 텍스트 span으로 교체
+- [x] `src/components/AnnualReport.tsx` — brand/red → coral/neutral
+- [x] `src/components/CategoryBreakdown.tsx` — barColor red-500 → coral-400
+- [x] `src/components/SearchView.tsx` — brand/red → coral, SlidersHorizontal 제거
+- [x] `src/App.tsx`, `src/components/AuthPage.tsx`, `src/components/ExportButton.tsx`, `src/components/NotesView.tsx` — brand 잔여 클래스 coral로 교체 (전체 brand- 0건 확인)
+- [x] tsc -b + vite build 빌드 성공, oxlint 에러 없음
+
+### 변경 파일 목록
+- src/index.css
+- src/components/TransactionForm.tsx
+- src/components/TransactionList.tsx
+- src/components/SummaryCard.tsx
+- src/components/BudgetManager.tsx
+- src/components/CardManager.tsx
+- src/components/RecurringManager.tsx
+- src/components/MonthlyReport.tsx
+- src/components/AnnualReport.tsx
+- src/components/CategoryBreakdown.tsx
+- src/components/SearchView.tsx
+- src/App.tsx
+- src/components/AuthPage.tsx
+- src/components/ExportButton.tsx
+- src/components/NotesView.tsx
+
+---
 
 ## 2026-07-16 — 고정지출 삭제 후 정산이 안 바뀌는 문제 확인 (결론: 정상 동작)
 

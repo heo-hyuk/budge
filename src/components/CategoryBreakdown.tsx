@@ -19,7 +19,7 @@ function CategoryBreakdown({ transactions, month }: Props) {
 
   const rows = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
   const max = rows.length > 0 ? rows[0][1] : 0
-  const barColor = type === 'expense' ? 'bg-red-500' : 'bg-blue-500'
+  const barColor = type === 'expense' ? 'bg-coral-400' : 'bg-blue-500'
 
   const [, mon] = month.split('-')
   const label = `${parseInt(mon)}월 분류별 합계`
@@ -33,7 +33,7 @@ function CategoryBreakdown({ transactions, month }: Props) {
             type="button"
             onClick={() => setType('expense')}
             className={`min-h-8 rounded-md px-3 text-sm font-semibold transition-colors ${
-              type === 'expense' ? 'bg-white text-red-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+              type === 'expense' ? 'bg-white text-coral-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
             }`}
           >
             지출

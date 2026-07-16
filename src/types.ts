@@ -154,6 +154,40 @@ export interface NewRecurring {
   end_date?: string
 }
 
+// ── 빠른 입력 템플릿 ────────────────────────────────────
+
+export interface QuickTemplate {
+  id: string
+  user_id: string
+  label: string
+  type: TransactionType
+  category: string
+  amount: number
+  merchant: string
+  payment_method: string
+  card_id: string
+  sort_order: number
+  created_at: string
+}
+
+export interface NewQuickTemplate {
+  label: string
+  type: TransactionType
+  category: string
+  amount: number
+  merchant?: string
+  payment_method?: string
+  card_id?: string
+}
+
+// ── 최근 구매처 자동완성 ─────────────────────────────────
+
+export interface RecentMerchant {
+  merchant: string
+  category: string  // 가장 많이 짝지어진 분류 ('' = 없음)
+  count: number
+}
+
 // ── 메모장 ──────────────────────────────────────────
 
 export interface Note {
