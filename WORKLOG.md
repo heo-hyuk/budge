@@ -1,5 +1,52 @@
 # WORKLOG
 
+## 2026-07-17 (31차) — "한눈에 보기"에 월간/연간 탭 추가
+
+사용자 요청: "일간 월간 주간 연간 다 있어야됨 새로 작업해줘 있는건 나두면된다" — 27차에서
+만든 "한눈에 보기"엔 일일/주간만 있었는데, 월간/연간까지 4종 전부 갖추라는 요청. 기존
+월정산/연정산 탭(막대그래프+카드 요약 스타일)은 그대로 두고, "한눈에 보기" 안에 주간표와
+같은 종이 다이어리 격자 스타일로 월간/연간을 추가로 만듦.
+
+### 완료
+- [x] `functions/lib/settlement.ts` — `calculateMonthlySettlement`(해당 월의 모든 날짜를
+  행으로, 마지막에 월계), `calculateAnnualSettlement`(1~12월을 행으로, 마지막에 연계) 추가.
+  주간 정산이 이미 갖고 있던 `IncomeBucket`/`ExpenseBucket`/`emptyIncomeBucket`/`addIncome`/
+  `addExpense` 헬퍼를 그대로 재사용
+- [x] `functions/api/settlement/monthly.ts`(신규 GET `?month=YYYY-MM`),
+  `functions/api/settlement/annual.ts`(신규 GET `?year=YYYY`)
+- [x] `src/types.ts` — `MonthlySettlement`/`MonthlySettlementDay`, `AnnualSettlement`/
+  `AnnualSettlementMonth` 타입 추가(기존 `SettlementIncomeBucket`/`SettlementExpenseBucket` 재사용)
+- [x] `src/lib/api.ts` — `fetchMonthlySettlement`/`fetchAnnualSettlement` 추가
+- [x] `src/components/MonthlySettlementTable.tsx`(신규) — `WeeklySettlement.tsx`와 동일한
+  격자 테이블 스타일로, 해당 월의 모든 날짜를 행으로(1~28/29/30/31일) + 마지막에 월계.
+  월 이동 네비게이션(◀▶ + "이번 달")
+- [x] `src/components/AnnualSettlementTable.tsx`(신규) — 동일 스타일로 1~12월을 행으로 +
+  마지막에 연계. 연도 이동 네비게이션(◀▶ + "올해")
+- [x] `src/components/OverviewView.tsx` — 서브탭을 2개(일일/주간)에서 4개(일일/주간/월간/
+  연간)로 확장, `grid-cols-2` → `grid-cols-4`
+- [x] tsc(functions+frontend) / oxlint / vite build 전부 통과
+
+### 검증 결과
+- Chrome으로 실제 배포 화면 확인: 4개 탭 전부 정상 표시(처음 로드 시 스크린샷이 한 번
+  잘려 보였는데 재캡처하니 정상 — 실제 DOM 측정(`getBoundingClientRect`)으로도 오버플로
+  없음을 확인, 캡처 타이밍 이슈였을 뿐 레이아웃 버그 아니었음)
+- 월간 탭: 7월 16일(목) 행에 의료 5,000원 정확히 표시
+- 연간 탭: 6월 행에 식비 20,000원, 7월 행에 의료 5,000원, 연계 행에 각각 정확히 합산되어
+  표시됨을 확인 (30차에서 만들어둔 월 경계 테스트 데이터를 그대로 재사용해 검증)
+
+### 배포
+- 원격 DB 마이그레이션 불필요(기존 transactions 테이블만 조회)
+- `npm run deploy` 완료 — https://a73d3df1.budget-3wb.pages.dev
+
+### 변경 파일
+- `functions/lib/settlement.ts`
+- `functions/api/settlement/monthly.ts`(신규), `functions/api/settlement/annual.ts`(신규)
+- `src/types.ts`, `src/lib/api.ts`
+- `src/components/MonthlySettlementTable.tsx`(신규), `AnnualSettlementTable.tsx`(신규)
+- `src/components/OverviewView.tsx`
+
+---
+
 ## 2026-07-17 (30차) — 일일 정산 전일잔액이 월 경계에서 리셋되던 버그 수정
 
 사용자 문의: "한눈에 보기가 누적금액만 나오고 이전에 작성한 내용은 연동이 안되어있네?"

@@ -167,3 +167,113 @@ export async function calculateWeeklySettlement(
 
   return { week_start: weekStart, week_end: weekEnd, days, week_total: weekTotal, month_cumulative_total: monthCumulative }
 }
+
+// ── 월간 정산 ────────────────────────────────────────
+
+export interface MonthlySettlementDay {
+  date: string
+  income: IncomeBucket
+  expense: ExpenseBucket
+}
+
+export interface MonthlySettlementResult {
+  month: string  // 'YYYY-MM'
+  days: MonthlySettlementDay[]
+  month_total: { income: IncomeBucket; expense: ExpenseBucket }
+}
+
+/** 월간 정산 계산 — 해당 월의 모든 날짜를 행으로, 마지막에 월계 */
+export async function calculateMonthlySettlement(
+  db: D1Database,
+  userId: string,
+  month: string,  // 'YYYY-MM'
+): Promise<MonthlySettlementResult> {
+  const [y, m] = month.split('-').map(Number)
+  const totalDays = new Date(y, m, 0).getDate()
+  const monthStart = `${month}-01`
+  const monthEnd = `${month}-${String(totalDays).padStart(2, '0')}`
+
+  const { results } = await db
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .bind(userId, monthStart, monthEnd)
+    .all<SettlementTransaction>()
+
+  const rows = results ?? []
+
+  const dayDates = Array.from({ length: totalDays }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
+  const days: MonthlySettlementDay[] = dayDates.map((date) => ({
+    date, income: emptyIncomeBucket(), expense: {},
+  }))
+  const dayIndexByDate = new Map(days.map((d, i) => [d.date, i]))
+
+  const monthTotal = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
+
+  for (const tx of rows) {
+    const dayIdx = dayIndexByDate.get(tx.date)
+    if (dayIdx === undefined) continue
+    const bucket = days[dayIdx]
+    if (tx.type === 'income') {
+      addIncome(bucket.income, tx.category, tx.amount)
+      addIncome(monthTotal.income, tx.category, tx.amount)
+    } else {
+      addExpense(bucket.expense, tx.category, tx.amount)
+      addExpense(monthTotal.expense, tx.category, tx.amount)
+    }
+  }
+
+  return { month, days, month_total: monthTotal }
+}
+
+// ── 연간 정산 ────────────────────────────────────────
+
+export interface AnnualSettlementMonth {
+  month: string  // 'YYYY-MM'
+  income: IncomeBucket
+  expense: ExpenseBucket
+}
+
+export interface AnnualSettlementResult {
+  year: string  // 'YYYY'
+  months: AnnualSettlementMonth[]
+  year_total: { income: IncomeBucket; expense: ExpenseBucket }
+}
+
+/** 연간 정산 계산 — 1~12월을 행으로, 마지막에 연계 */
+export async function calculateAnnualSettlement(
+  db: D1Database,
+  userId: string,
+  year: string,  // 'YYYY'
+): Promise<AnnualSettlementResult> {
+  const yearStart = `${year}-01-01`
+  const yearEnd = `${year}-12-31`
+
+  const { results } = await db
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .bind(userId, yearStart, yearEnd)
+    .all<SettlementTransaction>()
+
+  const rows = results ?? []
+
+  const monthKeys = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`)
+  const months: AnnualSettlementMonth[] = monthKeys.map((month) => ({
+    month, income: emptyIncomeBucket(), expense: {},
+  }))
+  const monthIndexByKey = new Map(months.map((mo, i) => [mo.month, i]))
+
+  const yearTotal = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
+
+  for (const tx of rows) {
+    const idx = monthIndexByKey.get(tx.date.slice(0, 7))
+    if (idx === undefined) continue
+    const bucket = months[idx]
+    if (tx.type === 'income') {
+      addIncome(bucket.income, tx.category, tx.amount)
+      addIncome(yearTotal.income, tx.category, tx.amount)
+    } else {
+      addExpense(bucket.expense, tx.category, tx.amount)
+      addExpense(yearTotal.expense, tx.category, tx.amount)
+    }
+  }
+
+  return { year, months, year_total: yearTotal }
+}

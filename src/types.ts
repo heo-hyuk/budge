@@ -250,6 +250,30 @@ export interface WeeklySettlement {
   month_cumulative_total: { income: SettlementIncomeBucket; expense: SettlementExpenseBucket }
 }
 
+export interface MonthlySettlementDay {
+  date: string
+  income: SettlementIncomeBucket
+  expense: SettlementExpenseBucket
+}
+
+export interface MonthlySettlement {
+  month: string  // 'YYYY-MM'
+  days: MonthlySettlementDay[]
+  month_total: { income: SettlementIncomeBucket; expense: SettlementExpenseBucket }
+}
+
+export interface AnnualSettlementMonth {
+  month: string  // 'YYYY-MM'
+  income: SettlementIncomeBucket
+  expense: SettlementExpenseBucket
+}
+
+export interface AnnualSettlement {
+  year: string  // 'YYYY'
+  months: AnnualSettlementMonth[]
+  year_total: { income: SettlementIncomeBucket; expense: SettlementExpenseBucket }
+}
+
 // ── 메모장 ──────────────────────────────────────────
 
 export interface Note {

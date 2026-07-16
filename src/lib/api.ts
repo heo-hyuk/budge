@@ -1,4 +1,4 @@
-import type { BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction, WeeklySettlement } from '../types'
+import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -279,6 +279,14 @@ export async function fetchDailySettlement(date: string): Promise<DailySettlemen
 
 export async function fetchWeeklySettlement(weekStart: string): Promise<WeeklySettlement> {
   return apiRequest<WeeklySettlement>(`/api/settlement/weekly?week_start=${encodeURIComponent(weekStart)}`, undefined, '주간 정산을 불러오지 못했습니다')
+}
+
+export async function fetchMonthlySettlement(month: string): Promise<MonthlySettlement> {
+  return apiRequest<MonthlySettlement>(`/api/settlement/monthly?month=${encodeURIComponent(month)}`, undefined, '월간 정산을 불러오지 못했습니다')
+}
+
+export async function fetchAnnualSettlement(year: string): Promise<AnnualSettlement> {
+  return apiRequest<AnnualSettlement>(`/api/settlement/annual?year=${encodeURIComponent(year)}`, undefined, '연간 정산을 불러오지 못했습니다')
 }
 
 // ── 엑셀 내보내기 API ────────────────────────────────────
