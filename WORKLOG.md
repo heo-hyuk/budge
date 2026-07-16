@@ -61,13 +61,42 @@
   보지 못한 채 배포함** — 두 번 연속 반려된 상황이라 이 사실을 사용자에게 명확히 알리고
   재확인 요청 필요
 
+### 3차 재작업 (같은 날, Chrome 확장 연결 후) — 손그림 벡터화를 포기하고 원본 이미지 크롭 사용
+사용자가 배포 화면 스크린샷을 다시 첨부하며 재반려: 2차 지갑도 여전히 지갑처럼 안 보이고
+(방패/보석 모양처럼 보임) 글자체도 안 따라간다고 지적. 직접 손으로 SVG path를 그려 원본
+일러스트(비대칭으로 열린 반지갑 + 늘어진 덮개 + 걸쇠 형태, 직선/곡선이 복잡하게 섞여
+있음)를 재현하는 시도를 2번 연속 실패한 뒤, 접근 자체를 변경:
+- [x] 원본 시안 PNG(`C:\Users\db848\Desktop\1784209214331.png`, 1254×1254)에서 PowerShell
+  `System.Drawing`으로 "심볼만" 아이콘 부분을 정확히 크롭(420,130,420,420 → 420×420,
+  둥근 사각형 네 모서리가 전부 온전하게 잘리도록 여러 번 크롭 좌표를 미세조정하며 확인)
+- [x] 크롭한 이미지를 256×256으로 리사이즈 후, 크롭 경계의 흰색 배경 모서리 4곳만
+  BFS 플러드필로 투명화(지갑 그림 내부의 흰색 부분과 연결돼 있지 않아 안전하게 구분됨) —
+  브라우저 탭 아이콘으로 쓸 때 CSS 라운딩이 안 먹으니 이미지 자체의 모서리를 투명하게
+  만들어야 함
+- [x] `public/favicon.png`(신규, 원본 그대로) — 기존 손으로 그린 `favicon.svg` 폐기
+- [x] `index.html`의 favicon 링크, `src/App.tsx`(헤더+드로어 2곳)/`src/components/AuthPage.tsx`
+  의 `<img>` src를 전부 `/favicon.svg` → `/favicon.png`로 교체
+- [x] tsc -b / oxlint / vite build 통과
+- [x] **Chrome으로 실제 배포 화면 확인** — 로그인 화면에서 아이콘이 참고 이미지와 동일한
+  지갑 모양으로 정확히 보이고, "텅장" 텍스트도 Jua 폰트로 둥글고 통통하게 렌더링됨을
+  확대 스크린샷으로 직접 확인
+
+### 검증 결과 (3차, 최종)
+- tsc/oxlint/vite build 통과
+- Chrome 확장 연결 후 실제 배포 화면(로그인 페이지)을 확대해서 확인 — 아이콘/폰트 전부
+  참고 이미지와 일치. 헤더/드로어는 로그인 화면과 동일한 `<img>` 엘리먼트를 크기만 다르게
+  재사용하는 구조라 별도 확인 없이도 동일하게 나올 것으로 판단(테스트 계정 로그인 자체는
+  이 작업과 무관한 이유로 실패해 진입은 못 함)
+
 ### 배포
 - `npm run deploy` 완료 — https://9eff7bcb.budget-3wb.pages.dev (텅 글자 버전, 반려됨)
   → 지갑 아이콘 1차 재작업(곡선 위주, 또 반려): https://9bea5cd4.budget-3wb.pages.dev
-  → 지갑 아이콘 2차 재작업(각진 구조) + Jua 폰트 적용: https://cf370d14.budget-3wb.pages.dev
+  → 지갑 아이콘 2차 재작업(각진 구조, 또 반려) + Jua 폰트 적용: https://cf370d14.budget-3wb.pages.dev
+  → 원본 이미지 크롭으로 3차 재작업(최종, Chrome으로 확인 완료): https://362452b7.budget-3wb.pages.dev
 
 ### 변경 파일
-- `public/favicon.svg`, `index.html`, `src/index.css`
+- `public/favicon.png`(신규, 원본 크롭), `public/favicon.svg`(삭제)
+- `index.html`, `src/index.css`
 - `src/App.tsx`, `src/components/AuthPage.tsx`
 
 ---
