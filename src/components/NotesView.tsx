@@ -1,4 +1,4 @@
-import { Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
+import { CalendarDays, List, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
@@ -14,6 +14,8 @@ interface EditTarget {
   date: string
   note: Note | null // null = 새 메모 추가
 }
+
+type ViewMode = 'list' | 'calendar'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -31,6 +33,9 @@ function NotesView({ month }: Props) {
   const [notes, setNotes]     = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
+
+  const [view, setView]       = useState<ViewMode>('list')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const [editTarget, setEditTarget]   = useState<EditTarget | null>(null)
   const [categories, setCategories]   = useState(() => getNoteCategories())
@@ -52,6 +57,11 @@ function NotesView({ month }: Props) {
 
   useEffect(load, [month])
 
+  // 달력에서 선택한 날짜는 월이 바뀌면 의미가 없어지므로, 이번 달이면 오늘을 기본 선택
+  useEffect(() => {
+    setSelectedDate(todayStr().slice(0, 7) === month ? todayStr() : null)
+  }, [month])
+
   // 날짜별로 여러 건이 있을 수 있어 배열로 그룹화
   const notesByDate = new Map<string, Note[]>()
   for (const n of notes) {
@@ -65,6 +75,9 @@ function NotesView({ month }: Props) {
   const dates = Array.from({ length: totalDays }, (_, i) =>
     `${year}-${String(mon).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`
   )
+  // 달력 그리드 채우기용 앞/뒤 빈 칸 — 1일의 요일만큼 앞을, 마지막 주를 7칸으로 맞추기 위해 뒤를 채움
+  const leadingBlanks = new Date(year, mon - 1, 1).getDay()
+  const trailingBlanks = (7 - ((leadingBlanks + totalDays) % 7)) % 7
 
   function startAdd(date: string) {
     setEditTarget({ date, note: null })
@@ -231,81 +244,167 @@ function NotesView({ month }: Props) {
     )
   }
 
+  // 메모 한 건 렌더링(카테고리 배지 + 내용 + 수정/삭제 버튼) — 목록/달력 상세 공용
+  function renderNoteItem(date: string, note: Note) {
+    if (editTarget?.note?.id === note.id) {
+      return <div key={note.id}>{renderEditForm()}</div>
+    }
+    return (
+      <div key={note.id} className="group flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span className="inline-block rounded bg-coral-50 dark:bg-coral-900/30 px-1.5 py-0.5 text-xs font-semibold text-coral-600 dark:text-coral-200">
+            {note.category}
+          </span>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-800 dark:text-neutral-200">{note.content}</p>
+        </div>
+        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => startEdit(date, note)}
+            aria-label="메모 수정"
+            className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(note)}
+            disabled={deletingId === note.id}
+            aria-label="메모 삭제"
+            className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+          >
+            {deletingId === note.id ? <LoadingSpinner size={14} /> : <Trash2 size={14} />}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // 새 메모 추가 폼 또는 트리거 버튼 — 목록/달력 상세 공용
+  function renderAddTrailer(date: string, emphasize: boolean) {
+    if (editTarget?.date === date && editTarget.note === null) return renderEditForm()
+    return (
+      <button
+        type="button"
+        onClick={() => startAdd(date)}
+        className={`flex items-center gap-1 text-sm transition-colors ${
+          emphasize ? 'text-neutral-300 dark:text-neutral-600 hover:text-coral-400 dark:hover:text-coral-300' : 'text-neutral-400 dark:text-neutral-500 hover:text-coral-400 dark:hover:text-coral-300'
+        }`}
+      >
+        <Plus size={13} /> 메모 추가
+      </button>
+    )
+  }
+
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
-      <ul>
-        {dates.map((date) => {
-          const dayNotes = notesByDate.get(date) ?? []
-          const day = parseInt(date.split('-')[2], 10)
-          const weekday = WEEKDAY_LABELS[new Date(date).getDay()]
-          const isToday = date === todayStr()
-          const isAddingHere = editTarget?.date === date && editTarget.note === null
+    <div className="space-y-3">
+      {/* 목록/달력 보기 전환 */}
+      <div className="flex justify-end">
+        <div className="inline-flex rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={`flex min-h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition-colors ${
+              view === 'list' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            <List size={14} /> 목록
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('calendar')}
+            className={`flex min-h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition-colors ${
+              view === 'calendar' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            <CalendarDays size={14} /> 달력
+          </button>
+        </div>
+      </div>
 
-          return (
-            <li
-              key={date}
-              className={`flex items-start gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0 ${isToday ? 'bg-coral-50/60 dark:bg-coral-900/25' : ''}`}
-            >
-              {/* 날짜 열 — 엑셀처럼 좌측에 세로로 고정 */}
-              <div className={`w-12 shrink-0 text-center ${isToday ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-500 dark:text-neutral-400'}`}>
-                <p className="text-base font-bold leading-tight">{day}</p>
-                <p className="text-xs leading-tight">{weekday}</p>
-              </div>
+      {view === 'list' ? (
+        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
+          <ul>
+            {dates.map((date) => {
+              const dayNotes = notesByDate.get(date) ?? []
+              const day = parseInt(date.split('-')[2], 10)
+              const weekday = WEEKDAY_LABELS[new Date(date).getDay()]
+              const isToday = date === todayStr()
 
-              {/* 내용 열 — 하루에 여러 건이 있을 수 있어 세로로 쌓아서 표시 */}
-              <div className="min-w-0 flex-1 space-y-2">
-                {dayNotes.map((note) =>
-                  editTarget?.note?.id === note.id ? (
-                    <div key={note.id}>{renderEditForm()}</div>
-                  ) : (
-                    <div key={note.id} className="group flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="inline-block rounded bg-coral-50 dark:bg-coral-900/30 px-1.5 py-0.5 text-xs font-semibold text-coral-600 dark:text-coral-200">
-                          {note.category}
-                        </span>
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-800 dark:text-neutral-200">{note.content}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(date, note)}
-                          aria-label="메모 수정"
-                          className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(note)}
-                          disabled={deletingId === note.id}
-                          aria-label="메모 삭제"
-                          className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
-                        >
-                          {deletingId === note.id ? <LoadingSpinner size={14} /> : <Trash2 size={14} />}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                )}
+              return (
+                <li
+                  key={date}
+                  className={`flex items-start gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0 ${isToday ? 'bg-coral-50/60 dark:bg-coral-900/25' : ''}`}
+                >
+                  {/* 날짜 열 — 엑셀처럼 좌측에 세로로 고정 */}
+                  <div className={`w-12 shrink-0 text-center ${isToday ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                    <p className="text-base font-bold leading-tight">{day}</p>
+                    <p className="text-xs leading-tight">{weekday}</p>
+                  </div>
 
-                {isAddingHere ? (
-                  renderEditForm()
-                ) : (
+                  {/* 내용 열 — 하루에 여러 건이 있을 수 있어 세로로 쌓아서 표시 */}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    {dayNotes.map((note) => renderNoteItem(date, note))}
+                    {renderAddTrailer(date, dayNotes.length === 0)}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* 달력 그리드 */}
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-3">
+            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400 dark:text-neutral-500">
+              {WEEKDAY_LABELS.map((w) => <div key={w}>{w}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: leadingBlanks }, (_, i) => <div key={`lead-${i}`} />)}
+              {dates.map((date) => {
+                const dayNotes = notesByDate.get(date) ?? []
+                const day = parseInt(date.split('-')[2], 10)
+                const isToday = date === todayStr()
+                const isSelected = date === selectedDate
+
+                return (
                   <button
+                    key={date}
                     type="button"
-                    onClick={() => startAdd(date)}
-                    className={`flex items-center gap-1 text-sm transition-colors ${
-                      dayNotes.length === 0 ? 'text-neutral-300 dark:text-neutral-600 hover:text-coral-400 dark:hover:text-coral-300' : 'text-neutral-400 dark:text-neutral-500 hover:text-coral-400 dark:hover:text-coral-300'
+                    onClick={() => setSelectedDate(date)}
+                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-coral-400 text-white font-bold'
+                        : isToday
+                        ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-600 dark:text-coral-200 font-bold'
+                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                     }`}
                   >
-                    <Plus size={13} /> 메모 추가
+                    <span>{day}</span>
+                    {dayNotes.length > 0 && (
+                      <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-coral-400'}`} />
+                    )}
                   </button>
-                )}
+                )
+              })}
+              {Array.from({ length: trailingBlanks }, (_, i) => <div key={`trail-${i}`} />)}
+            </div>
+          </div>
+
+          {/* 선택한 날짜의 메모 상세 */}
+          {selectedDate && (
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-4">
+              <p className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">
+                {parseInt(selectedDate.split('-')[2], 10)}일 ({WEEKDAY_LABELS[new Date(selectedDate).getDay()]})
+              </p>
+              <div className="space-y-2">
+                {(notesByDate.get(selectedDate) ?? []).map((note) => renderNoteItem(selectedDate, note))}
+                {renderAddTrailer(selectedDate, (notesByDate.get(selectedDate) ?? []).length === 0)}
               </div>
-            </li>
-          )
-        })}
-      </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
