@@ -1,5 +1,40 @@
 # WORKLOG
 
+## 2026-07-16 (25차) — 카드 혜택 그룹 공유한도 / 캐시백 적립 / 카드 프리셋 기능 추가
+
+사용자 요청 3가지:
+1. 여러 혜택이 하나의 월 한도를 공유 (예: 롯데 LOCA LIKIT — 5개 혜택이 월 13,000원 통합한도)
+2. "즉시 할인"이 아닌 "포인트/캐시 적립"(cashback) 방식 혜택 지원 (예: KB 쿠팡와우카드)
+3. 자주 쓰는 카드 프리셋 등록 시 혜택 룰 자동 생성 (삼성 taptap O / KB 쿠팡와우 / 롯데 LOCA LIKIT)
+
+### 작업 계획
+- [ ] `migrations/010_add_benefit_groups_and_presets.sql`(신규, 007~009는 이미 사용 중이라
+  010으로 번호 조정) — `benefit_groups` 테이블 신규, `card_benefits`에
+  `benefit_group_id`/`benefit_type`('discount'|'cashback')/`active` 컬럼 추가,
+  `transactions`에 `cashback_amount` 컬럼 추가. `schema.sql` 동기화
+- [ ] `functions/lib/benefitMatcher.ts` — `WHERE active = 1` 추가, `benefit_group_id`가
+  있으면 그룹 전체 이번달 사용액 합계로 그룹 잔여한도 계산해 적용, `BenefitMatch`에
+  `benefit_type` 필드 추가
+- [ ] `functions/api/benefits/index.ts`,`[id].ts` — `benefit_group_id`/`benefit_type`/
+  `active` 필드 처리, `benefit_group_id` 지정 시 같은 `card_id` 소속 검증
+- [ ] `functions/api/benefit-groups/index.ts`(신규 GET/POST), `[id].ts`(신규 PATCH/DELETE)
+  — 그룹 CRUD API (카드 목록 index/[id] 패턴과 동일 구조)
+- [ ] `src/types.ts`, `src/lib/api.ts` — `BenefitGroup`/`NewBenefitGroup` 타입, `CardBenefit`
+  확장, `Transaction`/`NewTransaction`에 `cashback_amount` 추가, benefit-groups API 함수 추가
+- [ ] `src/lib/cardBenefitPresets.ts`(신규) — 3개 카드 프리셋 데이터 (AI 조사 정보 확인 필요
+  안내 문구 포함)
+- [ ] `src/components/TransactionForm.tsx` — cashback 타입 매칭 시 결제액 유지 + "적립 예정"
+  정보 배지만 표시 (discount와 분기)
+- [ ] `src/components/CardManager.tsx` — 카드 등록 폼에 프리셋 드롭다운 추가(프리셋 적용 시
+  혜택/그룹 자동 생성), 혜택 목록에서 그룹 묶어 표시(그룹명+통합한도+이번달 사용액),
+  cashback 배지, taptap O처럼 패키지택1인 경우 활성/비활성 토글 UI
+- [ ] `src/lib/exportExcel.ts`, `functions/api/export/index.ts` — 적립예정액 컬럼 추가
+- [ ] `functions/api/cards/[id].ts` — 카드 삭제 시 `benefit_groups`도 명시적 DELETE (기존
+  card_benefits와 동일한 이유 — D1은 CASCADE 미적용)
+- [ ] tsc/oxlint/vite build 통과
+- [ ] wrangler pages dev + curl로 3개 시나리오 검증(그룹 통합한도, cashback 결제액 유지,
+  active=0 매칭 제외)
+
 ## 2026-07-16 — 고정지출 삭제 후 정산이 안 바뀌는 문제 확인 (결론: 정상 동작)
 
 사용자 문의: 고정지출을 삭제해도 월정산 숫자가 안 바뀐다.
