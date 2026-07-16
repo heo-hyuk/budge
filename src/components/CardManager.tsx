@@ -402,28 +402,28 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       <div
         key={b.id}
         className={`rounded-xl border px-3 py-2.5 flex items-start justify-between gap-2 ${
-          isInactive ? 'border-neutral-200 bg-neutral-50 opacity-60' : 'border-neutral-200 bg-white'
+          isInactive ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 opacity-60' : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900'
         }`}
       >
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-neutral-900">
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             {b.name}
             {b.benefit_type === 'cashback' && (
-              <span className="ml-1.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 align-middle">적립</span>
+              <span className="ml-1.5 rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 align-middle">적립</span>
             )}
             {isInactive && (
-              <span className="ml-1.5 rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-500 align-middle">꺼짐</span>
+              <span className="ml-1.5 rounded bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 text-[10px] font-bold text-neutral-500 dark:text-neutral-400 align-middle">꺼짐</span>
             )}
           </p>
-          <p className="text-xs text-coral-600 font-bold mt-0.5">
+          <p className="text-xs text-coral-600 dark:text-coral-200 font-bold mt-0.5">
             {b.discount_type === 'percent'
               ? `${b.discount_value}% ${b.benefit_type === 'cashback' ? '적립' : '할인'}`
               : `${formatWon(b.discount_value)} ${b.benefit_type === 'cashback' ? '적립' : '정액 할인'}`}
           </p>
-          <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-neutral-500">
-            {b.category && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">{b.category}</span>}
-            {b.merchant_pattern && <span className="bg-neutral-100 px-1.5 py-0.5 rounded">"{b.merchant_pattern}" 포함</span>}
-            {!b.category && !b.merchant_pattern && <span className="text-neutral-400">전체 적용</span>}
+          <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+            {b.category && <span className="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">{b.category}</span>}
+            {b.merchant_pattern && <span className="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">"{b.merchant_pattern}" 포함</span>}
+            {!b.category && !b.merchant_pattern && <span className="text-neutral-400 dark:text-neutral-500">전체 적용</span>}
             {!b.benefit_group_id && b.monthly_cap > 0 && <span>한도 {formatWon(b.monthly_cap)}/월</span>}
             {b.min_spend > 0 && <span>최소 {formatWon(b.min_spend)}</span>}
           </div>
@@ -434,7 +434,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             onClick={() => handleToggleBenefitActive(b)}
             disabled={togglingBenefitId === b.id}
             className={`min-h-7 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1 ${
-              isInactive ? 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200' : 'bg-coral-50 text-coral-800 hover:bg-coral-100'
+              isInactive ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700' : 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200 hover:bg-coral-100 dark:hover:bg-coral-900/50'
             }`}
           >
             {togglingBenefitId === b.id ? <LoadingSpinner size={12} /> : isInactive ? '켜기' : '사용중'}
@@ -442,7 +442,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           <button
             type="button"
             onClick={() => startEditBenefit(b)}
-            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
           >
             수정
           </button>
@@ -450,7 +450,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             type="button"
             onClick={() => handleDeleteBenefit(b)}
             disabled={deletingBenefitId === b.id}
-            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
+            className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-xs font-semibold text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 disabled:opacity-50 flex items-center gap-1"
           >
             {deletingBenefitId === b.id ? <LoadingSpinner size={12} /> : '삭제'}
           </button>
@@ -462,7 +462,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-neutral-800">카드 관리</h2>
+        <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200">카드 관리</h2>
         <button
           type="button"
           onClick={startAdd}
@@ -474,28 +474,28 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
       {/* 카드 등록/수정 폼 */}
       {showForm && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <h3 className="text-base font-bold text-neutral-700 mb-4">
+        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-sm">
+          <h3 className="text-base font-bold text-neutral-700 dark:text-neutral-300 mb-4">
             {editingId ? '카드 수정' : '새 카드 등록'}
           </h3>
 
           {/* 카드명 */}
-          <label className="block text-sm font-semibold text-neutral-700 mb-1">카드명</label>
+          <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">카드명</label>
           <input
             type="text"
             placeholder="예: 신한 Deep Dream"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="mb-4 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
 
           {/* 카드 프리셋 — 새 카드 등록은 물론, 기존 카드 수정 중에도 나중에 선택해 혜택 규칙을
               추가할 수 있음 */}
-          <label className="block text-sm font-semibold text-neutral-700 mb-1">카드 상품 선택 (선택사항)</label>
+          <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">카드 상품 선택 (선택사항)</label>
           <select
             value={presetId}
             onChange={(e) => setPresetId(e.target.value)}
-            className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           >
             <option value="">직접 입력</option>
             {CARD_BENEFIT_PRESETS.map((p) => (
@@ -503,7 +503,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             ))}
           </select>
           {presetId && (
-            <p className="mb-4 text-xs text-neutral-400">
+            <p className="mb-4 text-xs text-neutral-400 dark:text-neutral-500">
               저장하면 이 카드 상품의 혜택 규칙이 {editingId ? '추가로' : '자동으로'} 등록돼요.
               AI가 조사한 정보라 실제 카드 약관과 다를 수 있으니 등록 후 꼭 확인하세요
               {CARD_BENEFIT_PRESETS.find((p) => p.id === presetId)?.requiresPackageChoice &&
@@ -513,7 +513,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           {!presetId && <div className="mb-4" />}
 
           {/* 색상 */}
-          <label className="block text-sm font-semibold text-neutral-700 mb-2">카드 색상</label>
+          <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">카드 색상</label>
           <div className="mb-4 flex gap-2 flex-wrap">
             {COLOR_PRESETS.map((c) => (
               <button
@@ -527,10 +527,10 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           </div>
 
           {/* 청구 기간 안내 */}
-          <div className="mb-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">
+          <div className="mb-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-800 dark:text-blue-300">
             <p className="font-semibold mb-1">청구 기간이란?</p>
             <p>마감일까지 사용한 금액이 결제일에 청구됩니다.</p>
-            <p className="mt-1 text-blue-600">
+            <p className="mt-1 text-blue-600 dark:text-blue-400">
               결제일이 마감일과 같거나 늦으면(예: 마감 14일·결제 25일) 같은 달에 마감→결제되고,
               결제일이 마감일보다 빠르면(예: 마감 25일·결제 14일) 마감 다음 달에 결제됩니다.
             </p>
@@ -538,7 +538,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
           <div className="grid grid-cols-2 gap-3 mb-1.5">
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">결제일</label>
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">결제일</label>
               <div className="relative">
                 <input
                   type="number"
@@ -554,26 +554,26 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
                     }))
                   }}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                  className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">청구 마감일</label>
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">청구 마감일</label>
               <div className="relative">
                 <input
                   type="number"
                   min={1} max={31}
                   value={form.closing_day}
                   onChange={(e) => setForm((f) => ({ ...f, closing_day: e.target.value }))}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                  className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">일</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
               </div>
             </div>
           </div>
-          <p className="mb-4 text-xs text-neutral-400">
+          <p className="mb-4 text-xs text-neutral-400 dark:text-neutral-500">
             마감일은 결제일 기준 자동 제안값이에요. 카드사 안내와 다르면 직접 수정하세요
           </p>
 
@@ -597,17 +597,17 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             const startDay = parseInt(start.split('-')[2], 10)
 
             return (
-              <div className="mb-4 rounded-xl bg-neutral-100 p-3 text-sm text-neutral-600">
-                매월 <span className="font-bold text-neutral-900">{billingDay}일</span>에{' '}
-                {startLabel} <span className="font-bold text-neutral-900">{startDay}일</span>
+              <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
+                매월 <span className="font-bold text-neutral-900 dark:text-neutral-100">{billingDay}일</span>에{' '}
+                {startLabel} <span className="font-bold text-neutral-900 dark:text-neutral-100">{startDay}일</span>
                 {' '}~{' '}
                 {startLabel !== endLabel && `${endLabel} `}
-                <span className="font-bold text-neutral-900">{endDay}일</span> 사용분이 청구됩니다
+                <span className="font-bold text-neutral-900 dark:text-neutral-100">{endDay}일</span> 사용분이 청구됩니다
               </div>
             )
           })()}
 
-          {error && <p className="mb-3 text-sm font-semibold text-red-600">{error}</p>}
+          {error && <p className="mb-3 text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
           <div className="flex gap-2">
             <button
@@ -621,7 +621,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             <button
               type="button"
               onClick={cancelForm}
-              className="min-h-10 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+              className="min-h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
             >
               취소
             </button>
@@ -631,9 +631,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
       {/* 카드 목록 */}
       {cards.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-base text-neutral-500">등록된 카드가 없습니다</p>
-          <p className="mt-1 text-sm text-neutral-400">카드를 추가하면 결제방법으로 선택할 수 있어요</p>
+        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-8 text-center shadow-sm">
+          <p className="text-base text-neutral-500 dark:text-neutral-400">등록된 카드가 없습니다</p>
+          <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">카드를 추가하면 결제방법으로 선택할 수 있어요</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -642,7 +642,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             return (
               <div
                 key={card.id}
-                className="rounded-2xl border border-l-4 border-neutral-200 bg-white shadow-sm overflow-hidden"
+                className="rounded-2xl border border-l-4 border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden"
                 style={{ borderLeftColor: card.color }}
               >
                 {/* 카드 헤더 — 좁은 화면에서는 이름 줄과 버튼 줄을 분리해야 이름이
@@ -650,8 +650,8 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                 <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-bold text-neutral-900">{card.name}</p>
-                      <p className="truncate text-sm text-neutral-500">
+                      <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{card.name}</p>
+                      <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
                         마감 {card.closing_day}일 · 결제 {card.billing_day}일
                       </p>
                     </div>
@@ -663,7 +663,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       type="button"
                       onClick={() => openBenefits(card.id)}
                       className={`min-h-8 whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition-colors ${
-                        isOpen ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        isOpen ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                       }`}
                     >
                       혜택
@@ -671,7 +671,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(card)}
-                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                     >
                       수정
                     </button>
@@ -679,7 +679,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       type="button"
                       onClick={() => handleDelete(card.id, card.name)}
                       disabled={deletingCardId === card.id}
-                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center gap-1.5"
+                      className="min-h-8 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {deletingCardId === card.id ? <LoadingSpinner size={13} /> : '삭제'}
                     </button>
@@ -688,9 +688,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
                 {/* 혜택 규칙 섹션 */}
                 {isOpen && (
-                  <div className="border-t border-neutral-100 p-4 space-y-3 bg-neutral-50">
+                  <div className="border-t border-neutral-100 dark:border-neutral-800 p-4 space-y-3 bg-neutral-50 dark:bg-neutral-950">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold text-neutral-700">혜택 규칙</p>
+                      <p className="text-sm font-bold text-neutral-700 dark:text-neutral-300">혜택 규칙</p>
                       <button
                         type="button"
                         onClick={startAddBenefit}
@@ -702,26 +702,26 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
                     {/* 혜택 등록/수정 폼 */}
                     {showBenefitForm && (
-                      <div className="rounded-xl border border-coral-200 bg-white p-4 space-y-3">
-                        <h4 className="text-sm font-bold text-neutral-700">
+                      <div className="rounded-xl border border-coral-200 dark:border-coral-900 bg-white dark:bg-neutral-900 p-4 space-y-3">
+                        <h4 className="text-sm font-bold text-neutral-700 dark:text-neutral-300">
                           {editingBenefitId ? '혜택 수정' : '새 혜택 규칙'}
                         </h4>
 
                         {/* 혜택 이름 */}
                         <div>
-                          <label className="block text-xs font-semibold text-neutral-600 mb-1">혜택 이름</label>
+                          <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">혜택 이름</label>
                           <input
                             type="text"
                             placeholder="예: 편의점 10% 할인"
                             value={benefitForm.name}
                             onChange={(e) => setBenefitForm((f) => ({ ...f, name: e.target.value }))}
-                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                            className="min-h-9 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                           />
                         </div>
 
                         {/* 혜택 방식: 즉시 할인 vs 포인트/캐시 적립 */}
                         <div>
-                          <label className="block text-xs font-semibold text-neutral-600 mb-1">혜택 방식</label>
+                          <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">혜택 방식</label>
                           <div className="flex gap-1">
                             {(['discount', 'cashback'] as const).map((t) => (
                               <button
@@ -731,7 +731,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                                 className={`flex-1 min-h-9 rounded-lg text-xs font-semibold transition-colors ${
                                   benefitForm.benefit_type === t
                                     ? 'bg-coral-400 text-white'
-                                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                                 }`}
                               >
                                 {t === 'discount' ? '즉시 할인' : '포인트/캐시 적립'}
@@ -743,7 +743,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                         {/* 할인 유형 + 값 */}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-600 mb-1">할인 유형</label>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">할인 유형</label>
                             <div className="flex gap-1">
                               {(['percent', 'fixed'] as const).map((t) => (
                                 <button
@@ -753,7 +753,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                                   className={`flex-1 min-h-9 rounded-lg text-xs font-semibold transition-colors ${
                                     benefitForm.discount_type === t
                                       ? 'bg-coral-400 text-white'
-                                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                                   }`}
                                 >
                                   {t === 'percent' ? '% 할인' : '정액 할인'}
@@ -762,7 +762,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-600 mb-1">
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
                               {benefitForm.discount_type === 'percent' ? '할인율 (%)' : '할인액 (원)'}
                             </label>
                             <input
@@ -771,22 +771,22 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder={benefitForm.discount_type === 'percent' ? '10' : '1000'}
                               value={benefitForm.discount_value}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, discount_value: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                             />
                           </div>
                         </div>
 
                         {/* 적용 분류 */}
                         <div>
-                          <label className="block text-xs font-semibold text-neutral-600 mb-1">
-                            적용 분류 <span className="font-normal text-neutral-400">(빈 값 = 전체)</span>
+                          <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                            적용 분류 <span className="font-normal text-neutral-400 dark:text-neutral-500">(빈 값 = 전체)</span>
                           </label>
                           <div className="flex flex-wrap gap-1">
                             <button
                               type="button"
                               onClick={() => setBenefitForm((f) => ({ ...f, category: '' }))}
                               className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                                benefitForm.category === '' ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                benefitForm.category === '' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                               }`}
                             >
                               전체
@@ -797,7 +797,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                                 type="button"
                                 onClick={() => setBenefitForm((f) => ({ ...f, category: c }))}
                                 className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                                  benefitForm.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                  benefitForm.category === c ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                                 }`}
                               >
                                 {c}
@@ -808,23 +808,23 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
                         {/* 구매처 키워드 */}
                         <div>
-                          <label className="block text-xs font-semibold text-neutral-600 mb-1">
-                            구매처 키워드 <span className="font-normal text-neutral-400">(빈 값 = 전체)</span>
+                          <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                            구매처 키워드 <span className="font-normal text-neutral-400 dark:text-neutral-500">(빈 값 = 전체)</span>
                           </label>
                           <input
                             type="text"
                             placeholder="예: 편의점, 스타벅스"
                             value={benefitForm.merchant_pattern}
                             onChange={(e) => setBenefitForm((f) => ({ ...f, merchant_pattern: e.target.value }))}
-                            className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                            className="min-h-9 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                           />
                         </div>
 
                         {/* 월 한도 / 최소 결제 */}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-600 mb-1">
-                              월 최대 할인 <span className="font-normal text-neutral-400">(빈 값 = 무제한)</span>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                              월 최대 할인 <span className="font-normal text-neutral-400 dark:text-neutral-500">(빈 값 = 무제한)</span>
                             </label>
                             <input
                               type="number"
@@ -832,12 +832,12 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder="예: 5000"
                               value={benefitForm.monthly_cap}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, monthly_cap: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-neutral-600 mb-1">
-                              최소 결제 금액 <span className="font-normal text-neutral-400">(빈 값 = 무조건)</span>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                              최소 결제 금액 <span className="font-normal text-neutral-400 dark:text-neutral-500">(빈 값 = 무조건)</span>
                             </label>
                             <input
                               type="number"
@@ -845,7 +845,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                               placeholder="예: 10000"
                               value={benefitForm.min_spend}
                               onChange={(e) => setBenefitForm((f) => ({ ...f, min_spend: e.target.value }))}
-                              className="min-h-9 w-full rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                              className="min-h-9 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                             />
                           </div>
                         </div>
@@ -862,7 +862,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                           <button
                             type="button"
                             onClick={cancelBenefitForm}
-                            className="min-h-9 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                            className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                           >
                             취소
                           </button>
@@ -872,24 +872,24 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
                     {/* 혜택 규칙 목록 */}
                     {benefitsLoading && (
-                      <p className="flex items-center justify-center gap-1.5 py-3 text-xs text-neutral-400">
+                      <p className="flex items-center justify-center gap-1.5 py-3 text-xs text-neutral-400 dark:text-neutral-500">
                         <LoadingSpinner size={13} /> 불러오는 중...
                       </p>
                     )}
                     {!benefitsLoading && benefitsError && (
-                      <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 px-3 py-2">
-                        <p className="text-xs text-red-700">{benefitsError}</p>
+                      <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2">
+                        <p className="text-xs text-red-700 dark:text-red-400">{benefitsError}</p>
                         <button
                           type="button"
                           onClick={() => loadBenefits(card.id)}
-                          className="shrink-0 flex items-center gap-1 rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                          className="shrink-0 flex items-center gap-1 rounded-md bg-white dark:bg-neutral-900 px-2 py-1 text-xs font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
                         >
                           <RotateCw size={12} /> 다시 시도
                         </button>
                       </div>
                     )}
                     {!benefitsLoading && !benefitsError && cardBenefits.length === 0 && !showBenefitForm && (
-                      <p className="text-xs text-neutral-400 text-center py-2">
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center py-2">
                         등록된 혜택 규칙이 없습니다
                       </p>
                     )}
@@ -912,12 +912,12 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                             const group = benefitGroups.find((g) => g.id === groupId)
                             const used = groupMonthlyUsed(groupId)
                             return (
-                              <div key={groupId} className="rounded-xl border border-coral-200 bg-coral-50/40 p-2.5 space-y-2">
+                              <div key={groupId} className="rounded-xl border border-coral-200 dark:border-coral-900 bg-coral-50/40 dark:bg-coral-900/20 p-2.5 space-y-2">
                                 <div className="flex flex-wrap items-center justify-between gap-1 px-1">
-                                  <p className="text-xs font-bold text-coral-800">
+                                  <p className="text-xs font-bold text-coral-800 dark:text-coral-200">
                                     {group?.name ?? '혜택 그룹'} · 통합한도 {formatWon(group?.monthly_cap ?? 0)}/월
                                   </p>
-                                  <p className="text-xs font-semibold text-neutral-500">
+                                  <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                                     이번 달 {formatWon(used)} 사용
                                   </p>
                                 </div>

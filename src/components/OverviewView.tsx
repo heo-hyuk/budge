@@ -30,7 +30,7 @@ function OverviewView({ onEditTransaction }: Props) {
             type="button"
             onClick={() => setSubTab(t.id)}
             className={`min-h-10 rounded-xl text-sm font-bold transition-colors ${
-              subTab === t.id ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-500'
+              subTab === t.id ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
             }`}
           >
             {t.label}

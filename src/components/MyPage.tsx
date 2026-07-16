@@ -77,12 +77,12 @@ function MyPage({ onClose }: Props) {
       onClick={onClose}
     >
       <div className="w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-          <h2 className="text-lg font-bold text-neutral-900">내 정보</h2>
+        <div className="flex items-center justify-between rounded-2xl bg-white dark:bg-neutral-900 px-4 py-3 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">내 정보</h2>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-9 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+            className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
           >
             닫기
           </button>
@@ -90,7 +90,7 @@ function MyPage({ onClose }: Props) {
 
         {/* 닉네임 */}
         <Card>
-          <p className="text-xs font-semibold text-neutral-400 mb-1">닉네임</p>
+          <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-1">닉네임</p>
           {editingNickname ? (
             <div className="space-y-2">
               <input
@@ -99,9 +99,9 @@ function MyPage({ onClose }: Props) {
                 value={nicknameInput}
                 onChange={(e) => setNicknameInput(e.target.value)}
                 placeholder="한글/영문/숫자 2~12자"
-                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
               />
-              {nicknameError && <p className="text-sm font-semibold text-red-700">{nicknameError}</p>}
+              {nicknameError && <p className="text-sm font-semibold text-red-700 dark:text-red-400">{nicknameError}</p>}
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -118,7 +118,7 @@ function MyPage({ onClose }: Props) {
                     setNicknameInput(user.nickname ?? user.name)
                     setNicknameError('')
                   }}
-                  className="min-h-10 flex-1 rounded-xl bg-neutral-100 text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
+                  className="min-h-10 flex-1 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-sm font-bold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                 >
                   취소
                 </button>
@@ -126,11 +126,11 @@ function MyPage({ onClose }: Props) {
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="text-base font-semibold text-neutral-900">{user.nickname ?? user.name}</p>
+              <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{user.nickname ?? user.name}</p>
               <button
                 type="button"
                 onClick={() => setEditingNickname(true)}
-                className="min-h-9 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
               >
                 수정
               </button>
@@ -141,18 +141,18 @@ function MyPage({ onClose }: Props) {
         {/* 이메일 / 가입일 */}
         <Card className="space-y-3">
           <div>
-            <p className="text-xs font-semibold text-neutral-400 mb-1">이메일</p>
-            <p className="text-base font-semibold text-neutral-900">{user.email}</p>
+            <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-1">이메일</p>
+            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{user.email}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-neutral-400 mb-1">가입일</p>
-            <p className="text-base font-semibold text-neutral-900">{formatJoinDate(user.created_at)}</p>
+            <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-1">가입일</p>
+            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{formatJoinDate(user.created_at)}</p>
           </div>
         </Card>
 
         {/* 비밀번호 변경 */}
         <Card>
-          <p className="text-xs font-semibold text-neutral-400 mb-2">비밀번호 변경</p>
+          <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-2">비밀번호 변경</p>
           <form onSubmit={handleChangePassword} className="space-y-2">
             <input
               type="password"
@@ -160,7 +160,7 @@ function MyPage({ onClose }: Props) {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="현재 비밀번호"
-              className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
             <input
               type="password"
@@ -169,7 +169,7 @@ function MyPage({ onClose }: Props) {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="새 비밀번호 (8자 이상)"
               minLength={8}
-              className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
             <input
               type="password"
@@ -178,9 +178,9 @@ function MyPage({ onClose }: Props) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="새 비밀번호 확인"
               minLength={8}
-              className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
-            {passwordError && <p className="text-sm font-semibold text-red-700">{passwordError}</p>}
+            {passwordError && <p className="text-sm font-semibold text-red-700 dark:text-red-400">{passwordError}</p>}
             <button
               type="submit"
               disabled={passwordSaving}

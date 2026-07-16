@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>텅장</title>
+    <script>
+      // React 렌더 전에 먼저 적용해야 다크모드 사용자가 새로고침할 때 밝은 화면이 잠깐 번쩍이지 않음
+      (function () {
+        var saved = localStorage.getItem('budget:theme')
+        var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

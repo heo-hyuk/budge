@@ -1,5 +1,49 @@
 # WORKLOG
 
+## 2026-07-17 (40차) — 다크모드 전체 적용 + 홈 화면 버튼 스타일 수정
+
+피드백: 1) 홈 화면 "한눈에 보기 (일일·주간 정산) →"가 밑줄 텍스트 링크라 버튼처럼 안
+보임. 2) 다크모드가 아예 없음 — 앱 전체 화면에 한 번에 적용해달라는 요청(범위 확인
+질문에 "전체 화면 한번에" 응답)
+
+### 완료
+- [x] `src/App.tsx` — 홈 화면의 "한눈에 보기" 링크를 코랄톤 배경의 실제 버튼으로 변경
+- [x] `src/index.css` — Tailwind v4 `@custom-variant dark (&:where(.dark, .dark *))`
+  추가(클래스 기반 토글), `:root.dark { color-scheme: dark }`
+- [x] `src/contexts/ThemeContext.tsx`(신규) — theme 상태 관리, `<html>`에 `.dark`
+  클래스 토글, `localStorage`(`budget:theme`)에 저장, 저장값 없으면
+  `prefers-color-scheme` 폴백
+- [x] `index.html` — React 마운트 전에 저장된 테마를 먼저 적용하는 인라인 스크립트
+  추가(새로고침 시 밝은 화면이 잠깐 번쩍이는 것 방지)
+- [x] `src/main.tsx` — `ThemeProvider`로 앱 전체를 감쌈
+- [x] `src/App.tsx` — 헤더에 다크모드 토글 버튼(해/달 아이콘) 추가
+- [x] **앱 전체 20여개 컴포넌트 파일**(App.tsx, AuthPage/MyPage 포함 모든
+  components/*.tsx, ui/Card.tsx)에 `dark:` variant 일괄 적용 — 색상 하나하나 손으로
+  고치는 대신, "라이트 모드 색상 클래스 → 대응하는 dark: 클래스" 매핑표를 만들어
+  스크립트(Node, 임시 스크래치패드 파일)로 클래스 문자열에 자동 삽입 (예:
+  `bg-white` → `bg-white dark:bg-neutral-900`, `text-neutral-600` → `+
+  dark:text-neutral-400`, `border-neutral-200` → `+ dark:border-neutral-800`,
+  코랄/레드/블루/그린/앰버 액센트 색상도 각각 다크 배경에 맞는 톤으로 매핑).
+  적용 후 `dark:dark:` 같은 중복 삽입 여부와 대표 파일(CardManager.tsx 등) 결과물을
+  직접 확인해 정상 삽입됐음을 검증
+- [x] tsc -b / oxlint / vite build 통과 (빌드 CSS 28.45KB → 36.23KB로 증가 —
+  dark: 규칙이 정상적으로 생성됐다는 신호)
+
+### 검증 결과
+- 이번 세션에서는 Chrome 확장이 연결되지 않아 실제 브라우저 시각 검증은 못 함(정적
+  검증 + 코드 diff 확인만 진행). 다음 세션에서 Chrome 연결 시 라이트/다크 전환과
+  주요 화면(홈, 한눈에 보기, 카드, 예산, 검색, 내 정보, 로그인)을 한 번씩 훑어보는
+  걸 권장
+
+### 배포
+- `npm run deploy` 완료 — https://65b70451.budget-3wb.pages.dev
+
+### 변경 파일
+- `src/index.css`, `src/contexts/ThemeContext.tsx`(신규), `src/main.tsx`,
+  `index.html`, `src/App.tsx`, `src/components/*.tsx`(전체), `src/components/ui/Card.tsx`
+
+---
+
 ## 2026-07-17 (39차) — 내 정보 팝업 닫기 버그 + 데스크탑 상시 사이드바
 
 38차 배포 직후 피드백: 1) 내 정보(MyPage) 팝업의 "닫기" 버튼이 반투명 검정

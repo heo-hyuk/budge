@@ -107,7 +107,7 @@ function SearchView({ cards }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold text-neutral-800">검색</h2>
+        <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200">검색</h2>
         <ExportButton defaultPreset="all" />
       </div>
 
@@ -120,7 +120,7 @@ function SearchView({ cards }: Props) {
             value={filters.q}
             onChange={(e) => set('q', e.target.value)}
             placeholder="구매처, 분류, 메모로 검색..."
-            className="min-h-11 flex-1 rounded-xl border border-neutral-300 px-4 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="min-h-11 flex-1 rounded-xl border border-neutral-300 dark:border-neutral-700 px-4 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
           <button
             type="submit"
@@ -139,12 +139,12 @@ function SearchView({ cards }: Props) {
             className={`flex items-center gap-1.5 rounded-xl px-3 min-h-9 text-sm font-semibold border transition-colors ${
               showFilters || cnt > 0
                 ? 'border-coral-400 bg-coral-400 text-white'
-                : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900'
             }`}
           >
             필터
             {cnt > 0 && (
-              <span className="ml-0.5 rounded-full bg-white text-coral-600 text-xs font-bold min-w-5 h-5 flex items-center justify-center px-1">
+              <span className="ml-0.5 rounded-full bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 text-xs font-bold min-w-5 h-5 flex items-center justify-center px-1">
                 {cnt}
               </span>
             )}
@@ -153,7 +153,7 @@ function SearchView({ cards }: Props) {
             <button
               type="button"
               onClick={resetFilters}
-              className="text-xs text-neutral-400 underline hover:text-neutral-600"
+              className="text-xs text-neutral-400 dark:text-neutral-500 underline hover:text-neutral-600 dark:hover:text-neutral-300"
             >
               필터 초기화
             </button>
@@ -162,11 +162,11 @@ function SearchView({ cards }: Props) {
 
         {/* 필터 패널 */}
         {showFilters && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-4 shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-4 shadow-sm">
 
             {/* 수입 / 지출 */}
             <div>
-              <p className="text-xs font-bold text-neutral-500 mb-2">구분</p>
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">구분</p>
               <div className="flex gap-2">
                 {([['', '전체'], ['expense', '지출'], ['income', '수입']] as [TransactionType | '', string][]).map(([v, label]) => (
                   <button
@@ -178,7 +178,7 @@ function SearchView({ cards }: Props) {
                         ? v === 'expense' ? 'bg-coral-400 text-white'
                         : v === 'income'  ? 'bg-blue-600 text-white'
                         :                   'bg-coral-400 text-white'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
                   >
                     {label}
@@ -189,24 +189,24 @@ function SearchView({ cards }: Props) {
 
             {/* 날짜 범위 */}
             <div>
-              <p className="text-xs font-bold text-neutral-500 mb-2">날짜 범위</p>
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">날짜 범위</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-neutral-400 mb-1">시작일</label>
+                  <label className="block text-xs text-neutral-400 dark:text-neutral-500 mb-1">시작일</label>
                   <input
                     type="date"
                     value={filters.dateStart}
                     onChange={(e) => set('dateStart', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-neutral-400 mb-1">종료일</label>
+                  <label className="block text-xs text-neutral-400 dark:text-neutral-500 mb-1">종료일</label>
                   <input
                     type="date"
                     value={filters.dateEnd}
                     onChange={(e) => set('dateEnd', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
                 </div>
               </div>
@@ -236,7 +236,7 @@ function SearchView({ cards }: Props) {
                     key={label}
                     type="button"
                     onClick={fn}
-                    className="min-h-7 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100"
+                    className="min-h-7 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 px-2.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   >
                     {label}
                   </button>
@@ -245,7 +245,7 @@ function SearchView({ cards }: Props) {
                   <button
                     type="button"
                     onClick={() => { set('dateStart', ''); set('dateEnd', '') }}
-                    className="min-h-7 rounded-full px-2.5 text-xs font-semibold text-neutral-400 underline"
+                    className="min-h-7 rounded-full px-2.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500 underline"
                   >
                     날짜 초기화
                   </button>
@@ -255,13 +255,13 @@ function SearchView({ cards }: Props) {
 
             {/* 분류 */}
             <div>
-              <p className="text-xs font-bold text-neutral-500 mb-2">분류</p>
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">분류</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={() => set('category', '')}
                   className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                    filters.category === '' ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    filters.category === '' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                   }`}
                 >
                   전체
@@ -272,7 +272,7 @@ function SearchView({ cards }: Props) {
                     type="button"
                     onClick={() => set('category', c)}
                     className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                      filters.category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      filters.category === c ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
                   >
                     {c}
@@ -283,13 +283,13 @@ function SearchView({ cards }: Props) {
 
             {/* 결제 방법 */}
             <div>
-              <p className="text-xs font-bold text-neutral-500 mb-2">결제 방법</p>
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">결제 방법</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={() => set('cardId', '')}
                   className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                    filters.cardId === '' ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    filters.cardId === '' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                   }`}
                 >
                   전체
@@ -298,7 +298,7 @@ function SearchView({ cards }: Props) {
                   type="button"
                   onClick={() => set('cardId', 'cash')}
                   className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                    filters.cardId === 'cash' ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    filters.cardId === 'cash' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                   }`}
                 >
                   현금
@@ -309,7 +309,7 @@ function SearchView({ cards }: Props) {
                     type="button"
                     onClick={() => set('cardId', card.id)}
                     className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
-                      filters.cardId === card.id ? 'text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      filters.cardId === card.id ? 'text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
                     style={filters.cardId === card.id ? { backgroundColor: card.color } : {}}
                   >
@@ -321,7 +321,7 @@ function SearchView({ cards }: Props) {
 
             {/* 금액 범위 */}
             <div>
-              <p className="text-xs font-bold text-neutral-500 mb-2">금액 범위</p>
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">금액 범위</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
                   <input
@@ -330,9 +330,9 @@ function SearchView({ cards }: Props) {
                     placeholder="최소 금액"
                     value={filters.amountMin}
                     onChange={(e) => set('amountMin', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-7 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400">원~</span>
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400 dark:text-neutral-500">원~</span>
                 </div>
                 <div className="relative">
                   <input
@@ -341,9 +341,9 @@ function SearchView({ cards }: Props) {
                     placeholder="최대 금액"
                     value={filters.amountMax}
                     onChange={(e) => set('amountMax', e.target.value)}
-                    className="min-h-9 w-full rounded-xl border border-neutral-300 px-3 pr-7 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                    className="min-h-9 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-7 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
-                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400">~원</span>
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400 dark:text-neutral-500">~원</span>
                 </div>
               </div>
             </div>
@@ -362,12 +362,12 @@ function SearchView({ cards }: Props) {
 
       {/* 검색 실패 — 인라인 재시도 (토스트로 화면을 덮지 않음) */}
       {error && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4">
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           <button
             type="button"
             onClick={() => handleSearch()}
-            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white dark:bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
           >
             <RotateCw size={13} /> 다시 시도
           </button>
@@ -378,19 +378,19 @@ function SearchView({ cards }: Props) {
       {!error && results !== null && (
         <>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-neutral-500">
-              <span className="font-bold text-neutral-800">{results.length}건</span> 검색됨
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              <span className="font-bold text-neutral-800 dark:text-neutral-200">{results.length}건</span> 검색됨
               {filters.q && ` — "${filters.q}"`}
             </p>
             {/* 결과 요약 */}
             {results.length > 0 && (
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 수입{' '}
-                <span className="font-bold text-blue-700">
+                <span className="font-bold text-blue-700 dark:text-blue-300">
                   {formatWon(results.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
                 </span>
                 {' / '}지출{' '}
-                <span className="font-bold text-red-700">
+                <span className="font-bold text-red-700 dark:text-red-400">
                   {formatWon(results.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
                 </span>
               </p>
@@ -398,13 +398,13 @@ function SearchView({ cards }: Props) {
           </div>
 
           {results.length === 0 ? (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-              <p className="text-base text-neutral-500">결과가 없습니다</p>
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-8 text-center shadow-sm">
+              <p className="text-base text-neutral-500 dark:text-neutral-400">결과가 없습니다</p>
               {cnt > 0 && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="mt-2 text-sm text-coral-400 underline hover:text-coral-600"
+                  className="mt-2 text-sm text-coral-400 dark:text-coral-200 underline hover:text-coral-600 dark:hover:text-coral-300"
                 >
                   필터 초기화
                 </button>
@@ -413,8 +413,8 @@ function SearchView({ cards }: Props) {
           ) : (
             <div className="space-y-4">
               {Array.from(groups.entries()).map(([date, items]) => (
-                <div key={date} className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-                  <h3 className="border-b border-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-500">
+                <div key={date} className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                  <h3 className="border-b border-neutral-100 dark:border-neutral-800 px-4 py-2.5 text-sm font-bold text-neutral-500 dark:text-neutral-400">
                     {date}
                   </h3>
                   <ul>
@@ -423,15 +423,15 @@ function SearchView({ cards }: Props) {
                       return (
                         <li
                           key={tx.id}
-                          className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50"
+                          className="flex items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50 dark:hover:bg-neutral-900"
                         >
                           <div className="min-w-0">
-                            <p className="text-base font-semibold text-neutral-900">
+                            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
                               {tx.merchant || tx.category}
                             </p>
                             <div className="mt-0.5 flex flex-wrap gap-1.5">
                               {tx.merchant && (
-                                <span className="text-xs text-neutral-500">{tx.category}</span>
+                                <span className="text-xs text-neutral-500 dark:text-neutral-400">{tx.category}</span>
                               )}
                               {card ? (
                                 <span
@@ -441,27 +441,27 @@ function SearchView({ cards }: Props) {
                                   {card.name}
                                 </span>
                               ) : (
-                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-600">
+                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400">
                                   현금
                                 </span>
                               )}
                               {tx.memo && (
-                                <span className="text-xs text-neutral-400">{tx.memo}</span>
+                                <span className="text-xs text-neutral-400 dark:text-neutral-500">{tx.memo}</span>
                               )}
                               {/* 할인 뱃지 */}
                               {(tx.discount_amount ?? 0) > 0 && (
-                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
                                   -{formatWon(tx.discount_amount)}
                                 </span>
                               )}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className={`text-base font-bold ${tx.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
+                            <p className={`text-base font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-400'}`}>
                               {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
                             </p>
                             {(tx.original_amount ?? 0) > 0 && (
-                              <p className="text-xs text-neutral-400 line-through">
+                              <p className="text-xs text-neutral-400 dark:text-neutral-500 line-through">
                                 {formatWon(tx.original_amount)}
                               </p>
                             )}

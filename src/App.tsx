@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
@@ -17,6 +17,7 @@ import TransactionForm from './components/TransactionForm'
 import type { TransactionPrefill } from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import { useAuth } from './contexts/AuthContext'
+import { useTheme } from './contexts/ThemeContext'
 import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { validateNicknameClient } from './lib/nickname'
@@ -54,6 +55,7 @@ function shiftMonth(month: string, delta: number): string {
 
 function App() {
   const { user, loading: authLoading, logout, updateNickname } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const { showToast } = useToast()
   const [activeTab, setActiveTab]       = useState<Tab>('home')
   const [menuOpen, setMenuOpen]         = useState(false)
@@ -274,8 +276,8 @@ function App() {
   // 인증 로딩 중
   if (authLoading) {
     return (
-      <div className="min-h-svh bg-neutral-50 flex items-center justify-center">
-        <p className="text-base text-neutral-500">불러오는 중...</p>
+      <div className="min-h-svh bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center">
+        <p className="text-base text-neutral-500 dark:text-neutral-400">불러오는 중...</p>
       </div>
     )
   }
@@ -284,9 +286,9 @@ function App() {
   if (!user) return <AuthPage />
 
   return (
-    <div className="min-h-svh bg-neutral-50 text-neutral-900 lg:flex">
+    <div className="min-h-svh bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 lg:flex">
       {/* 데스크탑 전용 상시 사이드바 — 모바일은 기존처럼 햄버거+드로어 유지 */}
-      <aside className="hidden lg:flex lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 lg:bg-white">
+      <aside className="hidden lg:flex lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 dark:border-neutral-800 lg:bg-white dark:bg-neutral-900">
         <div className="px-4 py-4">
           <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
         </div>
@@ -302,7 +304,7 @@ function App() {
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                   active
                     ? 'bg-coral-400 text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
                 <Icon size={18} strokeWidth={2} />
@@ -315,7 +317,7 @@ function App() {
 
       <div className="min-w-0 flex-1">
       {/* 헤더 */}
-      <header className="border-b border-neutral-200 bg-white px-4 py-3 sticky top-0 z-10 shadow-sm">
+      <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
             {/* 햄버거 버튼 — 모바일 전용 (데스크탑은 좌측 상시 사이드바로 대체) */}
@@ -323,7 +325,7 @@ function App() {
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="메뉴 열기"
-              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 active:bg-neutral-200 lg:hidden"
+              className="min-h-9 min-w-9 -ml-1 flex items-center justify-center rounded-lg text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 lg:hidden"
             >
               <Menu size={22} strokeWidth={2} />
             </button>
@@ -334,14 +336,14 @@ function App() {
           {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget' || activeTab === 'notes') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200"
+                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
               >◀</button>
-              <span className="min-w-24 text-center text-sm font-bold text-neutral-800">
+              <span className="min-w-24 text-center text-sm font-bold text-neutral-800 dark:text-neutral-200">
                 {monthLabel}
               </span>
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, 1))}
                 disabled={isCurrentMonth}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200 disabled:opacity-30 disabled:hover:bg-neutral-100"
+                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
               {!isCurrentMonth && (
                 <button onClick={() => setSelectedMonth(currentMonth())}
@@ -355,42 +357,52 @@ function App() {
           {activeTab === 'annual' && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedYear((y) => String(parseInt(y) - 1))}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200"
+                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
               >◀</button>
               <span className="min-w-16 text-center text-sm font-bold">{selectedYear}년</span>
               <button
                 onClick={() => setSelectedYear((y) => String(parseInt(y) + 1))}
                 disabled={selectedYear === currentYear()}
-                className="min-h-8 rounded-lg bg-neutral-100 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 disabled:opacity-30 disabled:hover:bg-neutral-100"
+                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
             </div>
           )}
+
+          {/* 다크모드 토글 */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            className="min-h-8 min-w-8 shrink-0 flex items-center justify-center rounded-lg text-neutral-500 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            {theme === 'dark' ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
+          </button>
 
           {/* 닉네임 — 클릭 시 드롭다운으로 내 정보/로그아웃 진입 */}
           <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setUserMenuOpen((v) => !v)}
-              className="flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100"
+              className="flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
               {user.nickname ?? user.name}
-              <span className="text-neutral-400">▾</span>
+              <span className="text-neutral-400 dark:text-neutral-500">▾</span>
             </button>
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full z-30 mt-1 w-32 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+                <div className="absolute right-0 top-full z-30 mt-1 w-32 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 py-1 shadow-lg">
                   <button
                     type="button"
                     onClick={() => { setMyPageOpen(true); setUserMenuOpen(false) }}
-                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
+                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   >
                     내 정보
                   </button>
                   <button
                     type="button"
                     onClick={() => { setUserMenuOpen(false); logout() }}
-                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                    className="block w-full px-3 py-2 text-left text-sm font-semibold text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40"
                   >
                     로그아웃
                   </button>
@@ -414,7 +426,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('overview')}
-                className="w-full text-center text-xs text-neutral-400 underline hover:text-neutral-600"
+                className="w-full rounded-xl border border-coral-100 dark:border-coral-900 bg-coral-50 dark:bg-coral-900/30 px-4 py-2.5 text-center text-sm font-semibold text-coral-600 dark:text-coral-200 transition-colors hover:bg-coral-100 dark:hover:bg-coral-900/50"
               >
                 한눈에 보기 (일일·주간 정산) →
               </button>
@@ -423,13 +435,13 @@ function App() {
                 const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
                 if (exceeded.length === 0) return null
                 return (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-red-800">
+                  <div className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 shadow-sm">
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-red-800 dark:text-red-300">
                       <TriangleAlert size={16} strokeWidth={2.5} /> 예산 초과 {exceeded.length}건
                     </p>
                     <ul className="mt-1 space-y-0.5">
                       {exceeded.map((s) => (
-                        <li key={s.budget.id} className="text-xs text-red-700">
+                        <li key={s.budget.id} className="text-xs text-red-700 dark:text-red-400">
                           • {s.budget.category}: {s.percentage}% 사용
                           ({s.budget.monthly_limit > 0
                             ? `${Math.abs(s.remaining).toLocaleString()}원 초과`
@@ -453,16 +465,16 @@ function App() {
             </div>
             <div className="mt-4 space-y-4 lg:mt-0">
               {loading ? (
-                <p className="flex items-center gap-2 text-base text-neutral-500">
+                <p className="flex items-center gap-2 text-base text-neutral-500 dark:text-neutral-400">
                   <LoadingSpinner size={18} /> 불러오는 중...
                 </p>
               ) : error ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-base font-semibold text-red-700">{error}</p>
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4">
+                  <p className="text-base font-semibold text-red-700 dark:text-red-400">{error}</p>
                   <button
                     type="button"
                     onClick={loadHomeData}
-                    className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                    className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white dark:bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
                   >
                     <RotateCw size={13} /> 다시 시도
                   </button>
@@ -543,11 +555,11 @@ function App() {
 
       {/* 사이드 메뉴 드로어 — 모바일 전용 */}
       <nav
-        className={`fixed left-0 top-0 z-40 h-full w-64 max-w-[80vw] transform bg-white shadow-xl transition-transform duration-200 lg:hidden ${
+        className={`fixed left-0 top-0 z-40 h-full w-64 max-w-[80vw] transform bg-white dark:bg-neutral-900 shadow-xl transition-transform duration-200 lg:hidden ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
           </div>
@@ -555,7 +567,7 @@ function App() {
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="메뉴 닫기"
-            className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 active:bg-neutral-200"
+            className="min-h-9 min-w-9 flex items-center justify-center rounded-lg text-neutral-500 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700"
           >
             <X size={20} strokeWidth={2} />
           </button>
@@ -572,7 +584,7 @@ function App() {
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold transition-colors ${
                   active
                     ? 'bg-coral-400 text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
                 <Icon size={20} strokeWidth={2} />
@@ -589,9 +601,9 @@ function App() {
       {/* 닉네임 미설정 기존 가입자 대상 1회성 유도 모달 — 설정 완료 시 user.nickname이 채워져 자연히 재노출 안 됨 */}
       {!myPageOpen && !user.nickname && !nicknamePromptDismissed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-neutral-900">닉네임을 설정해주세요</h2>
-            <p className="mt-1 text-sm text-neutral-500">헤더에 표시될 닉네임이에요. 나중에 내 정보에서 바꿀 수 있어요.</p>
+          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">닉네임을 설정해주세요</h2>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">헤더에 표시될 닉네임이에요. 나중에 내 정보에서 바꿀 수 있어요.</p>
             <form onSubmit={handleSetNickname} className="mt-4 space-y-2">
               <input
                 type="text"
@@ -599,9 +611,9 @@ function App() {
                 value={nicknamePromptInput}
                 onChange={(e) => setNicknamePromptInput(e.target.value)}
                 placeholder="한글/영문/숫자 2~12자"
-                className="min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
               />
-              {nicknamePromptError && <p className="text-sm font-semibold text-red-700">{nicknamePromptError}</p>}
+              {nicknamePromptError && <p className="text-sm font-semibold text-red-700 dark:text-red-400">{nicknamePromptError}</p>}
               <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
@@ -613,7 +625,7 @@ function App() {
                 <button
                   type="button"
                   onClick={() => setNicknamePromptDismissed(true)}
-                  className="min-h-11 rounded-xl bg-neutral-100 px-4 text-base font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                  className="min-h-11 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 text-base font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                 >
                   나중에
                 </button>

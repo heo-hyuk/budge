@@ -31,20 +31,20 @@ function defaultForm(): FormState {
 /** 퍼센트에 따른 진행 바 색상 */
 function barColor(pct: number): string {
   if (pct >= 100) return 'bg-coral-600'
-  if (pct >= 80)  return 'bg-coral-200'
-  return 'bg-neutral-300'
+  if (pct >= 80)  return 'bg-coral-200 dark:bg-coral-900/50'
+  return 'bg-neutral-300 dark:bg-neutral-600'
 }
 /** 퍼센트에 따른 텍스트 색상 */
 function textColor(pct: number): string {
-  if (pct >= 100) return 'text-coral-800'
-  if (pct >= 80)  return 'text-coral-600'
-  return 'text-neutral-600'
+  if (pct >= 100) return 'text-coral-800 dark:text-coral-200'
+  if (pct >= 80)  return 'text-coral-600 dark:text-coral-200'
+  return 'text-neutral-600 dark:text-neutral-400'
 }
 /** 퍼센트에 따른 카드 배경/테두리 색상 */
 function bgColor(pct: number): string {
-  if (pct >= 100) return 'bg-coral-50 border-coral-200'
-  if (pct >= 80)  return 'bg-coral-50 border-coral-100'
-  return 'bg-neutral-50 border-neutral-200'
+  if (pct >= 100) return 'bg-coral-50 dark:bg-coral-900/30 border-coral-200 dark:border-coral-900'
+  if (pct >= 80)  return 'bg-coral-50 dark:bg-coral-900/30 border-coral-100 dark:border-coral-900'
+  return 'bg-neutral-50 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800'
 }
 
 function BudgetManager({ statuses, month, onRefresh }: Props) {
@@ -171,7 +171,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
     <div className="space-y-4">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-neutral-800">{monthLabel} 예산 관리</h2>
+        <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200">{monthLabel} 예산 관리</h2>
         <button
           type="button"
           onClick={startAdd}
@@ -183,13 +183,13 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 초과 경고 배너 */}
       {exceededList.length > 0 && (
-        <div className="rounded-xl border border-coral-200 bg-coral-50 p-4">
-          <p className="flex items-center gap-1.5 text-sm font-bold text-coral-800">
+        <div className="rounded-xl border border-coral-200 dark:border-coral-900 bg-coral-50 dark:bg-coral-900/30 p-4">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-coral-800 dark:text-coral-200">
             예산 초과 항목 {exceededList.length}건
           </p>
           <ul className="mt-1.5 space-y-0.5">
             {exceededList.map((s) => (
-              <li key={s.budget.id} className="text-xs text-coral-700">
+              <li key={s.budget.id} className="text-xs text-coral-700 dark:text-coral-200">
                 • {s.budget.category}: {formatWon(s.spent)} / {formatWon(s.budget.monthly_limit)}{' '}
                 ({formatWon(Math.abs(s.remaining))} 초과)
               </li>
@@ -200,14 +200,14 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 등록/수정 폼 */}
       {showForm && (
-        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-neutral-700">
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-sm space-y-4">
+          <h3 className="text-base font-bold text-neutral-700 dark:text-neutral-300">
             {editingId !== null ? '예산 수정' : '새 예산 등록'}
           </h3>
 
           {/* 카테고리 */}
           <div>
-            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">카테고리</label>
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">카테고리</label>
             <div className="flex flex-wrap gap-1.5">
               {EXPENSE_CATEGORIES.map((c) => {
                 const isTaken = takenCategories(form.repeat).has(c)
@@ -218,13 +218,13 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     onClick={() => setForm((f) => ({ ...f, category: c }))}
                     className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${
                       form.category === c
-                        ? 'bg-coral-50 text-coral-800'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
                   >
                     {c === '전체' ? '전체 지출' : c}
                     {isTaken && (
-                      <span className={`ml-1 text-xs ${form.category === c ? 'text-neutral-300' : 'text-neutral-400'}`}>
+                      <span className={`ml-1 text-xs ${form.category === c ? 'text-neutral-300 dark:text-neutral-600' : 'text-neutral-400 dark:text-neutral-500'}`}>
                         (이미 설정됨)
                       </span>
                     )}
@@ -236,7 +236,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
           {/* 금액 */}
           <div>
-            <label className="block text-sm font-semibold text-neutral-700 mb-1">월 한도 금액</label>
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">월 한도 금액</label>
             <div className="relative">
               <input
                 type="text"
@@ -244,15 +244,15 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                 placeholder="0"
                 value={form.monthly_limit}
                 onChange={(e) => setForm((f) => ({ ...f, monthly_limit: formatNumberInput(e.target.value) }))}
-                className="min-h-10 w-full rounded-xl border border-neutral-300 px-3 pr-8 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+                className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-8 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">원</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">원</span>
             </div>
           </div>
 
           {/* 반복 여부 */}
           <div>
-            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">적용 범위</label>
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">적용 범위</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -260,7 +260,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                 className={`min-h-10 rounded-xl text-sm font-semibold transition-colors ${
                   form.repeat === 'monthly'
                     ? 'bg-coral-400 text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                 }`}
               >
                 매월 반복
@@ -271,7 +271,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                 className={`min-h-10 rounded-xl text-sm font-semibold transition-colors ${
                   form.repeat === 'once'
                     ? 'bg-coral-400 text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                 }`}
               >
                 {monthLabel}만
@@ -280,13 +280,13 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
           </div>
 
           {error && (
-            <div className="rounded-xl bg-coral-50 border border-coral-200 p-3">
-              <p className="text-sm text-coral-600">{error}</p>
+            <div className="rounded-xl bg-coral-50 dark:bg-coral-900/30 border border-coral-200 dark:border-coral-900 p-3">
+              <p className="text-sm text-coral-600 dark:text-coral-200">{error}</p>
               {conflictTarget && (
                 <button
                   type="button"
                   onClick={() => startEdit(conflictTarget)}
-                  className="mt-1.5 text-sm font-semibold text-coral-800 underline"
+                  className="mt-1.5 text-sm font-semibold text-coral-800 dark:text-coral-200 underline"
                 >
                   기존 항목 수정하러 가기
                 </button>
@@ -306,7 +306,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
             <button
               type="button"
               onClick={cancelForm}
-              className="min-h-10 rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+              className="min-h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
             >
               취소
             </button>
@@ -316,9 +316,9 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
       {/* 예산 목록 */}
       {statuses.length === 0 ? (
-        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-base text-neutral-500">설정된 예산이 없습니다</p>
-          <p className="mt-1 text-sm text-neutral-400">카테고리별 월 지출 한도를 설정해 보세요</p>
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-8 text-center shadow-sm">
+          <p className="text-base text-neutral-500 dark:text-neutral-400">설정된 예산이 없습니다</p>
+          <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">카테고리별 월 지출 한도를 설정해 보세요</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -328,28 +328,28 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
             return (
               <div
                 key={s.budget.id}
-                className={`rounded-xl border bg-white p-4 shadow-sm transition-opacity ${
-                  isActive ? bgColor(s.percentage) : 'border-neutral-100 opacity-50'
+                className={`rounded-xl border bg-white dark:bg-neutral-900 p-4 shadow-sm transition-opacity ${
+                  isActive ? bgColor(s.percentage) : 'border-neutral-100 dark:border-neutral-800 opacity-50'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     {/* 카테고리 + 배지 */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-base font-bold text-neutral-900">
+                      <span className="text-base font-bold text-neutral-900 dark:text-neutral-100">
                         {s.budget.category === '전체' ? '전체 지출' : s.budget.category}
                       </span>
                       {s.budget.year_month ? (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold">
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-semibold">
                           {monthLabel}만
                         </span>
                       ) : (
-                        <span className="text-xs bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded font-semibold">
+                        <span className="text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 px-1.5 py-0.5 rounded font-semibold">
                           매월
                         </span>
                       )}
                       {!isActive && (
-                        <span className="text-xs bg-neutral-100 text-neutral-400 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 px-1.5 py-0.5 rounded">
                           비활성
                         </span>
                       )}
@@ -357,25 +357,25 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
 
                     {/* 금액 현황 */}
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className={`text-lg font-extrabold ${isActive ? textColor(s.percentage) : 'text-neutral-400'}`}>
+                      <span className={`text-lg font-extrabold ${isActive ? textColor(s.percentage) : 'text-neutral-400 dark:text-neutral-500'}`}>
                         {formatWon(s.spent)}
                       </span>
-                      <span className="text-sm text-neutral-400">/ {formatWon(s.budget.monthly_limit)}</span>
-                      <span className={`ml-auto text-sm font-bold ${isActive ? textColor(s.percentage) : 'text-neutral-400'}`}>
+                      <span className="text-sm text-neutral-400 dark:text-neutral-500">/ {formatWon(s.budget.monthly_limit)}</span>
+                      <span className={`ml-auto text-sm font-bold ${isActive ? textColor(s.percentage) : 'text-neutral-400 dark:text-neutral-500'}`}>
                         {s.percentage}%
                       </span>
                     </div>
 
                     {/* 진행률 바 */}
-                    <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-neutral-200">
+                    <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                       <div
-                        className={`h-full rounded-full transition-all ${isActive ? barColor(s.percentage) : 'bg-neutral-300'}`}
+                        className={`h-full rounded-full transition-all ${isActive ? barColor(s.percentage) : 'bg-neutral-300 dark:bg-neutral-600'}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
 
                     {/* 남은 금액 / 초과 금액 */}
-                    <p className={`mt-1.5 flex items-center gap-1 text-xs font-semibold ${isActive ? textColor(s.percentage) : 'text-neutral-400'}`}>
+                    <p className={`mt-1.5 flex items-center gap-1 text-xs font-semibold ${isActive ? textColor(s.percentage) : 'text-neutral-400 dark:text-neutral-500'}`}>
                       {s.exceeded
                         ? `${formatWon(Math.abs(s.remaining))} 초과`
                         : `${formatWon(s.remaining)} 남음`}
@@ -389,7 +389,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                       onClick={() => handleToggle(s)}
                       disabled={togglingId === s.budget.id}
                       className={`min-h-7 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1 ${
-                        isActive ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        isActive ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/60'
                       }`}
                     >
                       {togglingId === s.budget.id ? <LoadingSpinner size={12} /> : (isActive ? '비활성화' : '활성화')}
@@ -397,7 +397,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(s)}
-                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                     >
                       수정
                     </button>
@@ -405,7 +405,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
                       type="button"
                       onClick={() => handleDelete(s.budget.id, s.budget.category)}
                       disabled={deletingId === s.budget.id}
-                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1"
+                      className="min-h-7 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-xs font-semibold text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 disabled:opacity-50 flex items-center justify-center gap-1"
                     >
                       {deletingId === s.budget.id ? <LoadingSpinner size={12} /> : '삭제'}
                     </button>

@@ -134,7 +134,7 @@ function NotesView({ month }: Props) {
 
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-base text-neutral-500">
+      <p className="flex items-center gap-2 text-base text-neutral-500 dark:text-neutral-400">
         <LoadingSpinner size={18} /> 불러오는 중...
       </p>
     )
@@ -142,12 +142,12 @@ function NotesView({ month }: Props) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-2xl border border-red-200 bg-red-50 p-4">
-        <p className="text-base font-semibold text-red-700">{error}</p>
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4">
+        <p className="text-base font-semibold text-red-700 dark:text-red-400">{error}</p>
         <button
           type="button"
           onClick={load}
-          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-white dark:bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
         >
           <RotateCw size={13} /> 다시 시도
         </button>
@@ -158,7 +158,7 @@ function NotesView({ month }: Props) {
   // 카테고리 선택 + textarea + 저장/취소 버튼 (신규/수정 공용)
   function renderEditForm() {
     return (
-      <div className="space-y-2 rounded-xl border border-coral-200 bg-coral-50/40 p-3">
+      <div className="space-y-2 rounded-xl border border-coral-200 dark:border-coral-900 bg-coral-50/40 dark:bg-coral-900/20 p-3">
         <div className="flex flex-wrap gap-1.5">
           {categories.map((c) => (
             <button
@@ -166,7 +166,7 @@ function NotesView({ month }: Props) {
               type="button"
               onClick={() => setCategory(c)}
               className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                category === c ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                category === c ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
               {c}
@@ -176,7 +176,7 @@ function NotesView({ month }: Props) {
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
-              className="min-h-7 rounded-full border border-dashed border-neutral-300 px-2.5 text-xs font-semibold text-neutral-500 transition-colors hover:border-coral-200 hover:text-coral-400"
+              className="min-h-7 rounded-full border border-dashed border-neutral-300 dark:border-neutral-700 px-2.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300"
             >
               + 직접입력
             </button>
@@ -191,7 +191,7 @@ function NotesView({ month }: Props) {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
-              className="min-h-8 flex-1 rounded-lg border border-neutral-300 px-2.5 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-8 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-2.5 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
             <button
               type="button"
@@ -208,7 +208,7 @@ function NotesView({ month }: Props) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="오늘 있었던 일, 만난 사람 등을 적어보세요"
-          className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+          className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
         />
         <div className="flex gap-2">
           <button
@@ -222,7 +222,7 @@ function NotesView({ month }: Props) {
           <button
             type="button"
             onClick={cancelEdit}
-            className="min-h-8 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+            className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
           >
             취소
           </button>
@@ -232,7 +232,7 @@ function NotesView({ month }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
       <ul>
         {dates.map((date) => {
           const dayNotes = notesByDate.get(date) ?? []
@@ -244,10 +244,10 @@ function NotesView({ month }: Props) {
           return (
             <li
               key={date}
-              className={`flex items-start gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 ${isToday ? 'bg-coral-50/60' : ''}`}
+              className={`flex items-start gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0 ${isToday ? 'bg-coral-50/60 dark:bg-coral-900/25' : ''}`}
             >
               {/* 날짜 열 — 엑셀처럼 좌측에 세로로 고정 */}
-              <div className={`w-12 shrink-0 text-center ${isToday ? 'text-coral-600' : 'text-neutral-500'}`}>
+              <div className={`w-12 shrink-0 text-center ${isToday ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-500 dark:text-neutral-400'}`}>
                 <p className="text-base font-bold leading-tight">{day}</p>
                 <p className="text-xs leading-tight">{weekday}</p>
               </div>
@@ -260,17 +260,17 @@ function NotesView({ month }: Props) {
                   ) : (
                     <div key={note.id} className="group flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="inline-block rounded bg-coral-50 px-1.5 py-0.5 text-xs font-semibold text-coral-600">
+                        <span className="inline-block rounded bg-coral-50 dark:bg-coral-900/30 px-1.5 py-0.5 text-xs font-semibold text-coral-600 dark:text-coral-200">
                           {note.category}
                         </span>
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-800">{note.content}</p>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-800 dark:text-neutral-200">{note.content}</p>
                       </div>
                       <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={() => startEdit(date, note)}
                           aria-label="메모 수정"
-                          className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                          className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300"
                         >
                           <Pencil size={14} />
                         </button>
@@ -279,7 +279,7 @@ function NotesView({ month }: Props) {
                           onClick={() => handleDelete(note)}
                           disabled={deletingId === note.id}
                           aria-label="메모 삭제"
-                          className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          className="rounded-md p-1.5 text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
                         >
                           {deletingId === note.id ? <LoadingSpinner size={14} /> : <Trash2 size={14} />}
                         </button>
@@ -295,7 +295,7 @@ function NotesView({ month }: Props) {
                     type="button"
                     onClick={() => startAdd(date)}
                     className={`flex items-center gap-1 text-sm transition-colors ${
-                      dayNotes.length === 0 ? 'text-neutral-300 hover:text-coral-400' : 'text-neutral-400 hover:text-coral-400'
+                      dayNotes.length === 0 ? 'text-neutral-300 dark:text-neutral-600 hover:text-coral-400 dark:hover:text-coral-300' : 'text-neutral-400 dark:text-neutral-500 hover:text-coral-400 dark:hover:text-coral-300'
                     }`}
                   >
                     <Plus size={13} /> 메모 추가

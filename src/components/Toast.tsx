@@ -14,8 +14,8 @@ function Toast() {
           role="status"
           className={`toast-enter flex items-start gap-2 rounded-xl border p-3 shadow-lg ${
             t.type === 'success'
-              ? 'border-green-200 bg-green-50 text-green-800'
-              : 'border-red-200 bg-red-50 text-red-800'
+              ? 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300'
+              : 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300'
           }`}
         >
           {t.type === 'success'

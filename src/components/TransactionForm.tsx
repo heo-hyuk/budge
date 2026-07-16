@@ -348,12 +348,12 @@ function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-neutral-700">{editingId ? '거래 수정' : '내역 추가'}</h2>
+        <h2 className="text-base font-bold text-neutral-700 dark:text-neutral-300">{editingId ? '거래 수정' : '내역 추가'}</h2>
         {editingId && (
           <button
             type="button"
             onClick={cancelEditMode}
-            className="text-xs text-neutral-400 underline hover:text-neutral-600"
+            className="text-xs text-neutral-400 dark:text-neutral-500 underline hover:text-neutral-600 dark:hover:text-neutral-300"
           >
             취소
           </button>
@@ -364,11 +364,11 @@ function TransactionForm({
       {!editingId && templates.length > 0 && (
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-neutral-500">빠른 입력</span>
+            <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400">빠른 입력</span>
             <button
               type="button"
               onClick={() => setManageTemplates((v) => !v)}
-              className="text-xs text-neutral-400 underline hover:text-neutral-600"
+              className="text-xs text-neutral-400 dark:text-neutral-500 underline hover:text-neutral-600 dark:hover:text-neutral-300"
             >
               {manageTemplates ? '완료' : '관리'}
             </button>
@@ -380,7 +380,7 @@ function TransactionForm({
                   key={t.id}
                   type="button"
                   onClick={() => applyTemplate(t)}
-                  className="min-h-9 shrink-0 whitespace-nowrap rounded-full bg-neutral-100 px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-coral-50 hover:text-coral-800"
+                  className="min-h-9 shrink-0 whitespace-nowrap rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-coral-50 dark:hover:bg-coral-900/30 hover:text-coral-800 dark:hover:text-coral-200"
                 >
                   {t.label}
                 </button>
@@ -389,23 +389,23 @@ function TransactionForm({
           ) : (
             <ul className="mt-1.5 space-y-1.5">
               {templates.map((t, i) => (
-                <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2">
+                <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-neutral-800">{t.label}</p>
-                    <p className="text-xs text-neutral-400">{t.category} · {formatWon(t.amount)}</p>
+                    <p className="truncate text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t.label}</p>
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500">{t.category} · {formatWon(t.amount)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button type="button" disabled={i === 0 || templateBusyId !== null}
                       onClick={() => handleMoveTemplate(i, -1)}
-                      className="min-h-7 min-w-7 rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                      className="min-h-7 min-w-7 rounded-md text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-200 disabled:opacity-30"
                     >▲</button>
                     <button type="button" disabled={i === templates.length - 1 || templateBusyId !== null}
                       onClick={() => handleMoveTemplate(i, 1)}
-                      className="min-h-7 min-w-7 rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                      className="min-h-7 min-w-7 rounded-md text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-200 disabled:opacity-30"
                     >▼</button>
                     <button type="button" disabled={templateBusyId !== null}
                       onClick={() => handleDeleteTemplate(t.id)}
-                      className="min-h-7 whitespace-nowrap rounded-md px-2 text-xs font-semibold text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                      className="min-h-7 whitespace-nowrap rounded-md px-2 text-xs font-semibold text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-30"
                     >
                       {templateBusyId === t.id ? <LoadingSpinner size={12} /> : '삭제'}
                     </button>
@@ -428,7 +428,7 @@ function TransactionForm({
               className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
                 type === t
                   ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
-                  : 'bg-neutral-100 text-neutral-500'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
               }`}
             >
               {t === 'expense' ? '지출' : '수입'}
@@ -437,7 +437,7 @@ function TransactionForm({
         </div>
 
         <div className="mt-4">
-          <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700">금액</label>
+          <label htmlFor="amount" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">금액</label>
           <div className="relative mt-1.5">
             <input
               id="amount"
@@ -447,9 +447,9 @@ function TransactionForm({
               placeholder="0"
               value={amount}
               onChange={(e) => setAmount(formatNumberInput(e.target.value))}
-              className="min-h-11 w-full rounded-xl border border-neutral-300 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400">원</span>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400 dark:text-neutral-500">원</span>
           </div>
         </div>
       </UiCard>
@@ -457,8 +457,8 @@ function TransactionForm({
       {/* 구매처/결제 카드 */}
       <UiCard>
         <div className="relative">
-          <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700">
-            구매처 / 판매처 <span className="text-neutral-400 font-normal">(선택)</span>
+          <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            구매처 / 판매처 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
           </label>
           <input
             id="merchant"
@@ -472,20 +472,20 @@ function TransactionForm({
               // 클릭으로 제안을 선택할 시간을 주기 위해 살짝 지연 후 닫음
               setTimeout(() => setMerchantSuggestOpen(false), 150)
             }}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base text-neutral-900 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
           {merchantSuggestions.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+            <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg">
               {merchantSuggestions.map((m) => (
                 <li key={m.merchant}>
                   <button
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}  // blur보다 먼저 처리되도록
                     onClick={() => selectMerchantSuggestion(m)}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-50"
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
                   >
-                    <span className="truncate font-semibold text-neutral-800">{m.merchant}</span>
-                    {m.category && <span className="shrink-0 text-xs text-neutral-400">{m.category}</span>}
+                    <span className="truncate font-semibold text-neutral-800 dark:text-neutral-200">{m.merchant}</span>
+                    {m.category && <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">{m.category}</span>}
                   </button>
                 </li>
               ))}
@@ -494,13 +494,13 @@ function TransactionForm({
         </div>
 
         <div className="mt-4">
-          <span className="block text-sm font-semibold text-neutral-700">결제 방법</span>
+          <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">결제 방법</span>
           <div className="mt-1.5 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setPaymentMethod('현금')}
               className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                paymentMethod === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                paymentMethod === '현금' ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
               현금
@@ -511,7 +511,7 @@ function TransactionForm({
                 type="button"
                 onClick={() => setPaymentMethod(card.id)}
                 className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                  paymentMethod === card.id ? 'text-white' : 'text-neutral-600 bg-neutral-100 hover:bg-neutral-200'
+                  paymentMethod === card.id ? 'text-white' : 'text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                 }`}
                 style={paymentMethod === card.id ? { backgroundColor: card.color } : {}}
               >
@@ -519,7 +519,7 @@ function TransactionForm({
               </button>
             ))}
             {cards.length === 0 && (
-              <p className="text-xs text-neutral-400 self-center">카드 관리에서 카드를 등록하면 선택할 수 있어요</p>
+              <p className="text-xs text-neutral-400 dark:text-neutral-500 self-center">카드 관리에서 카드를 등록하면 선택할 수 있어요</p>
             )}
           </div>
         </div>
@@ -528,13 +528,13 @@ function TransactionForm({
         {!editingId && type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
           <div className="mt-4">
             {matchLoading && (
-              <p className="text-xs text-neutral-400">혜택 확인 중...</p>
+              <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>
             )}
 
             {/* 복수 매칭 → 라디오 선택 */}
             {!matchLoading && matches.length > 1 && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
-                <p className="text-xs font-bold text-amber-800">적용 혜택을 선택하세요</p>
+              <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-3 space-y-2">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-300">적용 혜택을 선택하세요</p>
                 {matches.map((m) => (
                   <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
                     <input
@@ -545,16 +545,16 @@ function TransactionForm({
                       onChange={() => setSelectedMatch(m)}
                     />
                     <div>
-                      <p className="text-sm font-semibold text-neutral-900">
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                         {m.benefit.name}
                         {m.benefit_type === 'cashback' && (
-                          <span className="ml-1.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 align-middle">적립</span>
+                          <span className="ml-1.5 rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 align-middle">적립</span>
                         )}
                       </p>
-                      <p className="text-xs text-amber-700">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         {formatWon(m.estimated_discount)} {m.benefit_type === 'cashback' ? '적립 예정' : '할인'}
                         {m.monthly_remaining > 0 && (
-                          <span className="ml-1 text-neutral-500">
+                          <span className="ml-1 text-neutral-500 dark:text-neutral-400">
                             (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
                           </span>
                         )}
@@ -565,7 +565,7 @@ function TransactionForm({
                 <button
                   type="button"
                   onClick={dismissBenefit}
-                  className="text-xs text-neutral-400 underline"
+                  className="text-xs text-neutral-400 dark:text-neutral-500 underline"
                 >
                   혜택 미적용
                 </button>
@@ -575,25 +575,25 @@ function TransactionForm({
             {/* 단일 매칭 → 자동 제안 */}
             {!matchLoading && matches.length === 1 && selectedMatch && (
               <div className={`rounded-xl border p-3 ${
-                selectedMatch.benefit_type === 'cashback' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
+                selectedMatch.benefit_type === 'cashback' ? 'border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40' : 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40'
               }`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className={`text-xs font-bold ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-800' : 'text-green-800'}`}>
+                    <p className={`text-xs font-bold ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-800 dark:text-blue-300' : 'text-green-800 dark:text-green-300'}`}>
                       {selectedMatch.benefit_type === 'cashback' ? '적립 혜택 감지' : '혜택 자동 적용'}: {selectedMatch.benefit.name}
                     </p>
                     {selectedMatch.benefit_type === 'cashback' ? (
-                      <p className="text-sm font-bold text-blue-700 mt-0.5">
+                      <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mt-0.5">
                         이 결제로 예상 적립: {formatWon(selectedMatch.estimated_discount)}
                       </p>
                     ) : (
-                      <p className="text-sm font-bold text-green-700 mt-0.5">
+                      <p className="text-sm font-bold text-green-700 dark:text-green-400 mt-0.5">
                         {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
                         실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
                       </p>
                     )}
                     {selectedMatch.monthly_remaining > 0 && (
-                      <p className={`text-xs mt-0.5 ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-600' : 'text-green-600'}`}>
+                      <p className={`text-xs mt-0.5 ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
                         이번 달 한도 {formatWon(selectedMatch.monthly_remaining)} 남음
                       </p>
                     )}
@@ -601,7 +601,7 @@ function TransactionForm({
                   <button
                     type="button"
                     onClick={dismissBenefit}
-                    className="shrink-0 text-xs text-neutral-400 underline"
+                    className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500 underline"
                   >
                     취소
                   </button>
@@ -616,7 +616,7 @@ function TransactionForm({
 
       {/* 분류/날짜/메모 카드 */}
       <UiCard>
-        <span className="block text-sm font-semibold text-neutral-700">분류</span>
+        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">분류</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
@@ -624,7 +624,7 @@ function TransactionForm({
               type="button"
               onClick={() => { setCategory(c); setCategoryManuallySet(true) }}
               className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                category === c ? 'bg-coral-50 text-coral-800' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                category === c ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
               {c}
@@ -634,7 +634,7 @@ function TransactionForm({
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
-              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 px-3 text-sm font-semibold text-neutral-500 transition-colors hover:border-coral-200 hover:text-coral-400"
+              className="min-h-9 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 px-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300"
             >
               + 직접입력
             </button>
@@ -649,7 +649,7 @@ function TransactionForm({
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
-              className="min-h-9 flex-1 rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+              className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
             <button
               type="button"
@@ -687,32 +687,32 @@ function TransactionForm({
 
           return (
             <div className={`mt-3 rounded-xl border px-3 py-2.5 ${
-              isExceeded ? 'border-coral-200 bg-coral-50' :
-              pct >= 80   ? 'border-coral-100 bg-coral-50' :
-                            'border-neutral-200 bg-neutral-50'
+              isExceeded ? 'border-coral-200 dark:border-coral-900 bg-coral-50 dark:bg-coral-900/30' :
+              pct >= 80   ? 'border-coral-100 dark:border-coral-900 bg-coral-50 dark:bg-coral-900/30' :
+                            'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950'
             }`}>
               <div className="flex items-center justify-between gap-2">
                 <span className={`text-xs font-bold ${
-                  isExceeded ? 'text-coral-800' : pct >= 80 ? 'text-coral-800' : 'text-neutral-600'
+                  isExceeded ? 'text-coral-800 dark:text-coral-200' : pct >= 80 ? 'text-coral-800 dark:text-coral-200' : 'text-neutral-600 dark:text-neutral-400'
                 }`}>
                   {matched.budget.category === '전체' ? '전체 지출' : matched.budget.category} 예산
                 </span>
                 <span className={`text-xs font-semibold ${
-                  isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
+                  isExceeded ? 'text-coral-600 dark:text-coral-200' : pct >= 80 ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-600 dark:text-neutral-400'
                 }`}>
                   {pct}% 사용
                 </span>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                 <div
                   className={`h-full rounded-full ${
-                    isExceeded ? 'bg-coral-600' : pct >= 80 ? 'bg-coral-200' : 'bg-neutral-300'
+                    isExceeded ? 'bg-coral-600' : pct >= 80 ? 'bg-coral-200 dark:bg-coral-900/50' : 'bg-neutral-300 dark:bg-neutral-600'
                   }`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
                 />
               </div>
               <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
-                isExceeded ? 'text-coral-600' : pct >= 80 ? 'text-coral-600' : 'text-neutral-600'
+                isExceeded ? 'text-coral-600 dark:text-coral-200' : pct >= 80 ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-600 dark:text-neutral-400'
               }`}>
                 {isExceeded
                   ? `예산 초과! ${formatWon(Math.abs(matched.remaining))} 초과`
@@ -720,12 +720,12 @@ function TransactionForm({
               </p>
               {/* 입력 중인 금액 포함 예상 초과 경고 */}
               {addingAmount > 0 && !isExceeded && projectedExceeded && (
-                <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-coral-600">
+                <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-coral-600 dark:text-coral-200">
                   이 거래를 추가하면 {formatWon(projectedSpent - matched.budget.monthly_limit)} 초과됩니다
                 </p>
               )}
               {addingAmount > 0 && !projectedExceeded && projectedPct >= 80 && (
-                <p className="mt-0.5 text-xs text-coral-600">
+                <p className="mt-0.5 text-xs text-coral-600 dark:text-coral-200">
                   입력 후 {projectedPct}% 사용 예정
                 </p>
               )}
@@ -735,28 +735,28 @@ function TransactionForm({
 
         {/* 날짜 */}
         <div className="mt-4">
-          <label htmlFor="date" className="block text-sm font-semibold text-neutral-700">날짜</label>
+          <label htmlFor="date" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">날짜</label>
           <input
             id="date"
             type="date"
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
         </div>
 
         {/* 메모 */}
         <div className="mt-4">
-          <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700">
-            메모 <span className="text-neutral-400 font-normal">(선택)</span>
+          <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            메모 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
           </label>
           <input
             id="memo"
             type="text"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
         </div>
       </UiCard>
@@ -766,7 +766,7 @@ function TransactionForm({
         <button
           type="button"
           onClick={() => setShowSaveTemplate(true)}
-          className="w-full text-center text-xs text-neutral-400 underline hover:text-neutral-600"
+          className="w-full text-center text-xs text-neutral-400 dark:text-neutral-500 underline hover:text-neutral-600 dark:hover:text-neutral-300"
         >
           현재 입력값을 템플릿으로 저장
         </button>
@@ -779,7 +779,7 @@ function TransactionForm({
             value={templateLabel}
             onChange={(e) => setTemplateLabel(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveAsTemplate() } }}
-            className="min-h-9 flex-1 rounded-lg border border-neutral-300 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50"
+            className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
           <button
             type="button"
@@ -792,7 +792,7 @@ function TransactionForm({
           <button
             type="button"
             onClick={() => { setShowSaveTemplate(false); setTemplateLabel('') }}
-            className="min-h-9 rounded-lg bg-neutral-100 px-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-200"
+            className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
           >
             취소
           </button>
@@ -820,7 +820,7 @@ function TransactionForm({
         const label = matched.budget.category === '전체' ? '전체' : matched.budget.category
 
         return (
-          <p className={`text-center text-xs font-semibold ${projectedExceeded ? 'text-coral-600' : 'text-neutral-500'}`}>
+          <p className={`text-center text-xs font-semibold ${projectedExceeded ? 'text-coral-600 dark:text-coral-200' : 'text-neutral-500 dark:text-neutral-400'}`}>
             저장 시 이번 달 '{label}' 예산 {projectedPct}% 사용 (기존 {matched.percentage}% → {projectedPct}%)
           </p>
         )
