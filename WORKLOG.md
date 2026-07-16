@@ -1,5 +1,54 @@
 # WORKLOG
 
+## 2026-07-16 (14차) — 사용 편의성 개선 7종 (진행 중)
+
+사용자 요청: 아이콘 없이, 코랄 포인트 컬러 + 카드형 레이아웃 톤 유지하며 7개 기능 추가.
+
+### 작업 계획
+- [ ] **최근 구매처 자동완성** — `functions/api/merchants/recent.ts`(신규) GET: 최근
+  90일(부족하면 최근 50건으로 폴백) 거래에서 구매처별 사용횟수+대표 분류 계산해 반환.
+  `TransactionForm.tsx` 구매처 입력에 커스텀 드롭다운(최대 5개)으로 제안, 선택 시
+  분류를 사용자가 아직 직접 고르지 않았을 때만 대표 분류로 자동 채움
+- [ ] **빠른 입력 템플릿** — `migrations/010_add_quick_templates.sql`(신규) `quick_templates`
+  테이블 + `functions/api/templates/index.ts`,`[id].ts` CRUD. `TransactionForm.tsx`
+  상단에 가로 스크롤 템플릿 버튼(탭하면 폼 채움+날짜만 오늘로, 자동저장 아님),
+  "템플릿으로 저장" 버튼(라벨 입력 후 현재 입력값 그대로 등록), 같은 영역에
+  간단한 관리(삭제/순서변경) 리스트 토글
+- [ ] **직전 거래 복제** — `TransactionList.tsx`에 "복제" 버튼(모바일 롱프레스·데스크톱
+  우클릭 대신, 신뢰성을 위해 모든 화면에서 동일한 일반 버튼으로 통일 — 이유는 완료
+  섹션에 기록) → `App.tsx`가 프리필 상태로 들어 `TransactionForm.tsx`에 전달,
+  날짜만 오늘로 재설정한 채 폼 채움(자동저장 아님)
+- [ ] **월 이동 스와이프** — `App.tsx`의 `SummaryCard` 래퍼에 순수
+  touchstart/touchend로 좌우 스와이프 감지, 라이브러리 추가 없음
+- [ ] **검색 필터 서버사이드 확장** — `functions/api/transactions/index.ts` GET에
+  `min_amount`/`max_amount` 파라미터 추가, 기존 `card_id`가 이미 앱 전역에서
+  결제수단을 표현하는 방식이라(빈 값=현금, 아니면 카드 UUID) 별도
+  `payment_method` 파라미터 대신 `card_id=cash` 센티널을 서버에서도 동일하게
+  해석하도록 확장. `SearchView.tsx`의 금액범위/현금필터를 클라이언트 후필터에서
+  서버 파라미터로 전환
+- [ ] **삭제 Undo** — `ToastContext.tsx`/`Toast.tsx`에 액션 버튼(텍스트만, 아이콘
+  없음) 지원 추가. `App.tsx`의 `handleDelete`를 각 삭제마다 독립된 타이머로
+  3초 지연 후 실제 DELETE 호출하도록 재작성, "삭제됨 · 되돌리기" 토스트에서
+  되돌리기 클릭 시 타이머 취소+원위치 복원
+- [ ] **예산 반영 미리보기** — `TransactionForm.tsx` 저장 버튼 바로 위에
+  "저장 시 이번 달 'X' 예산 68% 사용 (기존 52% → 68%)" 한 줄 미리보기, 이미
+  props로 받는 `budgetStatuses` 기준 클라이언트 계산(별도 API 호출 없음),
+  초과 시 코랄 강조
+- [ ] typecheck/lint/build 통과
+- [ ] wrangler pages dev + curl/코드리뷰로 기능별 검증, 375px 레이아웃 확인
+- [ ] 배포
+
+### 예상 변경 파일
+- `functions/api/merchants/recent.ts`, `functions/api/templates/index.ts`, `functions/api/templates/[id].ts` (신규)
+- `migrations/010_add_quick_templates.sql`(신규), `schema.sql`
+- `functions/api/transactions/index.ts`
+- `src/types.ts`, `src/lib/api.ts`
+- `src/components/TransactionForm.tsx`, `TransactionList.tsx`, `SearchView.tsx`, `Toast.tsx`
+- `src/contexts/ToastContext.tsx`
+- `src/App.tsx`
+
+---
+
 ## 2026-07-16 (13차) — 카드형 레이아웃 구조 개선 (완료)
 
 ### 완료
