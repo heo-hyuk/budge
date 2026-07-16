@@ -27,6 +27,10 @@
 - `src/components/TransactionForm.tsx`, `SummaryCard.tsx`, `CardManager.tsx`, `RecurringManager.tsx`, `MonthlyReport.tsx`, `BudgetManager.tsx`, `AnnualReport.tsx`
 - `vite.config.ts`, `package.json` (빌드 환경 이슈 대응)
 
+### 인증 환경 구축 (이번 세션에서 처음 필요해짐)
+- 이 세션에는 GitHub/Cloudflare 인증 정보가 전혀 없어 `git push`, `wrangler pages deploy` 둘 다 최초 1회 막힘 → `gh` CLI를 `~/.local/opt`에 설치(sudo 불필요, 사용자 계정 스코프)해 `gh auth login`(OAuth 디바이스 플로우, 사용자가 브라우저에서 직접 승인)으로 GitHub 인증 후 `gh auth setup-git`으로 git credential 연결, `wrangler login`(OAuth, 사용자가 브라우저에서 직접 승인)으로 Cloudflare 인증. 둘 다 사용자 계정 홈 디렉터리(`~/.config/gh`, `~/.config/.wrangler`)에 토큰이 저장되므로 다음 세션부터는 재인증 불필요할 것으로 예상
+- git `--local` 설정(`git config --local`)은 `/mnt/c` 마운트에서 `.git/config.lock`에 대한 `chmod`가 거부되어(WSL2 DrvFs 권한 이슈, 아래 항목과 동일 계열) 실패 — 대신 `git config --global`로 `user.name`/`user.email`을 설정함(홈 디렉터리는 네이티브 파일시스템이라 문제없음)
+
 ---
 
 ## 2026-07-16 (12차) — 코랄 포인트 컬러 시스템 적용 (완료)
