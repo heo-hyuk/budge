@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
 import { formatNumberInput, formatWon, todayStr } from '../lib/format'
-import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType } from '../types'
+import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
 export interface TransactionPrefill {
   type: TransactionType
@@ -14,6 +14,7 @@ export interface TransactionPrefill {
   merchant: string
   paymentMethod: string  // '현금' | card.id
   memo: string
+  date: string  // 복제/템플릿 적용 시엔 무시되고 오늘로 재설정되지만, 수정 모드에선 원래 날짜를 유지하는 데 사용
 }
 
 interface Props {
@@ -22,9 +23,15 @@ interface Props {
   budgetStatuses?: BudgetStatus[]  // 현재 월 예산 현황 (홈에서 주입)
   duplicateFrom?: { data: TransactionPrefill; nonce: number } | null  // 거래 목록에서 "복제" 클릭 시 주입
   onDuplicateApplied?: () => void
+  onUpdateSubmit?: (id: string, data: UpdateTransaction) => Promise<void>  // 수정 모드 저장 (한눈에 보기에서 항목 탭 시)
+  editTarget?: { id: string; data: TransactionPrefill; nonce: number } | null
+  onEditApplied?: () => void
 }
 
-function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, onDuplicateApplied }: Props) {
+function TransactionForm({
+  onSubmit, cards, budgetStatuses = [], duplicateFrom, onDuplicateApplied,
+  onUpdateSubmit, editTarget, onEditApplied,
+}: Props) {
   const { showToast } = useToast()
   const [type, setType]               = useState<TransactionType>('expense')
   const [categories, setCategories]   = useState(() => getCategories('expense'))
@@ -38,6 +45,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
   const [saving, setSaving]           = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
+  const [editingId, setEditingId]     = useState<string | null>(null)  // 있으면 수정 모드(생성 대신 onUpdateSubmit 호출)
 
   // 혜택 매칭 상태
   const [matches, setMatches]         = useState<BenefitMatch[]>([])
@@ -85,6 +93,28 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duplicateFrom?.nonce])
 
+  // 거래 수정 — 한눈에 보기(일일/주간 정산)에서 항목 탭 시 App.tsx가 nonce를 바꿔가며 주입.
+  // 복제와 달리 날짜는 오늘로 재설정하지 않고 원래 거래 날짜를 유지해야 하므로 applyPrefill을
+  // 그대로 쓰지 않고 date까지 별도로 채움
+  useEffect(() => {
+    if (!editTarget) return
+    applyPrefill(editTarget.data)
+    setDate(editTarget.data.date)
+    setEditingId(editTarget.id)
+    onEditApplied?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editTarget?.nonce])
+
+  function cancelEditMode() {
+    setEditingId(null)
+    setAmount('')
+    setMemo('')
+    setMerchant('')
+    setMatches([])
+    setSelectedMatch(null)
+    setDate(todayStr())
+  }
+
   function applyTemplate(t: QuickTemplate) {
     applyPrefill({
       type: t.type,
@@ -93,6 +123,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
       merchant: t.merchant,
       paymentMethod: t.card_id || '현금',
       memo: '',
+      date: todayStr(),
     })
   }
 
@@ -194,7 +225,10 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
   }
 
   // 결제방법·구매처·분류·금액 변경 시 혜택 매칭 (debounce 400ms)
+  // 수정 모드에서는 건드리지 않음 — UpdateTransaction에 할인/적립 필드가 없어 반영할 곳이 없고,
+  // TransactionList의 인라인 수정도 혜택을 재계산하지 않아 일관성 유지
   useEffect(() => {
+    if (editingId) return
     if (type !== 'expense') return
     const cardId = paymentMethod !== '현금' ? paymentMethod : ''
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
@@ -235,12 +269,20 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [paymentMethod, merchant, category, amount, date, type])
+  }, [paymentMethod, merchant, category, amount, date, type, editingId])
 
   // 혜택 적용 취소
   function dismissBenefit() {
     setSelectedMatch(null)
     setMatches([])
+  }
+
+  function resetAfterSave() {
+    setAmount('')
+    setMemo('')
+    setMerchant('')
+    setMatches([])
+    setSelectedMatch(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -249,6 +291,29 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
     if (!numericAmount || numericAmount <= 0) return
 
     const selectedCard = cards.find((c) => c.id === paymentMethod)
+
+    // 수정 모드 — 혜택 재계산 없이 필드 그대로 업데이트 (TransactionList 인라인 수정과 동일한 방식)
+    if (editingId) {
+      setSaving(true)
+      try {
+        await onUpdateSubmit?.(editingId, {
+          type, category, amount: numericAmount, date,
+          memo: memo.trim(),
+          merchant: merchant.trim(),
+          payment_method: selectedCard ? selectedCard.id : '현금',
+          card_id: selectedCard ? selectedCard.id : '',
+        })
+        setEditingId(null)
+        resetAfterSave()
+        setDate(todayStr())
+        showToast('거래를 수정했습니다')
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : '거래를 수정하지 못했습니다', 'error')
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
 
     // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
     const isCashback = selectedMatch?.benefit_type === 'cashback'
@@ -269,11 +334,7 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
         cashback_amount: cashbackAmount > 0 ? cashbackAmount : undefined,
       })
-      setAmount('')
-      setMemo('')
-      setMerchant('')
-      setMatches([])
-      setSelectedMatch(null)
+      resetAfterSave()
       showToast('거래를 저장했습니다')
     } catch (err) {
       showToast(err instanceof Error ? err.message : '거래를 저장하지 못했습니다', 'error')
@@ -286,10 +347,21 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <h2 className="text-base font-bold text-neutral-700">내역 추가</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-neutral-700">{editingId ? '거래 수정' : '내역 추가'}</h2>
+        {editingId && (
+          <button
+            type="button"
+            onClick={cancelEditMode}
+            className="text-xs text-neutral-400 underline hover:text-neutral-600"
+          >
+            취소
+          </button>
+        )}
+      </div>
 
-      {/* 빠른 입력 템플릿 */}
-      {templates.length > 0 && (
+      {/* 빠른 입력 템플릿 — 수정 모드에서는 신규 입력 전용 편의 기능이라 숨김 */}
+      {!editingId && templates.length > 0 && (
         <div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-500">빠른 입력</span>
@@ -452,8 +524,8 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
           </div>
         </div>
 
-        {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시) */}
-        {type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
+        {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서는 재계산 안 하므로 숨김) */}
+        {!editingId && type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
           <div className="mt-4">
             {matchLoading && (
               <p className="text-xs text-neutral-400">혜택 확인 중...</p>
@@ -589,8 +661,9 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
           </div>
         )}
 
-        {/* 예산 현황 인라인 표시 (지출 + 해당 카테고리 예산 있을 때만) */}
-        {type === 'expense' && (() => {
+        {/* 예산 현황 인라인 표시 (지출 + 해당 카테고리 예산 있을 때만) — 수정 모드에서는 이 거래의
+            기존 금액이 이미 matched.spent에 포함돼 있어 미리보기가 부정확해지므로 숨김 */}
+        {!editingId && type === 'expense' && (() => {
           // 카테고리 우선, 없으면 전체 예산
           const matched = budgetStatuses.find(
             (s) => s.budget.active === 1 && s.budget.category === category
@@ -688,8 +761,8 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         </div>
       </UiCard>
 
-      {/* 현재 입력값을 템플릿으로 저장 */}
-      {!showSaveTemplate ? (
+      {/* 현재 입력값을 템플릿으로 저장 — 수정 모드에서는 숨김 */}
+      {!editingId && (!showSaveTemplate ? (
         <button
           type="button"
           onClick={() => setShowSaveTemplate(true)}
@@ -724,10 +797,10 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
             취소
           </button>
         </div>
-      )}
+      ))}
 
-      {/* 저장 전 예산 반영 미리보기 */}
-      {type === 'expense' && numericAmount > 0 && (() => {
+      {/* 저장 전 예산 반영 미리보기 — 수정 모드에서는 부정확해지므로 숨김(위와 동일한 이유) */}
+      {!editingId && type === 'expense' && numericAmount > 0 && (() => {
         const matched = budgetStatuses.find(
           (s) => s.budget.active === 1 && s.budget.category === category
         ) ?? budgetStatuses.find(
@@ -759,7 +832,9 @@ function TransactionForm({ onSubmit, cards, budgetStatuses = [], duplicateFrom, 
         className="min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
-          selectedMatch && selectedMatch.benefit_type === 'discount'
+          editingId
+            ? '수정 완료'
+            : selectedMatch && selectedMatch.benefit_type === 'discount'
             ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
             : selectedMatch && selectedMatch.benefit_type === 'cashback'
             ? `저장 (적립 예정 ${formatWon(selectedMatch.estimated_discount)})`

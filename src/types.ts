@@ -213,6 +213,43 @@ export interface RecentMerchant {
   count: number
 }
 
+// ── 한눈에 보기 (일일/주간 정산) ──────────────────────────
+
+export interface DailySettlement {
+  date: string
+  prev_balance: number
+  incomes: Transaction[]
+  income_total: number
+  expenses: Transaction[]
+  expense_total: number
+  today_balance: number
+}
+
+export interface SettlementIncomeBucket {
+  소득: number
+  예금인출: number
+  기타: number
+  total: number
+}
+
+export interface SettlementExpenseBucket {
+  [category: string]: number  // 카테고리별 합계 + total 키
+}
+
+export interface WeeklySettlementDay {
+  date: string
+  income: SettlementIncomeBucket
+  expense: SettlementExpenseBucket
+}
+
+export interface WeeklySettlement {
+  week_start: string
+  week_end: string
+  days: WeeklySettlementDay[]
+  week_total: { income: SettlementIncomeBucket; expense: SettlementExpenseBucket }
+  month_cumulative_total: { income: SettlementIncomeBucket; expense: SettlementExpenseBucket }
+}
+
 // ── 메모장 ──────────────────────────────────────────
 
 export interface Note {

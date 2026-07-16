@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, CreditCard, Home, LogOut, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, LogOut, Menu, NotebookPen, Repeat, RotateCw, Search, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
@@ -8,6 +8,7 @@ import CategoryBreakdown from './components/CategoryBreakdown'
 import LoadingSpinner from './components/LoadingSpinner'
 import MonthlyReport from './components/MonthlyReport'
 import NotesView from './components/NotesView'
+import OverviewView from './components/OverviewView'
 import RecurringManager from './components/RecurringManager'
 import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
@@ -20,17 +21,18 @@ import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fe
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
-  { id: 'home',      label: '홈',     icon: Home },
-  { id: 'monthly',   label: '월정산', icon: BarChart3 },
-  { id: 'annual',    label: '연정산', icon: TrendingUp },
-  { id: 'cards',     label: '카드',   icon: CreditCard },
-  { id: 'recurring', label: '고정',   icon: Repeat },
-  { id: 'budget',    label: '예산',   icon: ClipboardList },
-  { id: 'notes',     label: '메모',   icon: NotebookPen },
-  { id: 'search',    label: '검색',   icon: Search },
+  { id: 'home',      label: '홈',       icon: Home },
+  { id: 'overview',  label: '한눈에 보기', icon: CalendarDays },
+  { id: 'monthly',   label: '월정산',   icon: BarChart3 },
+  { id: 'annual',    label: '연정산',   icon: TrendingUp },
+  { id: 'cards',     label: '카드',     icon: CreditCard },
+  { id: 'recurring', label: '고정',     icon: Repeat },
+  { id: 'budget',    label: '예산',     icon: ClipboardList },
+  { id: 'notes',     label: '메모',     icon: NotebookPen },
+  { id: 'search',    label: '검색',     icon: Search },
 ]
 
 function currentMonth() {
@@ -62,6 +64,7 @@ function App() {
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
   const [duplicateFrom, setDuplicateFrom] = useState<{ data: TransactionPrefill; nonce: number } | null>(null)
+  const [editTarget, setEditTarget]       = useState<{ id: string; data: TransactionPrefill; nonce: number } | null>(null)
 
   // 삭제 Undo — 각 삭제마다 독립된 타이머로 관리해 여러 건을 동시에 삭제해도
   // 서로 덮어쓰지 않게 함 (id별로 별도 pending 항목)
@@ -180,6 +183,25 @@ function App() {
         merchant: tx.merchant,
         paymentMethod: tx.card_id || '현금',
         memo: tx.memo,
+        date: tx.date,
+      },
+      nonce: Date.now(),
+    })
+  }
+
+  // 한눈에 보기(일일/주간 정산)에서 항목 탭 시 — 홈 탭으로 이동해 TransactionForm을 수정 모드로 채움
+  function handleEditRequest(tx: Transaction) {
+    setActiveTab('home')
+    setEditTarget({
+      id: tx.id,
+      data: {
+        type: tx.type,
+        category: tx.category,
+        amount: tx.amount,
+        merchant: tx.merchant,
+        paymentMethod: tx.card_id || '현금',
+        memo: tx.memo,
+        date: tx.date,
       },
       nonce: Date.now(),
     })
@@ -311,6 +333,13 @@ function App() {
               <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
                 <SummaryCard transactions={transactions} month={selectedMonth} />
               </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="w-full text-center text-xs text-neutral-400 underline hover:text-neutral-600"
+              >
+                한눈에 보기 (일일·주간 정산) →
+              </button>
               {/* 예산 초과 카테고리 요약 배너 */}
               {(() => {
                 const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
@@ -339,6 +368,9 @@ function App() {
                 budgetStatuses={budgetStatuses}
                 duplicateFrom={duplicateFrom}
                 onDuplicateApplied={() => setDuplicateFrom(null)}
+                onUpdateSubmit={handleUpdate}
+                editTarget={editTarget}
+                onEditApplied={() => setEditTarget(null)}
               />
             </div>
             <div className="mt-4 space-y-4 lg:mt-0">
@@ -371,6 +403,11 @@ function App() {
               )}
             </div>
           </div>
+        )}
+
+        {/* 한눈에 보기 탭 (일일/주간 정산) */}
+        {activeTab === 'overview' && (
+          <OverviewView onEditTransaction={handleEditRequest} />
         )}
 
         {/* 월별 정산 탭 */}

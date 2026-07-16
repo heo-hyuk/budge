@@ -1,4 +1,4 @@
-import type { BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction } from '../types'
+import type { BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -269,6 +269,16 @@ export async function updateTemplate(id: string, data: Partial<NewQuickTemplate>
 
 export async function deleteTemplate(id: string): Promise<void> {
   await apiRequest(`/api/templates/${id}`, { method: 'DELETE' }, '템플릿을 삭제하지 못했습니다')
+}
+
+// ── 한눈에 보기 (일일/주간 정산) API ───────────────────────
+
+export async function fetchDailySettlement(date: string): Promise<DailySettlement> {
+  return apiRequest<DailySettlement>(`/api/settlement/daily?date=${encodeURIComponent(date)}`, undefined, '일일 정산을 불러오지 못했습니다')
+}
+
+export async function fetchWeeklySettlement(weekStart: string): Promise<WeeklySettlement> {
+  return apiRequest<WeeklySettlement>(`/api/settlement/weekly?week_start=${encodeURIComponent(weekStart)}`, undefined, '주간 정산을 불러오지 못했습니다')
 }
 
 // ── 엑셀 내보내기 API ────────────────────────────────────

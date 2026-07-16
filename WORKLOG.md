@@ -1,5 +1,82 @@
 # WORKLOG
 
+## 2026-07-16 (27차) — "한눈에 보기" 화면 신규 추가 (일일 정산 + 주간 정산)
+
+사용자 요청: 종이 다이어리 레이아웃(일자별 카드: 전일잔액/수입/수입합계/지출/지출합계/
+오늘잔액, 주간 요약표: 날짜×카테고리 격자+주계/누계)을 참고해 새 화면 추가. 시각 톤은
+코랄+카드형 유지, 아이콘 없음(내용상). 카테고리는 categories.ts 기준으로 유동 구성.
+
+### 완료
+- [x] `functions/lib/settlement.ts`(신규) — `calculateDailySettlement`/`calculateWeeklySettlement`
+  헬퍼. **전일잔액/누계 기준을 "해당 월 1일부터"로 결정**(계정 생성 시점부터의 전체 누적이
+  아님) — SummaryCard/AnnualReport 등 기존 화면도 전부 선택 기간(월/연) 안에서만 수입-지출을
+  계산하고 이전 기간에서 잔액을 이어받지 않아, 이 앱에 "평생 누적 잔액" 개념 자체가 없었음.
+  기존 관례와의 일관성을 위해 월초 기준을 채택(사용자가 제시한 두 옵션 중 더 단순한 쪽)
+- [x] `functions/api/settlement/daily.ts`(신규) — GET `?date=YYYY-MM-DD`, 해당 월 1일~해당일
+  거래를 한 번에 조회해 전일(date 미만)/당일로 나눠 계산
+- [x] `functions/api/settlement/weekly.ts`(신규) — GET `?week_start=YYYY-MM-DD`(월요일).
+  수입은 `소득`(카테고리='급여')/`예금인출`(카테고리='예금인출')/`기타`(나머지 전부) 3그룹으로
+  단순 분류(이 앱 기본 수입 분류엔 예금인출 개념이 없어 사용자가 그 이름으로 커스텀 분류를
+  만들었을 때만 잡힘). 지출은 카테고리 문자열 그대로 키로 집계(하드코딩 없음 — 프론트가
+  categories.ts로 컬럼을 결정하고 백엔드는 있는 그대로 반환). 주가 월 경계를 걸치면
+  `week_start`가 속한 달을 기준으로 누계 계산(종이 다이어리의 주간표가 한 달 페이지 안에
+  속한다는 전제와 동일)
+- [x] `src/types.ts` — `DailySettlement`/`SettlementIncomeBucket`/`SettlementExpenseBucket`/
+  `WeeklySettlementDay`/`WeeklySettlement` 타입 추가
+- [x] `src/lib/api.ts` — `fetchDailySettlement`/`fetchWeeklySettlement` 추가
+- [x] `src/lib/format.ts` — `shiftDate`(일수 가감)/`mondayOf`(해당 날짜가 속한 주의 월요일)
+  유틸 추가 (이 앱에 별도 주 시작 기준이 없어 월요일 시작으로 고정)
+- [x] `src/components/DailySettlement.tsx`(신규) — 하루 단위 카드 UI. 전일잔액/수입내용
+  리스트/수입합계(파랑)/지출내용 리스트/지출합계(코랄)/오늘잔액 순서. 좌우 화살표 +
+  App.tsx의 월 이동 스와이프와 동일한 순수 touch 이벤트 방식으로 하루씩 스와이프 이동.
+  각 리스트 항목 탭 시 `onEditTransaction` 콜백 호출
+- [x] `src/components/WeeklySettlement.tsx`(신규) — 날짜×카테고리 격자 테이블(요청대로 이
+  화면만 카드형이 아닌 테두리 있는 grid/table 사용). 헤더 2단(수입/지출 그룹 + 개별 컬럼),
+  지출 컬럼은 `getCategories('expense')`로 동적 구성(하드코딩 없음). 마지막 두 행 주계/누계.
+  좁은 화면에서 `overflow-x-auto`로 가로 스크롤(기존 AnnualReport 월별 표와 동일 원칙)
+- [x] `src/components/OverviewView.tsx`(신규) — "한눈에 보기" 탭의 일일/주간 서브탭 전환 래퍼
+- [x] `src/components/TransactionForm.tsx` — **수정 모드 추가**: `editTarget`/`onEditApplied`/
+  `onUpdateSubmit` prop 신규. 한눈에 보기에서 항목 탭 시 이 폼이 해당 거래로 채워지고 제출 시
+  `onSubmit`(생성) 대신 `onUpdateSubmit`(수정)을 호출. 혜택 매칭/예산 미리보기/템플릿 관련
+  UI는 수정 모드에서 전부 숨김(`UpdateTransaction`에 할인·적립 필드가 없고, 예산 미리보기는
+  수정 중인 거래의 기존 금액이 이미 현재 사용액에 포함돼 있어 그대로 쓰면 부정확해짐 —
+  TransactionList의 기존 인라인 수정과 동일하게 "혜택 재계산 없는 단순 수정"으로 통일).
+  `TransactionPrefill`에 `date` 필드 추가(복제는 여전히 오늘로 재설정하지만, 수정은 원래
+  날짜를 유지해야 해서 필요)
+- [x] `src/App.tsx` — `overview` 탭 추가(사이드 메뉴에 "한눈에 보기"), `editTarget` 상태 +
+  `handleEditRequest` 추가해 한눈에 보기 → 홈 탭 전환 + TransactionForm 수정모드 진입 연결
+  (`onUpdateSubmit`은 기존 `handleUpdate` 그대로 재사용). 홈 화면 SummaryCard 아래에
+  "한눈에 보기 →" 링크 추가(필수 아니지만 요청에서 고려 사항으로 언급됨)
+- [x] tsc -b / oxlint / vite build 전부 통과 (functions/는 `tsc --ignoreConfig --lib es2022`로 별도 확인)
+
+### 스코프 결정 (사용자 확인 없이 판단, 다르면 이후 조정)
+- 주간표에 "지출합계" 컬럼을 추가하지 않음 — 원본 종이 다이어리 레이아웃에 열거된 컬럼
+  목록(소득/예금인출/기타/수입합계/지출 카테고리들)에 지출합계가 없어 원본 구조를 그대로
+  따름. 필요하면 이후 요청 시 추가
+- 한눈에 보기 탭은 App.tsx 헤더의 월/연 네비게이션 조건에 포함시키지 않음 — 일일 정산은
+  월 경계에 매이지 않는 연속적인 날짜 스크러버이고 주간 정산도 자체 주 단위 네비게이션이
+  있어, 헤더의 월 이동 화살표와 이중으로 존재하면 오히려 혼란스러움. 두 하위 컴포넌트가
+  각자 자기 날짜/주 상태를 독립적으로 관리(연정산 탭이 헤더에서 연도 네비게이션만 쓰는
+  것과 비슷한 예외 처리)
+
+### 검증 결과
+- tsc/oxlint/vite build 전부 통과
+- 사용자 요청대로 이번엔 curl/wrangler dev/Chrome 화면 검증은 진행하지 않음(요청 시에만
+  진행하기로 함) — 코드 리뷰 + 타입체크만으로 확인
+
+### 배포
+- 원격 DB 마이그레이션 불필요(기존 transactions 테이블만 조회, 스키마 변경 없음)
+- `npm run deploy` 완료 — https://fbbded8e.budget-3wb.pages.dev
+
+### 변경 파일
+- `functions/lib/settlement.ts`(신규)
+- `functions/api/settlement/daily.ts`(신규), `functions/api/settlement/weekly.ts`(신규)
+- `src/types.ts`, `src/lib/api.ts`, `src/lib/format.ts`
+- `src/components/DailySettlement.tsx`(신규), `WeeklySettlement.tsx`(신규), `OverviewView.tsx`(신규)
+- `src/components/TransactionForm.tsx`, `src/App.tsx`
+
+---
+
 ## 2026-07-16 (26차) — 카드 프리셋 4번째 추가: NH농협카드 zgm.the pay
 
 25차에서 만든 `src/lib/cardBenefitPresets.ts`에 4번째 프리셋만 추가하는 작은 작업.
