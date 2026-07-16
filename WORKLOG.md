@@ -1,5 +1,37 @@
 # WORKLOG
 
+## 2026-07-17 (35차) — 로고를 실제 최종 디자인 PNG로 교체 (SVG 파일 불일치 문제 발견)
+
+34차에서 적용한 `logo_color_BG.svg`가 사용자 확인 결과 실제로 원하는 디자인과 다름
+("이거 아닌데?" — 실제 브라우저에 열어본 화면 캡처를 보내줌). 파일을 Read 도구와 셸
+`cat` 둘 다로 재확인했으나 여전히 이전과 동일한(솔리드 채움 지갑 + "텅" 글자 하나만 있는)
+내용이 나와, 그 SVG 파일 자체가 사용자가 실제로 보고 있는 디자인과 다르다는 결론을 내림
+(디자인 툴의 내보내기/저장 문제로 추정, 원인 특정은 안 됨). 사용자가 PNG로 대신 제공.
+
+### 완료
+- [x] `C:\Users\db848\Desktop\텅장_logo\logo_color_BG.png`(600×300, 아웃라인 지갑 아이콘 +
+  "텅장" 두 글자, 흰 배경) 확인 후 `public/logo.png`로 저장, 기존 `public/logo.svg` 삭제
+- [x] `src/components/AuthPage.tsx` — 로고 img src를 `/logo.svg` → `/logo.png`로 변경
+- [x] tsc / oxlint / vite build 통과
+
+### 검증 결과 — 스크린샷 도구 불안정으로 바이트 단위 검증으로 대체
+- Chrome 스크린샷 캡처가 이번 확인 과정에서 반복적으로 타임아웃되거나(CDP
+  `Page.captureScreenshot` 30초 타임아웃 여러 번) 축소압축된 캡처만 나와 육안으로 새
+  디자인(아웃라인 스타일)인지 판단하기 어려웠음. 대신 페이지에 로드된 `<img>` 엘리먼트의
+  실제 src를 `fetch`해서 바이트를 가져와 SHA-1 해시 계산 → 로컬 `public/logo.png` 파일의
+  SHA-1과 **완전 일치**(`10ade74c...`) 확인. `getBoundingClientRect()`로 렌더링 크기도
+  160×80(원본 600×300 비율 그대로, 잘림/왜곡 없음) 확인 — 화면 캡처가 아니라 실제 로드된
+  바이트와 렌더링 치수로 정확성을 검증함
+
+### 배포
+- `npm run deploy` 완료 — https://ab53549e.budget-3wb.pages.dev
+
+### 변경 파일
+- `public/logo.png`(신규), `public/logo.svg`(삭제)
+- `src/components/AuthPage.tsx`
+
+---
+
 ## 2026-07-17 (34차) — 로고 업데이트 (logo_color_BG.svg로 재적용)
 
 사용자가 `C:\Users\db848\Desktop\텅장_logo\logo_color_BG.svg`(흰 배경 포함 버전, 600×300)를
