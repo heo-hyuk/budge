@@ -26,28 +26,30 @@ export interface DailySettlementResult {
 
 /**
  * 일일 정산 계산
- * 전일잔액 기준 = 해당 월 1일부터 전날까지의 누적(수입-지출).
- * 이 앱은 SummaryCard/AnnualReport 등 다른 화면도 전부 선택 기간(월/연) 안에서만
- * 수입-지출을 계산하고 그 이전 기간에서 잔액을 이어받지 않으므로, 일관성을 위해
- * "월초부터"를 기준으로 삼음(계정 생성 시점부터의 전체 누적이 아님)
+ * 전일잔액 기준 = 이 날짜 이전 전체 거래 누적(수입-지출) — 실제 종이 가계부의 "전월이월"
+ * 개념과 동일하게 월 경계에서 리셋되지 않고 이어짐. (이전 버전은 "해당 월 1일부터"로
+ * 매달 0에서 다시 시작하게 만들어뒀었는데, 이전 달까지 기록한 내용이 전일잔액에 전혀
+ * 반영되지 않는 버그였음 — 실사용 계정에서 발견되어 전체 누적으로 수정)
  */
 export async function calculateDailySettlement(
   db: D1Database,
   userId: string,
   date: string,  // 'YYYY-MM-DD'
 ): Promise<DailySettlementResult> {
-  const monthStart = `${date.slice(0, 7)}-01`
+  const { results: priorResults } = await db
+    .prepare('SELECT type, amount FROM transactions WHERE user_id = ? AND date < ?')
+    .bind(userId, date)
+    .all<{ type: 'income' | 'expense'; amount: number }>()
 
-  const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC, created_at ASC')
-    .bind(userId, monthStart, date)
+  const prev_balance = (priorResults ?? [])
+    .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
+
+  const { results: todayResults } = await db
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date = ? ORDER BY created_at ASC')
+    .bind(userId, date)
     .all<SettlementTransaction>()
 
-  const rows = results ?? []
-  const priorRows = rows.filter((t) => t.date < date)
-  const todayRows  = rows.filter((t) => t.date === date)
-
-  const prev_balance = priorRows.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
+  const todayRows = todayResults ?? []
   const incomes  = todayRows.filter((t) => t.type === 'income')
   const expenses = todayRows.filter((t) => t.type === 'expense')
   const income_total  = incomes.reduce((s, t) => s + t.amount, 0)
