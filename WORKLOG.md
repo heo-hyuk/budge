@@ -22,7 +22,7 @@
 - 이번 세션에서도 Chrome 확장 미연결로 정적 검증만 진행
 
 ### 배포
-- (배포 진행 예정)
+- `npm run deploy` 완료 — https://06c5eff2.budget-3wb.pages.dev
 
 ### 변경 파일
 - `src/components/NotesView.tsx`
