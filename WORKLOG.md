@@ -49,10 +49,13 @@
   "한눈에 보기 →" 링크 추가(필수 아니지만 요청에서 고려 사항으로 언급됨)
 - [x] tsc -b / oxlint / vite build 전부 통과 (functions/는 `tsc --ignoreConfig --lib es2022`로 별도 확인)
 
+### 추가 요청 반영 — 주간표 지출합계 컬럼 (같은 날 후속)
+- `src/components/WeeklySettlement.tsx` — 지출 카테고리 컬럼들 뒤에 "지출합계" 컬럼 추가.
+  백엔드(`functions/lib/settlement.ts`)의 `ExpenseBucket`은 애초에 `addExpense`가 카테고리별
+  합계와 함께 `total` 키도 같이 누적하고 있어서 API 응답에 이미 포함돼 있었음 — 프론트에서
+  `expense.total`을 읽어 열만 추가하면 됐고 백엔드 변경은 불필요했음
+
 ### 스코프 결정 (사용자 확인 없이 판단, 다르면 이후 조정)
-- 주간표에 "지출합계" 컬럼을 추가하지 않음 — 원본 종이 다이어리 레이아웃에 열거된 컬럼
-  목록(소득/예금인출/기타/수입합계/지출 카테고리들)에 지출합계가 없어 원본 구조를 그대로
-  따름. 필요하면 이후 요청 시 추가
 - 한눈에 보기 탭은 App.tsx 헤더의 월/연 네비게이션 조건에 포함시키지 않음 — 일일 정산은
   월 경계에 매이지 않는 연속적인 날짜 스크러버이고 주간 정산도 자체 주 단위 네비게이션이
   있어, 헤더의 월 이동 화살표와 이중으로 존재하면 오히려 혼란스러움. 두 하위 컴포넌트가
@@ -66,7 +69,8 @@
 
 ### 배포
 - 원격 DB 마이그레이션 불필요(기존 transactions 테이블만 조회, 스키마 변경 없음)
-- `npm run deploy` 완료 — https://fbbded8e.budget-3wb.pages.dev
+- `npm run deploy` 완료 — https://fbbded8e.budget-3wb.pages.dev (지출합계 컬럼 추가 후
+  재배포: https://68735b8b.budget-3wb.pages.dev)
 
 ### 변경 파일
 - `functions/lib/settlement.ts`(신규)

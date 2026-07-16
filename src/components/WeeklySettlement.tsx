@@ -55,6 +55,9 @@ function WeeklySettlement() {
             {cell(expense[c] ?? 0)}
           </td>
         ))}
+        <td className="whitespace-nowrap border border-neutral-200 px-3 py-2 text-right font-semibold text-coral-700">
+          {cell(expense.total ?? 0)}
+        </td>
       </tr>
     )
   }
@@ -103,12 +106,12 @@ function WeeklySettlement() {
         </div>
       ) : settlement && (
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[780px] border-collapse text-sm">
             <thead>
               <tr className="bg-neutral-100">
                 <th rowSpan={2} className="border border-neutral-200 px-3 py-2 text-left align-bottom">날짜</th>
                 <th colSpan={INCOME_GROUPS.length + 1} className="border border-neutral-200 px-3 py-2 text-blue-800">수입</th>
-                <th colSpan={expenseCategories.length} className="border border-neutral-200 px-3 py-2 text-coral-700">지출</th>
+                <th colSpan={expenseCategories.length + 1} className="border border-neutral-200 px-3 py-2 text-coral-700">지출</th>
               </tr>
               <tr className="bg-neutral-50">
                 {INCOME_GROUPS.map((g) => (
@@ -118,6 +121,7 @@ function WeeklySettlement() {
                 {expenseCategories.map((c) => (
                   <th key={c} className="whitespace-nowrap border border-neutral-200 px-3 py-2 text-right font-semibold text-coral-600">{c}</th>
                 ))}
+                <th className="whitespace-nowrap border border-neutral-200 px-3 py-2 text-right font-semibold text-coral-700">지출합계</th>
               </tr>
             </thead>
             <tbody>
