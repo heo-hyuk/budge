@@ -69,7 +69,7 @@ function InstallPrompt() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 p-4 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-sm">
       <div className="rounded-2xl border border-coral-200 dark:border-coral-900 bg-white dark:bg-neutral-900 p-4 shadow-lg">
-        <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">홈 화면에 텅장 추가하기</p>
+        <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">홈 화면에 텅~ 장 추가하기</p>
         {showIOSHint ? (
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             공유 버튼을 누른 뒤 "홈 화면에 추가"를 선택하면 앱처럼 바로 열 수 있어요

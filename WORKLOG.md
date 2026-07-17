@@ -1,5 +1,24 @@
 # WORKLOG
 
+## 2026-07-18 (48차) — 서비스명 "텅장" → "텅~ 장" 변경
+
+사용자 요청으로 서비스 표기명을 "텅장"에서 "텅~ 장"으로 변경. 사용자에게 노출되는
+브랜딩 위치를 전부 찾아서 교체(과거 작업 기록인 이 WORKLOG의 지난 항목들은 그
+시점 기준 사실이라 그대로 둠).
+
+### 완료
+- [x] `index.html` — `<title>`, `apple-mobile-web-app-title` 메타
+- [x] `public/manifest.json` — `name`, `short_name` (PWA 홈 화면 설치 시 표시되는 이름)
+- [x] `src/App.tsx` — 로고 `alt` 텍스트 3곳(데스크탑 사이드바/모바일 헤더/모바일 드로어)
+- [x] `src/components/AuthPage.tsx` — 로고 `alt` 텍스트 + 주석
+- [x] `src/components/InstallPrompt.tsx` — "홈 화면에 ○○ 추가하기" 안내 문구
+- [x] `src/lib/exportExcel.ts` — 엑셀 내보내기 파일명 접두사 3곳
+- [x] `README.md` — 최상단 프로젝트명 헤딩
+- [x] `npx tsc -b`, `npm run lint` 통과 확인
+
+### 배포
+- `npm run deploy` 진행
+
 ## 2026-07-17 (47차) — 수입 음수 입력 + 빠른 입력 템플릿 금액 미지정
 
 사용자 요청: 하루 수익이 여러 항목(원천별)으로 나뉘어 들어오고 그중 일부는 수익에서

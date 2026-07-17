@@ -297,7 +297,7 @@ function App() {
       <aside className="hidden lg:flex lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 dark:border-neutral-800 lg:bg-white dark:bg-neutral-900">
         <div className="px-4 py-4">
           <button type="button" onClick={() => setActiveTab('home')} aria-label="홈으로 이동">
-            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+            <img src="/logo.svg" alt="텅~ 장" className="h-8 w-auto" />
           </button>
         </div>
         <nav className="flex flex-col gap-1 p-2">
@@ -338,7 +338,7 @@ function App() {
               <Menu size={22} strokeWidth={2} />
             </button>
             <button type="button" onClick={() => setActiveTab('home')} aria-label="홈으로 이동" className="lg:hidden">
-              <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+              <img src="/logo.svg" alt="텅~ 장" className="h-8 w-auto" />
             </button>
           </div>
 
@@ -572,7 +572,7 @@ function App() {
         <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => { setActiveTab('home'); setMenuOpen(false) }} aria-label="홈으로 이동">
-              <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+              <img src="/logo.svg" alt="텅~ 장" className="h-8 w-auto" />
             </button>
           </div>
           <button
