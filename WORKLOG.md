@@ -1,5 +1,85 @@
 # WORKLOG
 
+## 2026-07-17 (44차) — PWA 전환 (홈 화면 설치)
+
+앱을 PWA로 전환해 홈 화면에 설치 가능하게 하는 요청. 이번 단계는 설치까지만, Push
+알림은 다음 단계에서 별도 진행 예정.
+
+### 계획
+- `vite-plugin-pwa`로 service worker 생성(JS/CSS/HTML 프리캐시, `/api/*`는 항상
+  NetworkOnly), `registerType: 'autoUpdate'`
+- manifest는 **직접 작성해 `public/manifest.json`에 배치**(vite-plugin-pwa의 자동
+  매니페스트 생성/아이콘 복사 기능은 끔) — 이유는 아래 참고
+- 기존 `public/favicon.svg`(코랄 지갑 심볼, 정사각형)를 192/512/apple-touch-icon(180)
+  PNG로 리사이즈해 아이콘으로 사용
+- `src/components/InstallPrompt.tsx`(신규) — `beforeinstallprompt` 캡처, iOS는 UA
+  감지로 공유버튼 안내 텍스트로 대체, localStorage로 닫음 상태 기억
+- `index.html`에 manifest link, theme-color, apple 메타 태그 추가
+
+### 설계 결정 — manifest를 vite-plugin-pwa가 아닌 직접 작성한 이유
+`vite.config.ts`에 이미 `publicDir: false`가 설정돼 있음(WSL2 DrvFs에서
+`fs.copyFileSync` EPERM 나던 문제 우회, `package.json`의 `cp -r public/. dist/`로 직접
+복사). vite-plugin-pwa의 `includeAssets`/자동 매니페스트 생성 기능은 내부적으로
+`viteConfig.publicDir` 값을 그대로 읽어 아이콘을 복사하는데, `publicDir`가 `false`면 이
+경로가 깨짐(패키지 소스 확인함: `cwd: publicDir`로 glob). `publicDir: false`를 되돌리면
+WSL2에서 쓰는 사람에게 다시 EPERM 문제가 생길 수 있어 손대지 않기로 함 — 대신
+manifest.json/아이콘을 `public/`에 두고 기존 cp 스크립트가 그대로 복사하게 하고,
+vite-plugin-pwa는 서비스워커 생성 역할만 담당하도록(`manifest: false`) 분리
+
+### 완료
+- [x] `npm install -D vite-plugin-pwa` (아이콘 생성용 `sharp`는 1회성 스크립트로만 쓰고
+  작업 후 `npm uninstall`로 제거 — 런타임/빌드에 불필요한 의존성 남기지 않음)
+- [x] `public/icons/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`(180) — 기존
+  `public/favicon.svg`를 sharp로 리사이즈해 생성
+- [x] `public/manifest.json`(신규) — name/short_name "텅장", description, start_url "/",
+  display "standalone", orientation "portrait", background_color "#0a0a0a"(다크모드
+  neutral-950과 동일), theme_color "#D85A30"(coral-400), icons 2종
+- [x] `vite.config.ts` — `VitePWA` 플러그인 추가: `registerType: 'autoUpdate'`,
+  `manifest: false`, `workbox.globPatterns`로 JS/CSS/HTML(+아이콘류) 프리캐시,
+  `runtimeCaching`으로 `/api/*` 전체 NetworkOnly 처리, `navigateFallbackDenylist`로
+  `/api/*`는 SPA 폴백 대상에서 제외
+- [x] `index.html` — `<link rel="manifest">`, `<meta name="theme-color">`, iOS용
+  `apple-mobile-web-app-capable`/`apple-mobile-web-app-title`/`apple-touch-icon` 추가
+- [x] `src/components/InstallPrompt.tsx`(신규) — `beforeinstallprompt` 이벤트를
+  가로채 저장해두고 화면 우하단(모바일은 하단 전체 폭) 카드형 배너로 "추가하기"
+  버튼 노출. iOS는 해당 이벤트 자체가 없어 UA로 iOS 기기 감지해 "공유 버튼 → 홈
+  화면에 추가" 안내 텍스트로 대체. 이미 설치돼 실행 중이면(`display-mode:
+  standalone` 또는 iOS `navigator.standalone`) 아예 표시 안 함. "나중에" 클릭 시
+  `localStorage`(`budget:install-prompt-dismissed`)에 기억해 다시 안 뜨게 함,
+  `appinstalled` 이벤트 발생 시에도 동일하게 처리. 아이콘 없이 텍스트 위주,
+  코랄+카드형 톤 유지
+- [x] `src/main.tsx` — `<InstallPrompt />`를 `<Toast />`와 함께 루트에 마운트
+- [x] tsc -b / oxlint / vite build 통과. 빌드 로그로 `dist/sw.js`,
+  `dist/registerSW.js`, `dist/workbox-*.js` 생성 확인 + `dist/manifest.json`,
+  `dist/icons/*.png`가 기존 cp 단계로 정상 복사됐는지 직접 확인. 생성된 `sw.js`
+  내용을 직접 읽어 `/api/`로 시작하는 경로가 `NetworkOnly`로 라우팅되는 것과 JS/CSS/
+  index.html만 precache 리스트에 포함된 것(4 entries) 확인
+
+### 검증 결과
+- Chrome으로 실제 배포 화면 확인:
+  - `fetch('/manifest.json')` → 200, `application/json`, 작성한 필드 그대로 응답
+  - `/icons/icon-192.png`, `/icons/icon-512.png`, `/icons/apple-touch-icon.png` 전부 200
+  - `navigator.serviceWorker.getRegistrations()` → `sw.js`가 scope `/`로 active 상태 등록
+    확인
+  - **Chrome이 실제로 설치 가능하다고 판단해 `beforeinstallprompt`가 발생**, 화면
+    우하단에 배너가 코랄+카드 톤으로 정상 노출됨을 스크린샷으로 확인. "나중에" 클릭
+    → 새로고침해도 안 뜨는 것 확인(localStorage 동작 검증) → 검증 목적으로 누른
+    것이므로 실제 사용자 경험에 영향 안 주게 `localStorage.removeItem`으로 원복
+  - "추가하기" 클릭은 네이티브 설치 대화상자를 띄워 CDP를 블로킹시킬 수 있어(이전
+    세션들에서 `window.confirm` 때 같은 현상 확인됨) 실제 클릭은 진행하지 않음 —
+    이벤트 캡처와 배너 노출까지 확인된 것으로 충분하다고 판단
+
+### 배포
+- `npm run deploy` 완료 — https://c078a91e.budget-3wb.pages.dev
+
+### 변경 파일
+- `vite.config.ts`, `index.html`, `src/main.tsx`
+- `public/manifest.json`(신규), `public/icons/`(신규, 3개 PNG)
+- `src/components/InstallPrompt.tsx`(신규)
+- `package.json`, `package-lock.json`(vite-plugin-pwa devDependency 추가)
+
+---
+
 ## 2026-07-17 (43차) — 메모 달력 뷰 사이즈 조정 (달력 축소 + 메모 카드 강조)
 
 사용자 피드백: 41차에서 만든 메모 달력 뷰가 달력이 너무 크고, 아래 선택한 날짜의 메모
