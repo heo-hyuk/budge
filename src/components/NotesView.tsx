@@ -245,19 +245,26 @@ function NotesView({ month }: Props) {
   }
 
   // 메모 한 건 렌더링(카테고리 배지 + 내용 + 수정/삭제 버튼) — 목록/달력 상세 공용
-  function renderNoteItem(date: string, note: Note) {
+  // card=true(달력 상세)면 각 메모를 테두리 있는 카드 박스로 감싸고 버튼을 항상 노출
+  // (목록 뷰는 한 줄씩 촘촘히 나열되므로 기존처럼 hover로만 노출해 시각적 잡음을 줄임)
+  function renderNoteItem(date: string, note: Note, card = false) {
     if (editTarget?.note?.id === note.id) {
       return <div key={note.id}>{renderEditForm()}</div>
     }
     return (
-      <div key={note.id} className="group flex items-start justify-between gap-2">
+      <div
+        key={note.id}
+        className={`group flex items-start justify-between gap-2 ${
+          card ? 'rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 p-3' : ''
+        }`}
+      >
         <div className="min-w-0">
           <span className="inline-block rounded bg-coral-50 dark:bg-coral-900/30 px-1.5 py-0.5 text-xs font-semibold text-coral-600 dark:text-coral-200">
             {note.category}
           </span>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-800 dark:text-neutral-200">{note.content}</p>
+          <p className={`mt-1 whitespace-pre-wrap break-words text-neutral-800 dark:text-neutral-200 ${card ? 'text-base leading-relaxed' : 'text-sm'}`}>{note.content}</p>
         </div>
-        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className={`flex shrink-0 gap-1 transition-opacity ${card ? '' : 'opacity-0 group-hover:opacity-100'}`}>
           <button
             type="button"
             onClick={() => startEdit(date, note)}
@@ -354,12 +361,13 @@ function NotesView({ month }: Props) {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* 달력 그리드 */}
-          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-3">
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400 dark:text-neutral-500">
+          {/* 달력 그리드 — 폭을 좁혀 셀을 작게 만들고, 아래 메모 상세가 상대적으로 더
+              눈에 띄게 함 */}
+          <div className="mx-auto w-full max-w-[300px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-2.5">
+            <div className="mb-1 grid grid-cols-7 gap-0.5 text-center text-[11px] font-semibold text-neutral-400 dark:text-neutral-500">
               {WEEKDAY_LABELS.map((w) => <div key={w}>{w}</div>)}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {Array.from({ length: leadingBlanks }, (_, i) => <div key={`lead-${i}`} />)}
               {dates.map((date) => {
                 const dayNotes = notesByDate.get(date) ?? []
@@ -372,7 +380,7 @@ function NotesView({ month }: Props) {
                     key={date}
                     type="button"
                     onClick={() => setSelectedDate(date)}
-                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-sm transition-colors ${
+                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md text-xs transition-colors ${
                       isSelected
                         ? 'bg-coral-400 text-white font-bold'
                         : isToday
@@ -382,7 +390,7 @@ function NotesView({ month }: Props) {
                   >
                     <span>{day}</span>
                     {dayNotes.length > 0 && (
-                      <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-coral-400'}`} />
+                      <span className={`h-1 w-1 rounded-full ${isSelected ? 'bg-white' : 'bg-coral-400'}`} />
                     )}
                   </button>
                 )
@@ -391,14 +399,15 @@ function NotesView({ month }: Props) {
             </div>
           </div>
 
-          {/* 선택한 날짜의 메모 상세 */}
+          {/* 선택한 날짜의 메모 상세 — 코랄 액센트 + 넉넉한 여백으로 달력보다 시선이
+              먼저 가도록 강조 */}
           {selectedDate && (
-            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-4">
-              <p className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">
+            <div className="rounded-2xl border border-l-4 border-neutral-200 dark:border-neutral-800 border-l-coral-400 bg-white dark:bg-neutral-900 shadow-sm p-5">
+              <p className="mb-3 text-base font-extrabold text-neutral-800 dark:text-neutral-200">
                 {parseInt(selectedDate.split('-')[2], 10)}일 ({WEEKDAY_LABELS[new Date(selectedDate).getDay()]})
               </p>
-              <div className="space-y-2">
-                {(notesByDate.get(selectedDate) ?? []).map((note) => renderNoteItem(selectedDate, note))}
+              <div className="space-y-2.5">
+                {(notesByDate.get(selectedDate) ?? []).map((note) => renderNoteItem(selectedDate, note, true))}
                 {renderAddTrailer(selectedDate, (notesByDate.get(selectedDate) ?? []).length === 0)}
               </div>
             </div>
