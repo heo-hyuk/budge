@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
@@ -33,6 +34,7 @@ function TransactionForm({
   onUpdateSubmit, editTarget, onEditApplied,
 }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [type, setType]               = useState<TransactionType>('expense')
   const [categories, setCategories]   = useState(() => getCategories('expense'))
   const [category, setCategory]       = useState(categories[0])
@@ -163,7 +165,7 @@ function TransactionForm({
   }
 
   async function handleDeleteTemplate(id: string) {
-    if (!window.confirm('이 템플릿을 삭제할까요?')) return
+    if (!(await confirm('이 템플릿을 삭제할까요?'))) return
     setTemplateBusyId(id)
     try {
       await deleteTemplate(id)

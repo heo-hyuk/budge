@@ -1,6 +1,7 @@
 import { RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import {
   createBenefit, createBenefitGroup, createCard, deleteBenefit, deleteCard,
@@ -76,6 +77,7 @@ interface Props {
 
 function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [showForm, setShowForm]   = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm]           = useState<CardFormState>(defaultForm)
@@ -256,9 +258,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       if (preset) {
         // 기존 카드는 이미 등록된 혜택 규칙이 있을 수 있어, 프리셋을 새로 추가하기 전에
         // 중복 등록될 수 있음을 한 번 확인시킴 (새 카드는 처음이라 확인 없이 바로 적용)
-        const shouldApply = !editingId || window.confirm(
+        const shouldApply = !editingId || (await confirm(
           `"${preset.label}" 프리셋의 혜택 규칙을 이 카드에 추가할까요?\n기존에 등록된 혜택 규칙은 그대로 유지되고 새로 추가됩니다.`
-        )
+        ))
         if (shouldApply) {
           await applyPreset(cardId, preset)
           presetApplied = true
@@ -291,7 +293,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
     if (linkedBenefits.length > 0) warnings.push(`이 카드에 연결된 혜택 규칙 ${linkedBenefits.length}개도 함께 삭제됩니다.`)
     if (linkedRecurring.length > 0) warnings.push(`이 카드로 등록된 고정지출 ${linkedRecurring.length}건은 결제수단이 현금으로 변경됩니다.`)
 
-    if (!window.confirm(`"${name}" 카드를 삭제할까요?\n${warnings.join('\n')}`)) return
+    if (!(await confirm(`"${name}" 카드를 삭제할까요?\n${warnings.join('\n')}`))) return
     setDeletingCardId(id)
     try {
       await deleteCard(id)
@@ -369,7 +371,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   }
 
   async function handleDeleteBenefit(b: CardBenefit) {
-    if (!window.confirm(`"${b.name}" 혜택을 삭제할까요?`)) return
+    if (!(await confirm(`"${b.name}" 혜택을 삭제할까요?`))) return
     if (!openBenefitCardId) return
     setDeletingBenefitId(b.id)
     try {

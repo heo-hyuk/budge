@@ -2,9 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import ConfirmDialog from './components/ConfirmDialog.tsx'
 import InstallPrompt from './components/InstallPrompt.tsx'
 import Toast from './components/Toast.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
+import { ConfirmProvider } from './contexts/ConfirmContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import { ToastProvider } from './contexts/ToastContext.tsx'
 
@@ -12,11 +14,14 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <ToastProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-        <Toast />
-        <InstallPrompt />
+        <ConfirmProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+          <Toast />
+          <InstallPrompt />
+          <ConfirmDialog />
+        </ConfirmProvider>
       </ToastProvider>
     </ThemeProvider>
   </StrictMode>,

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { BudgetConflictError, createBudget, deleteBudget, updateBudget } from '../lib/api'
 import { getCategories } from '../lib/categories'
@@ -49,6 +50,7 @@ function bgColor(pct: number): string {
 
 function BudgetManager({ statuses, month, onRefresh }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(defaultForm)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -139,7 +141,7 @@ function BudgetManager({ statuses, month, onRefresh }: Props) {
   }
 
   async function handleDelete(id: string, category: string) {
-    if (!window.confirm(`"${category}" 예산을 삭제할까요?`)) return
+    if (!(await confirm(`"${category}" 예산을 삭제할까요?`))) return
     setDeletingId(id)
     try {
       await deleteBudget(id)

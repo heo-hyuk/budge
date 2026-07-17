@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { createRecurring, deleteRecurring, updateRecurring } from '../lib/api'
@@ -43,6 +44,7 @@ const defaultForm = (): FormState => ({
 
 function RecurringManager({ items, cards, onRefresh }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [showForm, setShowForm]     = useState(false)
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [form, setForm]             = useState<FormState>(defaultForm)
@@ -137,7 +139,7 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!window.confirm(`"${name}" 고정항목을 삭제할까요?\n이미 생성된 거래 내역은 유지됩니다.`)) return
+    if (!(await confirm(`"${name}" 고정항목을 삭제할까요?\n이미 생성된 거래 내역은 유지됩니다.`))) return
     setDeletingId(id)
     try {
       await deleteRecurring(id)

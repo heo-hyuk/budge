@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatNumberInput, formatWon, parseAmountInput } from '../lib/format'
@@ -25,6 +26,7 @@ interface EditState {
 
 function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [editState, setEditState]   = useState<EditState | null>(null)
   const [saving, setSaving]         = useState(false)
@@ -92,8 +94,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     }
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm('이 내역을 삭제할까요?')) return
+  async function handleDelete(id: string) {
+    if (!(await confirm('이 내역을 삭제할까요?'))) return
     // 실제 삭제는 App.tsx가 지연 처리 — 삭제됨/되돌리기 토스트도 거기서 띄움
     onDelete(id)
   }

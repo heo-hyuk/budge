@@ -1,6 +1,7 @@
 import { CalendarDays, List, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, saveNote, updateNote } from '../lib/api'
 import { addCustomNoteCategory, getNoteCategories } from '../lib/noteCategories'
@@ -30,6 +31,7 @@ function todayStr(): string {
 
 function NotesView({ month }: Props) {
   const { showToast } = useToast()
+  const confirm = useConfirm()
   const [notes, setNotes]     = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
@@ -132,7 +134,7 @@ function NotesView({ month }: Props) {
   }
 
   async function handleDelete(note: Note) {
-    if (!window.confirm('이 메모를 삭제할까요?')) return
+    if (!(await confirm('이 메모를 삭제할까요?'))) return
     setDeletingId(note.id)
     try {
       await deleteNote(note.id)

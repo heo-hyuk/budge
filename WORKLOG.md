@@ -20,6 +20,21 @@
   `BudgetManager.tsx` — `window.confirm(...)` → `await confirm(...)`(동기 함수인
   `TransactionList.tsx`의 `handleDelete`는 async로 전환 필요)
 
+### 완료
+- [x] `src/contexts/ConfirmContext.tsx`, `src/components/ConfirmDialog.tsx` 신규
+  작성, `src/main.tsx`에 `ConfirmProvider`/`<ConfirmDialog />` 연결
+- [x] 8곳 전부 `useConfirm()`으로 교체(`TransactionList.tsx`의 `handleDelete`는
+  `async function`으로 전환)
+- [x] `npx tsc -b`, `npm run lint` 통과
+- [x] `wrangler pages dev` + playwright-core로 실제 확인 — 특히 `window.confirm`을
+  호출 시 예외를 던지도록 완전히 무력화한 상태에서도(standalone에서 무시되는 상황을
+  더 강하게 재현) 삭제 플로우가 정상 동작하는지 검증: 삭제 클릭 → 커스텀 모달
+  노출(네이티브 dialog 이벤트 전혀 안 뜸) → 취소 시 항목 유지 → 재시도 후 확인 시
+  정상 삭제. 콘솔 에러 없음
+
+### 배포
+- `npm run deploy` 진행
+
 ## 2026-07-18 (49차) — 빠른 입력 템플릿 메모 저장 누락 버그 수정
 
 사용자 리포트: "템플릿 저장하면 메모가 저장 되는게 중요한데 지금 이게 안되는데?"
