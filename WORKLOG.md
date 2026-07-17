@@ -1,5 +1,48 @@
 # WORKLOG
 
+## 2026-07-18 (45차) — 카드 정산 알림(Push) — 작업 시작
+
+카드 청구 마감일이 지나면 그 카드의 이번 청구기간 정산액을 push 알림으로 보내는 기능.
+예산 초과 알림이 아니라 "마감 완료" 알림. 설치(PWA)는 44차에서 이미 완료, 이번엔 Push까지.
+
+### 계획
+- 마이그레이션 번호 조정: 요청서엔 `009_add_push_subscriptions.sql`로 돼있지만 실제
+  프로젝트는 009가 이미 `009_notes_allow_multiple_per_day.sql`로 사용 중 → **014**로 진행
+- `migrations/014_add_push_subscriptions.sql` — push_subscriptions, notification_log
+  테이블(요청 스펙 그대로), schema.sql 동기화
+- VAPID 키: `web-push generate-vapid-keys`로 로컬 생성. 공개키는 `src/lib/pushConfig.ts`
+  (민감정보 아니라 커밋 가능)+워커 wrangler.toml `[vars]`, 비공개키는 워커에
+  `wrangler secret put`으로만 저장(커밋 안 함)
+- 프론트: `NotificationSettings.tsx`(MyPage에 섹션 추가), `src/lib/push.ts`(구독 헬퍼),
+  `functions/api/push/subscribe.ts`/`unsubscribe.ts`
+- Service Worker: 44차에서 만든 `generateSW` 전략은 커스텀 push 핸들러를 못 넣어서
+  `injectManifest` 전략으로 전환, `src/sw.ts` 직접 작성(precache+`/api` NetworkOnly는
+  기존과 동일하게 유지 + push/notificationclick 핸들러 추가)
+- 알림 클릭 시 월정산 화면 이동을 위해 `App.tsx`에 `?tab=` 쿼리파라미터 딥링크 지원 추가
+  (기존엔 URL 기반 라우팅이 전혀 없어서 최소한으로 추가)
+- Cron Worker: `workers/card-settlement-notifier/`에 별도 wrangler 프로젝트(Pages
+  Functions와 분리). `web-push` npm 패키지는 Node의 `https` 모듈을 써서 Cloudflare
+  Workers 런타임에서 동작 안 함 — 대신 Web Crypto 기반으로 Workers/Deno/Bun을 공식
+  지원하는 `@block65/webcrypto-web-push`(MIT, 의존성 3개뿐)로 VAPID JWT 서명 +
+  페이로드 암호화(RFC 8291)를 처리하고 `fetch`로 직접 발송
+- 마감 감지: KST 기준 어제 날짜와 카드의 (말일 클램핑된) closing_day 비교. 청구기간
+  계산은 `src/lib/billing.ts`의 `getCardBillingPeriod` 로직을 워커 안에 포팅
+  (별도 배포 단위라 소스 공유 대신 복사, 로직은 100% 동일하게 유지)
+- 한 사용자가 같은 날 여러 카드 마감 시 **하나로 묶어서 발송**(사용자가 명시적으로
+  선호한 방향) — "오늘 마감된 카드 N개" 제목 + "A카드 X원, B카드 Y원" 본문
+- `notification_log`는 묶음 발송이어도 카드별로 각각 기록(스펙의 UNIQUE 제약이
+  카드+청구월 단위라서), 발송 실패(410/404 Gone)면 해당 구독 자동 삭제
+
+### 예상 변경/신규 파일
+- `migrations/014_add_push_subscriptions.sql`(신규), `schema.sql`
+- `src/lib/pushConfig.ts`(신규), `src/lib/push.ts`(신규), `src/lib/api.ts`
+- `src/components/NotificationSettings.tsx`(신규), `src/components/MyPage.tsx`
+- `functions/api/push/subscribe.ts`(신규), `functions/api/push/unsubscribe.ts`(신규)
+- `vite.config.ts`, `src/sw.ts`(신규), `src/App.tsx`
+- `workers/card-settlement-notifier/`(신규 디렉토리 전체)
+
+---
+
 ## 2026-07-17 (44차) — PWA 전환 (홈 화면 설치)
 
 앱을 PWA로 전환해 홈 화면에 설치 가능하게 하는 요청. 이번 단계는 설치까지만, Push
