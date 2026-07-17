@@ -17,7 +17,7 @@
 - [x] `npx tsc -b`, `npm run lint` 통과 확인
 
 ### 배포
-- `npm run deploy` 진행
+- `npm run deploy` 완료 — https://0f14d19e.budget-3wb.pages.dev
 
 ## 2026-07-17 (47차) — 수입 음수 입력 + 빠른 입력 템플릿 금액 미지정
 
