@@ -1,5 +1,25 @@
 # WORKLOG
 
+## 2026-07-18 세션 마무리 (44~46차 종합)
+
+오늘 세션에서 진행한 작업 전부 완료 및 배포 완료, 미완료 항목 없음. README.md도
+현재 기능/구조에 맞게 다시 정리함(PWA·Push·정산 화면·카드 프리셋 등 그동안 누락돼
+있던 내용 반영).
+
+- [x] 44차 — PWA 전환(홈 화면 설치): manifest.json, 아이콘, InstallPrompt 배너
+- [x] 45차 — 카드 정산 Push 알림: VAPID, 구독 UI/API, injectManifest SW 전환,
+  별도 Cron Worker(`workers/card-settlement-notifier`) 신규 배포
+- [x] 46차 — 로고 클릭 시 홈 화면 이동
+
+### 다음 세션 시작 시 참고
+- Cron Worker는 루트 `npm run deploy`에 안 걸림 — `workers/card-settlement-notifier`
+  코드를 고치면 그 디렉토리에서 `wrangler deploy` 별도 실행 필요
+- 카드 정산 알림 실제 수신 테스트는 네이티브 브라우저 알림 권한 승인이 필요해
+  자동화로 못 함 — 사용자가 마이페이지에서 직접 켜보고 확인 필요
+- 현재 남은 작업 없음
+
+---
+
 ## 2026-07-18 (46차) — 로고 클릭 시 홈 이동
 
 사용자 요청: "텅장" 로고 누르면 홈화면으로 이동하는 기능 추가.
