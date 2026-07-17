@@ -1,5 +1,44 @@
 # WORKLOG
 
+## 2026-07-17 (47차) — 수입 음수 입력 + 빠른 입력 템플릿 금액 미지정
+
+사용자 요청: 하루 수익이 여러 항목(원천별)으로 나뉘어 들어오고 그중 일부는 수익에서
+"차감"되는 성격이라 음수로 입력해야 함. 또한 매일 반복되지만 금액만 매번 다른 수입
+항목을 위해 "빠른 입력 템플릿"에 금액을 뺀 채로 저장하는 옵션이 필요함.
+
+### 예상 작업 항목
+1. 수입 금액 음수 입력 허용
+   - `src/components/TransactionForm.tsx`: income 타입일 때 금액 입력에 음수 허용
+     (expense는 기존처럼 양수만), 타입 전환 시 부호 정리
+   - `src/components/TransactionList.tsx`: 인라인 수정에서도 동일하게 허용, 목록
+     표시에서 +/- 접두사 로직 수정
+   - `functions/api/transactions/index.ts`, `[id].ts`: 서버 검증도 type별로 분기
+   - `src/lib/format.ts`: 부호 허용 입력 포맷/파싱 헬퍼 추가
+   - 정산/리포트 전반(DailySettlement, WeeklySettlement, MonthlySettlementTable,
+     AnnualSettlementTable, MonthlyReport, AnnualReport, CategoryBreakdown,
+     SummaryCard) 음수 표시 및 막대그래프 방어 처리 점검
+   - transactions 테이블은 amount에 CHECK 제약이 없어 스키마 마이그레이션 불필요
+     (확인 완료)
+2. 빠른 입력 템플릿 — 금액 미지정 옵션
+   - `migrations/015_*.sql` — `quick_templates.amount`를 NOT NULL → nullable로
+     (SQLite라 테이블 재생성 방식), `schema.sql` 동기화
+   - `functions/api/templates/index.ts`, `[id].ts`: amount optional/nullable 처리
+   - `src/types.ts`: `QuickTemplate.amount: number | null`
+   - `TransactionForm.tsx`: 템플릿 저장 시 "금액도 저장/금액 제외" 선택, 템플릿
+     적용 시 amount null이면 금액 필드 비우고 자동 포커스, 관리 목록에 "금액 직접
+     입력" 표시
+
+### 예상 변경 파일
+`src/components/TransactionForm.tsx`, `src/components/TransactionList.tsx`,
+`src/lib/format.ts`, `src/types.ts`, `src/components/WeeklySettlement.tsx`,
+`src/components/MonthlySettlementTable.tsx`, `src/components/AnnualSettlementTable.tsx`,
+`src/components/MonthlyReport.tsx`, `src/components/AnnualReport.tsx`,
+`src/components/CategoryBreakdown.tsx`, `functions/api/transactions/index.ts`,
+`functions/api/transactions/[id].ts`, `functions/api/templates/index.ts`,
+`functions/api/templates/[id].ts`, `migrations/015_*.sql`, `schema.sql`
+
+---
+
 ## 2026-07-18 세션 마무리 (44~46차 종합)
 
 오늘 세션에서 진행한 작업 전부 완료 및 배포 완료, 미완료 항목 없음. README.md도
