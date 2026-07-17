@@ -1,5 +1,25 @@
 # WORKLOG
 
+## 2026-07-18 (50차) — 홈 화면 설치 PWA에서 삭제 확인 버튼이 반응 없는 버그 수정
+
+사용자 리포트: "기존에 추가된 템플릿내용 삭제 하기 버튼이 반응이 없네" — 확인해보니
+홈 화면에 설치한 PWA(standalone 모드)에서만 발생. 원인은 `window.confirm()`이 일부
+플랫폼의 standalone 모드 PWA에서 아예 표시되지 않고 조용히 무시되는(즉시 false 반환)
+잘 알려진 제약. 템플릿 삭제뿐 아니라 앱 전체에서 `window.confirm()`을 쓰는 곳 8곳이
+전부 같은 문제를 겪고 있어서(거래/예산/카드/카드혜택/메모/고정지출 삭제, 카드 혜택
+프리셋 재적용 확인) 전부 앱 내장 확인 모달로 교체.
+
+### 예상 작업 항목
+- `src/contexts/ConfirmContext.tsx`(신규) — `ToastContext` 패턴을 본떠
+  `useConfirm(): (message: string) => Promise<boolean>` 훅 제공(Promise를 상태에
+  들고 있다가 사용자가 확인/취소 누르면 resolve)
+- `src/components/ConfirmDialog.tsx`(신규) — 실제 렌더되는 모달 UI
+- `src/main.tsx` — `ConfirmProvider`/`<ConfirmDialog />` 연결(Toast와 동일한 위치)
+- 8곳 교체: `TransactionForm.tsx`, `TransactionList.tsx`, `NotesView.tsx`,
+  `CardManager.tsx`(3곳: 프리셋 재적용/카드 삭제/혜택 삭제), `RecurringManager.tsx`,
+  `BudgetManager.tsx` — `window.confirm(...)` → `await confirm(...)`(동기 함수인
+  `TransactionList.tsx`의 `handleDelete`는 async로 전환 필요)
+
 ## 2026-07-18 (49차) — 빠른 입력 템플릿 메모 저장 누락 버그 수정
 
 사용자 리포트: "템플릿 저장하면 메모가 저장 되는게 중요한데 지금 이게 안되는데?"
