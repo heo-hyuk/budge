@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~015 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~016 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS quick_templates (
   payment_method TEXT DEFAULT '현금',
   card_id TEXT DEFAULT '',
   sort_order INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  memo TEXT DEFAULT ''         -- migration 016
 );
 
 CREATE INDEX IF NOT EXISTS idx_quick_templates_user ON quick_templates(user_id);

@@ -124,7 +124,7 @@ function TransactionForm({
       amount: t.amount,
       merchant: t.merchant,
       paymentMethod: t.card_id || '현금',
-      memo: '',
+      memo: t.memo,
       date: todayStr(),
     })
     // 금액 미지정 템플릿 — 나머지는 자동으로 채우고 금액만 바로 입력하게 포커스 이동
@@ -148,6 +148,7 @@ function TransactionForm({
         merchant: merchant.trim() || undefined,
         payment_method: selectedCard ? selectedCard.id : '현금',
         card_id: selectedCard ? selectedCard.id : undefined,
+        memo: memo.trim() || undefined,
       })
       setTemplates(await fetchTemplates())
       setTemplateLabel('')

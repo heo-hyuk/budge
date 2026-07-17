@@ -28,6 +28,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     payment_method?: string
     card_id?: string
     sort_order?: number
+    memo?: string
   }
 
   // amount를 null이 아닌 값으로 바꾸는 경우에만 부호 검증 — null은 "금액 미지정"으로 되돌리는
@@ -59,6 +60,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
   if (body.payment_method !== undefined) { sets.push('payment_method = ?'); values.push(body.payment_method) }
   if (body.card_id        !== undefined) { sets.push('card_id = ?');        values.push(body.card_id) }
   if (body.sort_order     !== undefined) { sets.push('sort_order = ?');     values.push(body.sort_order) }
+  if (body.memo           !== undefined) { sets.push('memo = ?');           values.push(body.memo) }
 
   if (sets.length === 0) return json({ ok: true })
 

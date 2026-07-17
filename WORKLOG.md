@@ -17,6 +17,21 @@ category, amount, merchant, payment_method, card_id, sort_order만 있음)
   `applyTemplate`에서 memo 복원(현재 `applyPrefill` 호출 시 `memo: ''`로 하드코딩된
   부분 수정)
 
+### 완료
+- [x] `migrations/016_quick_templates_add_memo.sql`(ALTER TABLE ADD COLUMN, 테이블
+  재생성 불필요) + `schema.sql` 동기화, 로컬/원격 D1 둘 다 적용 확인
+- [x] `functions/api/templates/index.ts`, `[id].ts` — memo 저장/수정 지원
+- [x] `src/types.ts` — `QuickTemplate.memo: string`, `NewQuickTemplate.memo?: string`
+- [x] `TransactionForm.tsx` — `applyTemplate`에서 `memo: t.memo`로 복원,
+  `handleSaveAsTemplate`에서 `memo: memo.trim() || undefined` 전송
+- [x] `npx tsc -b`, `npm run lint` 통과
+- [x] `wrangler pages dev` + playwright-core로 실제 확인: 메모 입력 후 템플릿 저장 →
+  폼에 다른 메모를 채워둔 상태에서 템플릿 재적용 → 저장했던 메모("아이스아메리카노
+  2잔, 회의용")로 정확히 덮어써지는 것 확인
+
+### 배포
+- `npm run deploy` 진행
+
 ## 2026-07-18 (48차) — 서비스명 "텅장" → "텅~ 장" 변경
 
 사용자 요청으로 서비스 표기명을 "텅장"에서 "텅~ 장"으로 변경. 사용자에게 노출되는

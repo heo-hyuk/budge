@@ -195,6 +195,7 @@ export interface QuickTemplate {
   card_id: string
   sort_order: number
   created_at: string
+  memo: string
 }
 
 export interface NewQuickTemplate {
@@ -205,6 +206,7 @@ export interface NewQuickTemplate {
   merchant?: string
   payment_method?: string
   card_id?: string
+  memo?: string
 }
 
 // ── 최근 구매처 자동완성 ─────────────────────────────────

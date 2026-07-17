@@ -37,6 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     merchant?: string
     payment_method?: string
     card_id?: string
+    memo?: string
   }
 
   if (!body.label?.trim() || !body.type || !body.category) {
@@ -63,12 +64,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   await env.DB.prepare(
     `INSERT INTO quick_templates
-       (id, user_id, label, type, category, amount, merchant, payment_method, card_id, sort_order, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, user_id, label, type, category, amount, merchant, payment_method, card_id, sort_order, created_at, memo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, userId, body.label.trim(), body.type, body.category, body.amount ?? null,
     body.merchant ?? '', body.payment_method ?? '현금', body.card_id ?? '',
-    sortOrder, created_at
+    sortOrder, created_at, body.memo ?? ''
   ).run()
 
   return json({ ok: true, id }, 201)
