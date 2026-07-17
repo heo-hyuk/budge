@@ -25,24 +25,31 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   return json({ data: result.results })
 }
 
-// 빠른 입력 템플릿 등록
+// 빠른 입력 템플릿 등록 — amount 미지정(null) 시 라벨/분류/구매처/결제수단만 저장하고
+// 적용할 때마다 금액을 새로 입력하게 함
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) => {
   const userId = (data as { userId: string }).userId
   const body   = await request.json() as {
     label: string
     type: 'income' | 'expense'
     category: string
-    amount: number
+    amount?: number | null
     merchant?: string
     payment_method?: string
     card_id?: string
   }
 
-  if (!body.label?.trim() || !body.type || !body.category || !body.amount) {
+  if (!body.label?.trim() || !body.type || !body.category) {
     return json({ error: 'Missing required fields' }, 400)
   }
-  if (typeof body.amount !== 'number' || body.amount <= 0) {
-    return json({ error: '금액은 0보다 커야 합니다' }, 400)
+  if (body.amount !== undefined && body.amount !== null) {
+    if (typeof body.amount !== 'number' || body.amount === 0) {
+      return json({ error: '금액을 입력해주세요' }, 400)
+    }
+    // 지출은 항상 양수, 수입은 차감(음수) 항목을 허용
+    if (body.type === 'expense' && body.amount < 0) {
+      return json({ error: '지출 금액은 0보다 커야 합니다' }, 400)
+    }
   }
 
   // 새 템플릿은 항상 마지막 순서로 추가
@@ -59,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
        (id, user_id, label, type, category, amount, merchant, payment_method, card_id, sort_order, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    id, userId, body.label.trim(), body.type, body.category, body.amount,
+    id, userId, body.label.trim(), body.type, body.category, body.amount ?? null,
     body.merchant ?? '', body.payment_method ?? '현금', body.card_id ?? '',
     sortOrder, created_at
   ).run()

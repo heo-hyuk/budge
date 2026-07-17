@@ -2,11 +2,23 @@ export function formatWon(amount: number): string {
   return `${amount.toLocaleString('ko-KR')}원`
 }
 
-/** 금액 입력창에서 타이핑할 때마다 천단위 콤마를 붙여 단위를 헷갈리지 않게 함 */
-export function formatNumberInput(raw: string): string {
+/**
+ * 금액 입력창에서 타이핑할 때마다 천단위 콤마를 붙여 단위를 헷갈리지 않게 함.
+ * allowNegative가 true면(수입의 차감 항목) 선행 '-' 부호를 보존
+ */
+export function formatNumberInput(raw: string, allowNegative = false): string {
+  const isNegative = allowNegative && raw.trim().startsWith('-')
   const digits = raw.replace(/[^0-9]/g, '')
-  if (!digits) return ''
-  return Number(digits).toLocaleString('ko-KR')
+  if (!digits) return isNegative ? '-' : ''
+  const formatted = Number(digits).toLocaleString('ko-KR')
+  return isNegative ? `-${formatted}` : formatted
+}
+
+/** formatNumberInput으로 만들어진 문자열(콤마/선행 '-' 포함)을 숫자로 되돌림 */
+export function parseAmountInput(raw: string): number {
+  const isNegative = raw.trim().startsWith('-')
+  const digits = raw.replace(/[^0-9]/g, '')
+  return isNegative ? -Number(digits) : Number(digits)
 }
 
 export function formatDateLabel(dateStr: string): string {

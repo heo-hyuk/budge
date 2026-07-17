@@ -2,7 +2,7 @@ import { useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
-import { formatDateLabel, formatNumberInput, formatWon } from '../lib/format'
+import { formatDateLabel, formatNumberInput, formatWon, parseAmountInput } from '../lib/format'
 import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
 interface Props {
@@ -53,7 +53,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     setEditState({
       type: tx.type,
       category: tx.category,
-      amount: formatNumberInput(String(tx.amount)),
+      amount: formatNumberInput(String(tx.amount), tx.type === 'income'),
       date: tx.date,
       memo: tx.memo ?? '',
       merchant: tx.merchant ?? '',
@@ -65,8 +65,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
 
   async function handleSave(id: string) {
     if (!editState) return
-    const numericAmount = Number(editState.amount.replace(/[^0-9]/g, ''))
-    if (!numericAmount || numericAmount <= 0) return
+    const numericAmount = parseAmountInput(editState.amount)
+    // 지출은 항상 양수, 수입은 차감(음수) 항목을 허용 — 0/NaN은 어느 쪽이든 무효
+    if (!numericAmount) return
+    if (editState.type === 'expense' && numericAmount < 0) return
     const selectedCard = cards.find((c) => c.id === editState.paymentMethod)
     setSaving(true)
     try {
@@ -114,7 +116,11 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                       <button key={t} type="button"
                         onClick={() => {
                           const cats = getCategories(t)
-                          setEditState((s) => s && { ...s, type: t, category: cats[0] })
+                          setEditState((s) => s && {
+                            ...s, type: t, category: cats[0],
+                            // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
+                            amount: t === 'expense' ? s.amount.replace(/^-/, '') : s.amount,
+                          })
                         }}
                         className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
                           editState.type === t
@@ -126,10 +132,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                       </button>
                     ))}
                   </div>
-                  {/* 금액 */}
-                  <input type="text" inputMode="numeric"
+                  {/* 금액 — 수입은 차감 항목을 위해 음수(-) 입력 허용 */}
+                  <input type="text" inputMode={editState.type === 'income' ? 'text' : 'numeric'}
                     value={editState.amount}
-                    onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value) })}
+                    onChange={(e) => setEditState((s) => s && { ...s, amount: formatNumberInput(e.target.value, s.type === 'income') })}
                     className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                     placeholder="금액"
                   />
@@ -229,7 +235,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>
-                      {tx.type === 'income' ? '+' : '-'}{formatWon(tx.amount)}
+                      {/* 지출은 항상 양수라 '-' 고정, 수입은 차감 항목(음수)이면 formatWon이 이미 '-'를 표시하므로 '+'를 붙이지 않음 */}
+                      {tx.type === 'expense' ? '-' : tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}
                     </span>
                     <button type="button" onClick={() => onDuplicate(tx)}
                       className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"

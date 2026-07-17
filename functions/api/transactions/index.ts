@@ -68,8 +68,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   if (!body.type || !body.category || !body.amount || !body.date) {
     return json({ error: 'Missing required fields' }, 400)
   }
-  if (typeof body.amount !== 'number' || body.amount <= 0) {
-    return json({ error: '금액은 0보다 커야 합니다' }, 400)
+  if (typeof body.amount !== 'number' || body.amount === 0) {
+    return json({ error: '금액을 입력해주세요' }, 400)
+  }
+  // 지출은 항상 양수, 수입은 차감(음수) 항목을 허용
+  if (body.type === 'expense' && body.amount < 0) {
+    return json({ error: '지출 금액은 0보다 커야 합니다' }, 400)
   }
 
   const id         = crypto.randomUUID()

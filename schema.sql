@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~014 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~015 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS quick_templates (
   label TEXT NOT NULL,        -- 예: "아메리카노"
   type TEXT NOT NULL CHECK (type IN ('income','expense')),
   category TEXT NOT NULL,
-  amount INTEGER NOT NULL,
+  amount INTEGER,              -- NULL = 금액 미지정(적용 시 매번 금액만 새로 입력, migration 015)
   merchant TEXT DEFAULT '',
   payment_method TEXT DEFAULT '현금',
   card_id TEXT DEFAULT '',

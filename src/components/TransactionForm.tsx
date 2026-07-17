@@ -4,13 +4,13 @@ import UiCard from './ui/Card'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
 import { addCustomCategory, getCategories } from '../lib/categories'
-import { formatNumberInput, formatWon, todayStr } from '../lib/format'
+import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
 export interface TransactionPrefill {
   type: TransactionType
   category: string
-  amount: number
+  amount: number | null  // null = 금액 미지정 템플릿(금액 필드는 비워두고 포커스만 이동)
   merchant: string
   paymentMethod: string  // '현금' | card.id
   memo: string
@@ -38,6 +38,7 @@ function TransactionForm({
   const [category, setCategory]       = useState(categories[0])
   const [categoryManuallySet, setCategoryManuallySet] = useState(false)
   const [amount, setAmount]           = useState('')
+  const amountInputRef = useRef<HTMLInputElement>(null)
   const [date, setDate]               = useState(todayStr())
   const [memo, setMemo]               = useState('')
   const [merchant, setMerchant]       = useState('')
@@ -62,6 +63,7 @@ function TransactionForm({
   const [manageTemplates, setManageTemplates] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateLabel, setTemplateLabel] = useState('')
+  const [saveTemplateAmount, setSaveTemplateAmount] = useState(true)  // 해제 시 금액은 저장하지 않고 매번 입력
   const [savingTemplate, setSavingTemplate] = useState(false)
   const [templateBusyId, setTemplateBusyId] = useState<string | null>(null)
 
@@ -77,7 +79,7 @@ function TransactionForm({
     setCategories(nextCats)
     setCategory(nextCats.includes(data.category) ? data.category : nextCats[0])
     setCategoryManuallySet(true)  // 자동완성이 채워진 분류를 덮어쓰지 않도록
-    setAmount(formatNumberInput(String(data.amount)))
+    setAmount(data.amount != null ? formatNumberInput(String(data.amount), data.type === 'income') : '')
     setMerchant(data.merchant)
     setPaymentMethod(data.paymentMethod)
     setMemo(data.memo)
@@ -125,17 +127,24 @@ function TransactionForm({
       memo: '',
       date: todayStr(),
     })
+    // 금액 미지정 템플릿 — 나머지는 자동으로 채우고 금액만 바로 입력하게 포커스 이동
+    if (t.amount == null) {
+      amountInputRef.current?.focus()
+    }
   }
 
   async function handleSaveAsTemplate() {
-    const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
+    const numericAmount = parseAmountInput(amount)
     const label = templateLabel.trim()
-    if (!label || !numericAmount || numericAmount <= 0) return
+    if (!label) return
+    // 금액도 저장하는 경우에만 금액이 필수 — 금액 제외 저장은 나머지 필드만으로도 저장 가능
+    if (saveTemplateAmount && !numericAmount) return
     const selectedCard = cards.find((c) => c.id === paymentMethod)
     setSavingTemplate(true)
     try {
       await createTemplate({
-        label, type, category, amount: numericAmount,
+        label, type, category,
+        amount: saveTemplateAmount ? numericAmount : null,
         merchant: merchant.trim() || undefined,
         payment_method: selectedCard ? selectedCard.id : '현금',
         card_id: selectedCard ? selectedCard.id : undefined,
@@ -143,6 +152,7 @@ function TransactionForm({
       setTemplates(await fetchTemplates())
       setTemplateLabel('')
       setShowSaveTemplate(false)
+      setSaveTemplateAmount(true)
       showToast('템플릿으로 저장했습니다')
     } catch (err) {
       showToast(err instanceof Error ? err.message : '템플릿을 저장하지 못했습니다', 'error')
@@ -190,6 +200,10 @@ function TransactionForm({
     setCategory(nextCats[0])
     setCategoryManuallySet(false)
     setAddingCategory(false)
+    // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
+    if (next === 'expense') {
+      setAmount((a) => a.replace(/^-/, ''))
+    }
     // 수입으로 바꾸면 혜택 초기화
     if (next === 'income') {
       setMatches([])
@@ -287,8 +301,10 @@ function TransactionForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
-    if (!numericAmount || numericAmount <= 0) return
+    const numericAmount = parseAmountInput(amount)
+    // 지출은 항상 양수, 수입은 차감(음수) 항목을 허용 — 0/NaN은 어느 쪽이든 무효
+    if (!numericAmount) return
+    if (type === 'expense' && numericAmount < 0) return
 
     const selectedCard = cards.find((c) => c.id === paymentMethod)
 
@@ -343,7 +359,7 @@ function TransactionForm({
     }
   }
 
-  const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
+  const numericAmount = parseAmountInput(amount)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -392,7 +408,7 @@ function TransactionForm({
                 <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t.label}</p>
-                    <p className="text-xs text-neutral-400 dark:text-neutral-500">{t.category} · {formatWon(t.amount)}</p>
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500">{t.category} · {t.amount != null ? formatWon(t.amount) : '금액 직접 입력'}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button type="button" disabled={i === 0 || templateBusyId !== null}
@@ -441,16 +457,20 @@ function TransactionForm({
           <div className="relative mt-1.5">
             <input
               id="amount"
+              ref={amountInputRef}
               type="text"
-              inputMode="numeric"
+              inputMode={type === 'income' ? 'text' : 'numeric'}
               required
               placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(formatNumberInput(e.target.value))}
+              onChange={(e) => setAmount(formatNumberInput(e.target.value, type === 'income'))}
               className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 pl-3 pr-9 py-2 text-right text-2xl font-bold text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-neutral-400 dark:text-neutral-500">원</span>
           </div>
+          {type === 'income' && (
+            <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">차감되는 항목은 맨 앞에 '-'를 붙여 입력하세요 (예: -5000)</p>
+          )}
         </div>
       </UiCard>
 
@@ -771,31 +791,42 @@ function TransactionForm({
           현재 입력값을 템플릿으로 저장
         </button>
       ) : (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            autoFocus
-            placeholder="템플릿 이름 (예: 아메리카노)"
-            value={templateLabel}
-            onChange={(e) => setTemplateLabel(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveAsTemplate() } }}
-            className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-          />
-          <button
-            type="button"
-            onClick={handleSaveAsTemplate}
-            disabled={savingTemplate}
-            className="min-h-9 flex items-center justify-center gap-1.5 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
-          >
-            {savingTemplate ? <LoadingSpinner size={14} /> : '저장'}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowSaveTemplate(false); setTemplateLabel('') }}
-            className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
-          >
-            취소
-          </button>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              autoFocus
+              placeholder="템플릿 이름 (예: 아메리카노)"
+              value={templateLabel}
+              onChange={(e) => setTemplateLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveAsTemplate() } }}
+              className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+            />
+            <button
+              type="button"
+              onClick={handleSaveAsTemplate}
+              disabled={savingTemplate}
+              className="min-h-9 flex items-center justify-center gap-1.5 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600 disabled:opacity-50"
+            >
+              {savingTemplate ? <LoadingSpinner size={14} /> : '저장'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowSaveTemplate(false); setTemplateLabel(''); setSaveTemplateAmount(true) }}
+              className="min-h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+            >
+              취소
+            </button>
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+            <input
+              type="checkbox"
+              checked={saveTemplateAmount}
+              onChange={(e) => setSaveTemplateAmount(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-neutral-300 dark:border-neutral-700"
+            />
+            금액도 함께 저장 (해제 시 매번 금액만 새로 입력)
+          </label>
         </div>
       ))}
 

@@ -189,7 +189,7 @@ export interface QuickTemplate {
   label: string
   type: TransactionType
   category: string
-  amount: number
+  amount: number | null  // null = 금액 미지정(적용 시 금액만 매번 새로 입력)
   merchant: string
   payment_method: string
   card_id: string
@@ -201,7 +201,7 @@ export interface NewQuickTemplate {
   label: string
   type: TransactionType
   category: string
-  amount: number
+  amount?: number | null
   merchant?: string
   payment_method?: string
   card_id?: string

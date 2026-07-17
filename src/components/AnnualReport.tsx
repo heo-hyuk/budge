@@ -94,18 +94,18 @@ function AnnualReport({ year }: Props) {
                   {m.label}
                 </span>
                 <div className="flex-1 space-y-1">
-                  {/* 수입 바 */}
+                  {/* 수입 바 — 차감(음수) 항목이 많아 월 수입이 음수가 될 수 있으므로 음수는 0%로 clamp */}
                   <div className="h-4 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full transition-[width] duration-300"
-                      style={{ width: `${(m.income / maxVal) * 100}%` }}
+                      style={{ width: `${Math.max(0, (m.income / maxVal) * 100)}%` }}
                     />
                   </div>
                   {/* 지출 바 */}
                   <div className="h-4 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-red-400 rounded-full transition-[width] duration-300"
-                      style={{ width: `${(m.expense / maxVal) * 100}%` }}
+                      style={{ width: `${Math.max(0, (m.expense / maxVal) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -134,10 +134,10 @@ function AnnualReport({ year }: Props) {
                   <tr key={m.month} className="border-b border-neutral-100 dark:border-neutral-800 transition-colors last:border-b-0 hover:bg-neutral-50 dark:hover:bg-neutral-900">
                     <td className="whitespace-nowrap px-4 py-2.5 font-semibold text-neutral-700 dark:text-neutral-300">{m.label}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right text-blue-700 dark:text-blue-300">
-                      {m.income > 0 ? formatWon(m.income) : '—'}
+                      {m.income !== 0 ? formatWon(m.income) : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right text-coral-600 dark:text-coral-200">
-                      {m.expense > 0 ? formatWon(m.expense) : '—'}
+                      {m.expense !== 0 ? formatWon(m.expense) : '—'}
                     </td>
                     <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${bal >= 0 ? 'text-neutral-800 dark:text-neutral-200' : 'text-coral-600 dark:text-coral-200'}`}>
                       {m.income === 0 && m.expense === 0 ? '—' : formatWon(bal)}

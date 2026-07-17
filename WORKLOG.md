@@ -37,6 +37,48 @@
 `functions/api/transactions/[id].ts`, `functions/api/templates/index.ts`,
 `functions/api/templates/[id].ts`, `migrations/015_*.sql`, `schema.sql`
 
+### 완료
+- [x] 수입 음수 입력 — `TransactionForm.tsx`(금액 입력 필드 income일 때만 '-' 허용,
+  타입 전환 시 부호 정리, 안내 문구 추가), `TransactionList.tsx`(인라인 수정도 동일,
+  목록 +/- 접두사를 `tx.amount`의 실제 부호 기준으로 수정 — 기존엔 income이면 무조건
+  '+'를 붙여서 음수 금액이 "+-1,000원"처럼 깨졌음), `format.ts`에
+  `formatNumberInput(raw, allowNegative)` / `parseAmountInput(raw)` 추가
+- [x] 서버 검증 — `functions/api/transactions/index.ts`, `[id].ts`: expense는 양수만,
+  income은 0이 아니면 음수도 허용(PATCH는 type이 요청에 없으면 기존 행을 조회해 판단).
+  transactions.amount 컬럼엔 애초에 양수 CHECK 제약이 없어서 스키마 마이그레이션은
+  불필요했음
+- [x] 정산/리포트 화면 음수 표시 방어 — WeeklySettlement/MonthlySettlementTable/
+  AnnualSettlementTable의 `cell()`이 `amount > 0`이면 값 아니면 '-'로 표시하던 걸
+  `amount !== 0`으로 수정(안 그러면 음수 수입이 그냥 '-'로 사라져 보임).
+  MonthlyReport 수입 내역의 하드코딩된 '+' 접두사도 부호 기준으로 수정. AnnualReport
+  막대 너비/표 셀, CategoryBreakdown 막대 너비에 음수 clamp 추가(막대는 0%로, 텍스트
+  금액은 formatWon이 그대로 정확히 표시). DailySettlement/SummaryCard는 이미
+  `SUM(amount)`/`reduce`로 무조건 합산하는 구조라 손댈 필요 없었음
+- [x] 빠른 입력 템플릿 금액 미지정 — `migrations/015_quick_templates_amount_nullable.sql`
+  (SQLite라 테이블 재생성 방식, 006 마이그레이션과 동일 패턴) + `schema.sql` 동기화.
+  `functions/api/templates/index.ts`, `[id].ts`: amount optional/nullable, 부호
+  검증은 transactions와 동일 규칙. `types.ts`: `QuickTemplate.amount: number | null`.
+  `TransactionForm.tsx`: 템플릿 저장 폼에 "금액도 함께 저장" 체크박스(해제 시
+  amount: null로 저장), 템플릿 적용 시 amount가 null이면 금액 필드를 비우고
+  자동 포커스, 관리 목록에서 금액 자리에 "금액 직접 입력" 표시
+
+### 검증
+- `npm run typecheck`(`tsc -b`), `npm run lint`(oxlint) 모두 통과
+- 로컬 D1 초기화(`npm run d1:init`, 즉 `wrangler d1 execute --local`)는 이 세션
+  환경의 Node가 18.19.1이라 wrangler 4.x가 요구하는 Node 22+ 미충족으로 실행 못 함 —
+  다음 세션에서 Node 22+ 환경이거나 실제 배포 시 원격 D1에 마이그레이션 적용 시
+  한 번 더 스키마 확인 필요. 마이그레이션 SQL 자체는 006(`budgets_text_id`)과 동일한
+  "테이블 재생성" 패턴이라 문법적으로는 검증된 방식
+- 브라우저로 실제 화면 동작 확인은 이번 세션에선 못 함(Node 22 미비로 `wrangler pages
+  dev` 구동 불가) — 다음 세션에서 실제로 음수 수입 입력/템플릿 금액 미지정 흐름을
+  브라우저에서 한 번 확인해보는 게 좋음
+
+### 미완료/다음 세션 참고
+- 로컬 D1 마이그레이션 실행 및 브라우저 동작 확인 — Node 22+ 환경에서 진행 필요
+- 원격(운영) D1에는 아직 `migrations/015_*.sql` 미적용 — 배포 전 반드시
+  `wrangler d1 execute budget-db --remote --file=./migrations/015_quick_templates_amount_nullable.sql`
+  실행 필요
+
 ---
 
 ## 2026-07-18 세션 마무리 (44~46차 종합)

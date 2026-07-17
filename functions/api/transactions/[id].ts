@@ -32,8 +32,21 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
     memo?: string; date?: string; merchant?: string; payment_method?: string; card_id?: string
   }
 
-  if (body.amount !== undefined && (typeof body.amount !== 'number' || body.amount <= 0)) {
-    return json({ error: '금액은 0보다 커야 합니다' }, 400)
+  if (body.amount !== undefined) {
+    if (typeof body.amount !== 'number' || body.amount === 0) {
+      return json({ error: '금액을 입력해주세요' }, 400)
+    }
+    // 지출은 항상 양수, 수입은 차감(음수) 항목을 허용 — type이 이번 요청에 없으면 기존 값을 조회해서 판단
+    let effectiveType = body.type
+    if (effectiveType === undefined) {
+      const existing = await env.DB.prepare(
+        'SELECT type FROM transactions WHERE id = ? AND user_id = ?'
+      ).bind(params.id, userId).first<{ type: 'income' | 'expense' }>()
+      effectiveType = existing?.type
+    }
+    if (effectiveType === 'expense' && body.amount < 0) {
+      return json({ error: '지출 금액은 0보다 커야 합니다' }, 400)
+    }
   }
 
   const fields: string[] = []; const values: unknown[] = []

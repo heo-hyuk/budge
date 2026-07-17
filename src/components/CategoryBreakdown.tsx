@@ -18,7 +18,8 @@ function CategoryBreakdown({ transactions, month }: Props) {
   }
 
   const rows = Array.from(totals.entries()).sort((a, b) => b[1] - a[1])
-  const max = rows.length > 0 ? rows[0][1] : 0
+  // 차감(음수) 항목 때문에 카테고리 합계가 음수일 수 있어 막대 기준값은 0 이상으로 clamp
+  const max = rows.length > 0 ? Math.max(rows[0][1], 0) : 0
   const barColor = type === 'expense' ? 'bg-coral-400' : 'bg-blue-500'
 
   const [, mon] = month.split('-')
@@ -63,7 +64,7 @@ function CategoryBreakdown({ transactions, month }: Props) {
               <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                 <div
                   className={`h-full rounded-full transition-[width] duration-300 ${barColor}`}
-                  style={{ width: `${max > 0 ? (amount / max) * 100 : 0}%` }}
+                  style={{ width: `${max > 0 && amount > 0 ? (amount / max) * 100 : 0}%` }}
                 />
               </div>
             </li>

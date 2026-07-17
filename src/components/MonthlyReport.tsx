@@ -207,7 +207,7 @@ function MonthlyReport({ month, cards }: Props) {
                         {tx.date} · {tx.category}
                       </p>
                     </div>
-                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700 dark:text-blue-300">+{formatWon(tx.amount)}</span>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700 dark:text-blue-300">{tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -228,7 +228,7 @@ function MonthlyReport({ month, cards }: Props) {
                         {tx.date} · {tx.category}
                       </p>
                     </div>
-                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700 dark:text-blue-300">+{formatWon(tx.amount)}</span>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-700 dark:text-blue-300">{tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}</span>
                   </li>
                 ))}
               </ul>

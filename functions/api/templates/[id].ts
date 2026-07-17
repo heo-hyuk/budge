@@ -23,11 +23,30 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     label?: string
     type?: 'income' | 'expense'
     category?: string
-    amount?: number
+    amount?: number | null
     merchant?: string
     payment_method?: string
     card_id?: string
     sort_order?: number
+  }
+
+  // amount를 null이 아닌 값으로 바꾸는 경우에만 부호 검증 — null은 "금액 미지정"으로 되돌리는
+  // 정상 요청이라 통과시킴
+  if (body.amount !== undefined && body.amount !== null) {
+    if (typeof body.amount !== 'number' || body.amount === 0) {
+      return json({ error: '금액을 입력해주세요' }, 400)
+    }
+    // type이 이번 요청에 없으면 기존 값을 조회해서 판단
+    let effectiveType = body.type
+    if (effectiveType === undefined) {
+      const existing = await env.DB.prepare(
+        'SELECT type FROM quick_templates WHERE id = ? AND user_id = ?'
+      ).bind(id, userId).first<{ type: 'income' | 'expense' }>()
+      effectiveType = existing?.type
+    }
+    if (effectiveType === 'expense' && body.amount < 0) {
+      return json({ error: '지출 금액은 0보다 커야 합니다' }, 400)
+    }
   }
 
   const sets: string[]    = []

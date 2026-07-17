@@ -15,7 +15,7 @@ function monthLabel(month: string): string {
 }
 
 function cell(amount: number): string {
-  return amount > 0 ? amount.toLocaleString('ko-KR') : '-'
+  return amount !== 0 ? amount.toLocaleString('ko-KR') : '-'
 }
 
 function AnnualSettlementTable() {
