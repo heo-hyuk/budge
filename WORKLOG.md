@@ -84,10 +84,11 @@
 - 검증에 쓴 playwright 스크립트/스크린샷은 세션 스크래치패드에만 있고 저장소에는
   커밋 안 함(일회성 수동 검증용)
 
-### 미완료
-- 원격(운영) D1에는 아직 `migrations/015_*.sql` 미적용 — 배포 전 반드시
-  `wrangler d1 execute budget-db --remote --file=./migrations/015_quick_templates_amount_nullable.sql`
-  실행 필요
+### 원격 D1 마이그레이션 적용
+- `wrangler login` → `npx wrangler d1 execute budget-db --remote --file=./migrations/015_quick_templates_amount_nullable.sql`
+  실행 완료(기존 템플릿 22행 데이터 보존한 채 이관). `PRAGMA table_info
+  (quick_templates)`로 원격 DB의 `amount` 컬럼도 `notnull: 0`으로 정상 반영된 것
+  확인. 남은 미완료 항목 없음
 
 ---
 
