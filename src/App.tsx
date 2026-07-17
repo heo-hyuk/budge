@@ -296,7 +296,9 @@ function App() {
       {/* 데스크탑 전용 상시 사이드바 — 모바일은 기존처럼 햄버거+드로어 유지 */}
       <aside className="hidden lg:flex lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 dark:border-neutral-800 lg:bg-white dark:bg-neutral-900">
         <div className="px-4 py-4">
-          <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+          <button type="button" onClick={() => setActiveTab('home')} aria-label="홈으로 이동">
+            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+          </button>
         </div>
         <nav className="flex flex-col gap-1 p-2">
           {TABS.map((tab) => {
@@ -335,7 +337,9 @@ function App() {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-            <img src="/logo.svg" alt="텅장" className="h-8 w-auto lg:hidden" />
+            <button type="button" onClick={() => setActiveTab('home')} aria-label="홈으로 이동" className="lg:hidden">
+              <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+            </button>
           </div>
 
           {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
@@ -567,7 +571,9 @@ function App() {
       >
         <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+            <button type="button" onClick={() => { setActiveTab('home'); setMenuOpen(false) }} aria-label="홈으로 이동">
+              <img src="/logo.svg" alt="텅장" className="h-8 w-auto" />
+            </button>
           </div>
           <button
             type="button"
