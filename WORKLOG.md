@@ -1,5 +1,28 @@
 # WORKLOG
 
+## 2026-07-17 (42차) — 카드 관리 화면에 실제 카드 디자인 이미지 표시 (작업 시작)
+
+### 계획
+- 카드사 공식 홈페이지에서 조사한 카드 4종 디자인 이미지를 Cloudflare R2에 업로드
+  (`card-presets/{preset_id}.png`), 사용자에게 URL 확인·승인받음
+  - 삼성카드 taptap O: static11.samsungcard.com/wcms/home/scard/image/personal/b_AAP1483.png
+  - KB국민 쿠팡와우카드(로켓 디자인): img1.kbcard.com/ST/img/cxc/kbcard/upload/img/product/09292_img.png
+  - 롯데카드 LOCA LIKIT(옐로우/맨해튼): image.lottecard.co.kr/webapp/pc/images/card/loca/img_card_yellow.png
+  - NH농협카드 zgm.the pay: card.nonghyup.com/content/html/bridge/zgm/images/1.png
+- wrangler.toml에 R2 버킷 바인딩 신규 추가(사용자 승인, 버킷 신규 생성)
+- `migrations/013_add_card_image_url.sql` — cards 테이블에 `image_url TEXT` 컬럼 추가,
+  schema.sql 동기화
+- `src/lib/cardBenefitPresets.ts` — 각 CardPreset에 imageUrl 필드 추가
+- `functions/api/cards/index.ts`(POST)/`[id].ts`(PATCH) — image_url 필드 처리 추가
+- `src/types.ts` — Card/NewCard에 image_url 필드 추가
+- `src/components/CardManager.tsx` — 프리셋 선택 시 image_url 함께 저장(handleSave),
+  카드 목록에 이미지 표시(object-fit, onError 폴백 → 기존 color 기반 비주얼)
+- 예상 변경 파일: `wrangler.toml`, `migrations/013_add_card_image_url.sql`, `schema.sql`,
+  `src/lib/cardBenefitPresets.ts`, `functions/api/cards/index.ts`, `functions/api/cards/[id].ts`,
+  `src/types.ts`, `src/components/CardManager.tsx`, `src/lib/api.ts`
+
+---
+
 ## 2026-07-17 세션 마무리 (38~41차 종합)
 
 오늘 세션에서 진행한 작업 전부 완료 및 배포 완료, 미완료 항목 없음.
