@@ -304,3 +304,19 @@ export async function fetchExportData(params: {
   const url = `/api/export${qs.toString() ? `?${qs}` : ''}`
   return apiRequest<ExportData>(url, undefined, '내보내기 데이터를 불러오지 못했습니다')
 }
+
+// ── 카드 정산 알림(Push) API ─────────────────────────────
+
+export interface PushSubscriptionPayload {
+  endpoint: string
+  p256dh: string
+  auth: string
+}
+
+export async function subscribePush(payload: PushSubscriptionPayload): Promise<void> {
+  await apiRequest('/api/push/subscribe', jsonInit('POST', payload), '알림 구독에 실패했습니다')
+}
+
+export async function unsubscribePush(endpoint: string): Promise<void> {
+  await apiRequest('/api/push/unsubscribe', jsonInit('POST', { endpoint }), '알림 구독 해제에 실패했습니다')
+}

@@ -15,18 +15,14 @@ export default defineConfig({
       // package.json build 스크립트의 cp 단계로 복사, 여기서는 서비스워커 생성만 담당
       manifest: false,
       injectRegister: 'auto',
-      workbox: {
-        // JS/CSS/HTML(+아이콘류) 정적 자산만 프리캐시 — 오프라인 시 마지막 로드 화면 유지용.
-        // functions/api/*는 거래 데이터라 실시간성이 중요해 절대 캐시하면 안 됨
+      // push/notificationclick 핸들러(카드 정산 알림)를 넣으려면 커스텀 SW 소스가
+      // 필요해 generateSW 대신 injectManifest로 전환 — 프리캐시/라우팅 규칙은
+      // src/sw.ts에 직접 작성(이전 generateSW 설정과 동일한 동작 유지)
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkOnly',
-          },
-        ],
       },
     }),
   ],

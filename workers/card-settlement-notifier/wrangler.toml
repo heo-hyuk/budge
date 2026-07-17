@@ -1,0 +1,24 @@
+name = "budget-card-settlement-notifier"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+# fetch 핸들러가 없는 크론 전용 워커라 공개 HTTP 엔드포인트가 불필요 — 노출 면 최소화
+workers_dev = false
+# @block65/webcrypto-web-push가 Node용 폴백 경로로 node:crypto를 동적 import함
+# (Workers에는 Web Crypto가 기본 있어 실제로는 안 타는 분기지만, 번들러 경고 방지 겸
+# 안전하게 활성화)
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+# 매일 UTC 15시 = 한국시간(UTC+9) 자정, 하루 한 번 "어제 마감된 카드"를 점검
+crons = ["0 15 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "budget-db"
+database_id = "ff31284d-4e34-4a03-a99c-313cc330d7d0"
+
+[vars]
+# VAPID 공개키/subject는 비밀정보가 아니라 평문 변수로 둠 (src/lib/pushConfig.ts와
+# 동일한 공개키여야 함). 비공개키(VAPID_PRIVATE_KEY)는 `wrangler secret put`으로만 등록
+VAPID_PUBLIC_KEY = "BNVF3ffHdd83A3kTySza582XejgDV6xRmg4h9O3uRQ9JFFusdy6UqmpS6w1l4jf9pLG51VTBdiNGxSbmE1Gz4Nc"
+VAPID_SUBJECT = "https://budget-3wb.pages.dev"

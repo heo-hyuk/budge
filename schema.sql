@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~013 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~014 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -166,3 +166,26 @@ CREATE TABLE IF NOT EXISTS quick_templates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_quick_templates_user ON quick_templates(user_id);
+
+-- ── 카드 정산 알림 (Push, migration 014) ───────────────────────
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, endpoint)
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+CREATE TABLE IF NOT EXISTS notification_log (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,           -- 'card_settlement'
+  reference_id TEXT NOT NULL,   -- card_id
+  year_month TEXT NOT NULL,     -- 어느 청구월 기준인지 (getCardBillingPeriod의 month)
+  sent_at TEXT NOT NULL,
+  UNIQUE(user_id, type, reference_id, year_month)  -- 같은 카드, 같은 청구월 중복 발송 방지
+);

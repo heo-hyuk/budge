@@ -53,11 +53,17 @@ function shiftMonth(month: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+// 카드 정산 push 알림 클릭 시 월정산 화면으로 바로 이동시키기 위한 딥링크(?tab=monthly)
+function initialTabFromUrl(): Tab {
+  const tab = new URLSearchParams(window.location.search).get('tab')
+  return TABS.some((t) => t.id === tab) ? (tab as Tab) : 'home'
+}
+
 function App() {
   const { user, loading: authLoading, logout, updateNickname } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { showToast } = useToast()
-  const [activeTab, setActiveTab]       = useState<Tab>('home')
+  const [activeTab, setActiveTab]       = useState<Tab>(initialTabFromUrl)
   const [menuOpen, setMenuOpen]         = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [myPageOpen, setMyPageOpen]     = useState(false)

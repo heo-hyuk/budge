@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import NotificationSettings from './NotificationSettings'
 import Card from './ui/Card'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -149,6 +150,9 @@ function MyPage({ onClose }: Props) {
             <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{formatJoinDate(user.created_at)}</p>
           </div>
         </Card>
+
+        {/* 카드 정산 알림 */}
+        <NotificationSettings />
 
         {/* 비밀번호 변경 */}
         <Card>

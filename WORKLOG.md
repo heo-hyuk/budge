@@ -1,6 +1,113 @@
 # WORKLOG
 
-## 2026-07-18 (45차) — 카드 정산 알림(Push) — 작업 시작
+## 2026-07-18 (45차) — 카드 정산 알림(Push) 완료
+
+### 완료
+- [x] VAPID 키 생성(`web-push generate-vapid-keys`, 로컬 1회성 실행). 공개키는
+  `src/lib/pushConfig.ts` + 워커 wrangler.toml `[vars]`에 평문 기록(비밀정보 아님),
+  비공개키는 `workers/card-settlement-notifier`에 `wrangler secret put`으로만 등록(커밋
+  안 됨)
+- [x] `migrations/014_add_push_subscriptions.sql`(요청서엔 009였지만 실제로는 이미 사용
+  중이라 014로) + `schema.sql` 동기화, 로컬/원격 D1 둘 다 적용
+- [x] `src/lib/push.ts` — 구독 헬퍼(`enablePush`/`disablePush`/`getCurrentSubscription`),
+  `src/components/NotificationSettings.tsx`(신규, MyPage에 섹션 추가) — 토글 클릭 시
+  Notification 권한 요청 → SW `pushManager.subscribe()` → 서버 저장. 권한 거부 시
+  안내 문구
+- [x] `functions/api/push/subscribe.ts`/`unsubscribe.ts`(신규), `src/lib/api.ts`에
+  `subscribePush`/`unsubscribePush` 추가
+- [x] Service Worker를 `generateSW`→**`injectManifest`로 전환**(push 핸들러를 넣으려면
+  커스텀 SW 소스가 필요해서) — `src/sw.ts`(신규)에 44차와 동일한 프리캐시+`/api`
+  NetworkOnly 규칙을 직접 작성 + `push`/`notificationclick` 핸들러 추가. DOM lib과
+  WebWorker lib을 한 tsconfig에서 같이 못 써서 `tsconfig.sw.json`(신규, WebWorker lib
+  전용) 분리 + `tsconfig.app.json`에서 `src/sw.ts` exclude + 루트 `tsconfig.json`에
+  참조 추가. `workbox-precaching`/`workbox-routing`/`workbox-strategies` devDependency
+  추가(이미 vite-plugin-pwa의 간접 의존성이었음)
+- [x] 알림 클릭 시 월정산 화면으로 이동시키기 위해 `src/App.tsx`에 `?tab=` 쿼리파라미터
+  딥링크 지원 추가(이 앱에 URL 기반 라우팅이 전혀 없었어서 최소한으로 추가) —
+  `initialTabFromUrl()`이 첫 렌더 시 `activeTab` 초기값으로 사용됨
+- [x] **Cron Worker**(`workers/card-settlement-notifier/`, 별도 wrangler 프로젝트,
+  Pages Functions와 분리):
+  - `web-push` npm 패키지는 Node `https` 모듈 의존이라 Cloudflare Workers 런타임에서
+    동작 안 함 — 대신 Web Crypto 기반으로 Workers를 공식 지원하는
+    `@block65/webcrypto-web-push`(MIT)로 VAPID JWT 서명(ES256) + 페이로드 암호화(RFC
+    8291) 처리 후 `fetch`로 직접 발송. `node:crypto` 동적 import 폴백 경로가 있어
+    `nodejs_compat` 플래그 추가(Workers엔 Web Crypto가 기본 있어 실제로 안 타는
+    분기지만 번들러 경고 방지 겸 안전하게 켬)
+  - `src/billing.ts` — `src/lib/billing.ts`의 `getCardBillingPeriod`/`daysInMonth`
+    로직을 그대로 포팅(별도 배포 단위라 소스 공유 대신 복사)
+  - `src/index.ts` — `scheduled` 핸들러: KST 기준 어제 날짜 계산 → 전체 카드 중
+    (말일 클램핑된) `closing_day`가 어제와 일치하는 카드 탐지 → `getCardBillingPeriod`로
+    청구기간/결제일 계산 → 해당 기간 카드 지출 합계(`transactions.amount` 기준, 이미
+    할인 반영된 실결제액) → `notification_log`로 중복 발송 방지 → 사용자별로 묶어서
+    발송
+  - **묶음 발송 방식 결정**: 한 사용자가 같은 날 여러 카드가 마감되면 사용자가 명시한
+    선호대로 **하나로 묶어서 발송**. 카드 1개면 `"{카드명} 정산 완료"` / `"이번
+    청구기간({시작}~{마감}) 사용액 {합계}원, {결제일}에 결제됩니다"`, 2개 이상이면
+    `"오늘 마감된 카드 N개 정산 완료"` / `"A카드 12,000원, B카드 34,500원"`(제목에
+    개수, 본문에 카드별 요약을 쉼표로 나열)
+  - `notification_log`는 묶음 발송이어도 **카드마다 개별 행**으로 기록(스펙의 UNIQUE
+    제약이 카드+청구월 단위라서). 구독이 0개인 사용자도 로그는 남김(과거 마감 이벤트가
+    나중에 구독해도 소급 발송되지 않도록)
+  - 발송 시 응답 410/404면 만료 구독으로 판단해 `push_subscriptions`에서 자동 삭제
+  - `.dev.vars`(로컬 전용, gitignore 추가) + 실제 VAPID_PRIVATE_KEY secret 등록 +
+    `workers_dev = false`(fetch 핸들러 없는 크론 전용 워커라 공개 HTTP 엔드포인트
+    불필요, 노출 면 최소화) 후 `wrangler deploy` 완료
+
+### 검증 결과
+- `wrangler dev --test-scheduled`로 로컬 D1에 테스트 카드/거래/구독을 직접 넣고
+  `/__scheduled` 엔드포인트로 실제 시나리오 재현: (1) 마감일 미검출 → 재현(2) 마감일
+  검출 성공 → `notification_log`에 정확한 `year_month`로 기록 확인 (3) 같은 이벤트
+  재실행 시 중복 기록 안 됨(dedup) 확인 (4) 실제 P-256 키를 가진 가짜 구독을 넣고
+  발송 시도 → 에러 없이 완료(=Web Crypto 기반 VAPID 서명/페이로드 암호화가 Workers
+  런타임에서 정상 동작함을 확인, 실제 배송 성공 여부는 가짜 endpoint라 확인 대상 아님).
+  테스트 데이터는 전부 로컬 D1에서만 사용, 정리 완료
+- `tsc -b`(루트, sw.ts는 별도 tsconfig.sw.json), `tsc --noEmit --ignoreConfig`(functions/
+  api/push/*.ts 애드혹), `tsc --noEmit`(워커 자체), `oxlint`, `vite build` 전부 통과.
+  빌드 로그로 `dist/sw.js`가 injectManifest 모드로 정상 생성되고 push/notificationclick
+  코드가 포함됐는지, `/api/` NetworkOnly 라우팅이 그대로 유지됐는지 확인
+  (`registerRoute` 4회, `NavigationRoute`용 index.html 참조 등)
+- Chrome으로 실제 배포 화면 확인: 새 sw.js가 active로 정상 등록됨. **다만 같은 탭에서
+  이번 세션 중 여러 번 재배포한 탓에 오래된 서비스워커가 계속 옛날 index.html(옛
+  JS 번들)을 캐시로 물고 있는 현상 발견** — `clients.claim()`은 열려 있는 페이지를
+  바로 제어하긴 해도 이미 실행된 스크립트를 강제로 새로고침하진 않아서, 짧은 시간에
+  반복 배포+같은 탭 재사용을 거듭하면 새 SW가 활성화됐는데도 오래된 청구서를 계속
+  보여주는 상태가 남을 수 있음(실사용자는 이렇게 몇 분 안에 5번씩 재배포된 탭을
+  들고 있지 않아 정상적으로는 안 겪는 상황). `unregister()` + 캐시 삭제 후 재확인하니
+  최신 번들(`MyPage`의 "카드 정산 알림 받기" 섹션 포함) 정상 렌더링 확인
+  - MyPage → 내 정보 팝업에서 "카드 정산 알림 받기" 토글 노출 확인, 클릭 시
+    `Notification.requestPermission()` 호출까지 확인(네이티브 권한 팝업 자체는 자동화
+    도구로 응답할 수 없는 브라우저 UI라 실제 허용/구독 완료까지는 진행 안 함 — 실사용자
+    확인 필요)
+
+### 배포
+- 원격 D1에 `migrations/014_add_push_subscriptions.sql` 적용 완료
+- 메인 앱: `npm run deploy` 완료 — https://54be6989.budget-3wb.pages.dev
+- Cron Worker: `workers/card-settlement-notifier`에서 `wrangler deploy` 완료 —
+  `budget-card-settlement-notifier`, 크론 `0 15 * * *`(UTC) = 매일 한국시간 자정
+
+### 다음에 참고할 것
+- **VAPID_PRIVATE_KEY는 이 세션에서 생성해 워커에 secret으로 등록해뒀음** — 분실 시
+  `web-push generate-vapid-keys`로 재생성하고 공개키도 `src/lib/pushConfig.ts` +
+  워커 `wrangler.toml`을 함께 갱신해야 함(공개키/비공개키는 항상 쌍으로 갱신)
+- 실사용자가 마이페이지에서 알림을 켠 뒤, 실제 카드 마감일에 알림이 오는지는 이
+  세션에서 직접 확인 못 함(네이티브 권한 승인이 필요해서) — 다음에 사용자가 직접
+  테스트하거나, 요청하면 알림 권한을 미리 허용해둔 프로필로 재검증 가능
+- `workers/card-settlement-notifier`는 루트 `npm run build`/`deploy`에 안 걸림 —
+  코드를 고치면 그 디렉토리에서 별도로 `npm run deploy` 필요
+
+### 변경/신규 파일
+- `migrations/014_add_push_subscriptions.sql`(신규), `schema.sql`
+- `src/lib/pushConfig.ts`(신규), `src/lib/push.ts`(신규), `src/lib/api.ts`
+- `src/components/NotificationSettings.tsx`(신규), `src/components/MyPage.tsx`
+- `functions/api/push/subscribe.ts`(신규), `functions/api/push/unsubscribe.ts`(신규)
+- `vite.config.ts`, `src/sw.ts`(신규), `tsconfig.sw.json`(신규), `tsconfig.app.json`,
+  `tsconfig.json`, `src/App.tsx`
+- `workers/card-settlement-notifier/`(신규 디렉토리: `wrangler.toml`, `package.json`,
+  `tsconfig.json`, `src/billing.ts`, `src/index.ts`)
+- `.gitignore`(`.dev.vars` 추가), `package.json`/`package-lock.json`(vite-plugin-pwa
+  관련 workbox-* devDependency 추가)
+
+---
 
 카드 청구 마감일이 지나면 그 카드의 이번 청구기간 정산액을 push 알림으로 보내는 기능.
 예산 초과 알림이 아니라 "마감 완료" 알림. 설치(PWA)는 44차에서 이미 완료, 이번엔 Push까지.
