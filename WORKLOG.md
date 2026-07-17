@@ -30,7 +30,7 @@ category, amount, merchant, payment_method, card_id, sort_order만 있음)
   2잔, 회의용")로 정확히 덮어써지는 것 확인
 
 ### 배포
-- `npm run deploy` 진행
+- `npm run deploy` 완료 — https://2dce3f92.budget-3wb.pages.dev
 
 ## 2026-07-18 (48차) — 서비스명 "텅장" → "텅~ 장" 변경
 
