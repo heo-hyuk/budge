@@ -64,17 +64,27 @@
 
 ### 검증
 - `npm run typecheck`(`tsc -b`), `npm run lint`(oxlint) 모두 통과
-- 로컬 D1 초기화(`npm run d1:init`, 즉 `wrangler d1 execute --local`)는 이 세션
-  환경의 Node가 18.19.1이라 wrangler 4.x가 요구하는 Node 22+ 미충족으로 실행 못 함 —
-  다음 세션에서 Node 22+ 환경이거나 실제 배포 시 원격 D1에 마이그레이션 적용 시
-  한 번 더 스키마 확인 필요. 마이그레이션 SQL 자체는 006(`budgets_text_id`)과 동일한
-  "테이블 재생성" 패턴이라 문법적으로는 검증된 방식
-- 브라우저로 실제 화면 동작 확인은 이번 세션에선 못 함(Node 22 미비로 `wrangler pages
-  dev` 구동 불가) — 다음 세션에서 실제로 음수 수입 입력/템플릿 금액 미지정 흐름을
-  브라우저에서 한 번 확인해보는 게 좋음
+- 이 머신에 Node가 18.19.1만 있어 wrangler 4.x(Node 22+ 요구) 구동이 처음엔
+  안 됐는데, nvm으로 Node 22.23.1 설치 후 `~/.local/bin`에 심볼릭 링크를 걸어 해결
+  (sudo/터미널 재시작 불필요 — PATH에서 `~/.local/bin`이 `/usr/bin`보다 먼저 옴)
+- Node 22 환경에서 `npm run d1:init`으로 로컬 D1 초기화 성공. `PRAGMA table_info
+  (quick_templates)`로 `amount` 컬럼이 `notnull: 0`(nullable)로 정상 적용된 것 직접
+  확인
+- `npm run build` → `wrangler pages dev`로 로컬 전체 서버(API+정적 빌드) 구동 후
+  playwright-core(시스템 설치된 google-chrome을 CDP로 직결, 별도 브라우저 다운로드
+  없이)로 실제 브라우저 시나리오 검증:
+  - 회원가입 → 수입 타입으로 전환 → 금액 `-3000` 입력 → 저장 → 거래 목록에
+    "배달수수료 차감 · -3,000원"으로 정확히 표시(과거 버그였던 "+-3,000원" 깨짐
+    없음 확인), 홈 요약 카드도 "수입 -3,000원 / 잔액 -3,000원"으로 정확히 순액 반영
+  - "현재 입력값을 템플릿으로 저장"에서 "금액도 함께 저장" 체크 해제 후 저장 →
+    템플릿 관리 목록에 "기타수입 · 금액 직접 입력"으로 정확히 표시
+  - 해당 템플릿 적용 시 금액 필드가 비워지고 자동으로 포커스됨(`document.
+    activeElement.id === 'amount'` 확인)
+  - 콘솔 에러 없음
+- 검증에 쓴 playwright 스크립트/스크린샷은 세션 스크래치패드에만 있고 저장소에는
+  커밋 안 함(일회성 수동 검증용)
 
-### 미완료/다음 세션 참고
-- 로컬 D1 마이그레이션 실행 및 브라우저 동작 확인 — Node 22+ 환경에서 진행 필요
+### 미완료
 - 원격(운영) D1에는 아직 `migrations/015_*.sql` 미적용 — 배포 전 반드시
   `wrangler d1 execute budget-db --remote --file=./migrations/015_quick_templates_amount_nullable.sql`
   실행 필요
