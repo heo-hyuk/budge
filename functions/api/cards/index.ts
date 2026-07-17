@@ -28,6 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   const userId = (data as { userId: string }).userId
   const body   = await request.json() as {
     name: string; color?: string; billing_day: number; closing_day: number; benefits?: string
+    image_url?: string | null
   }
 
   if (!body.name || !body.billing_day || !body.closing_day) {
@@ -44,9 +45,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   const created_at = new Date().toISOString()
 
   await env.DB.prepare(
-    `INSERT INTO cards (id, name, color, billing_day, closing_day, benefits, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, body.name, body.color ?? '#6366f1', body.billing_day, body.closing_day, body.benefits ?? '[]', userId, created_at).run()
+    `INSERT INTO cards (id, name, color, billing_day, closing_day, benefits, image_url, user_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, body.name, body.color ?? '#6366f1', body.billing_day, body.closing_day, body.benefits ?? '[]', body.image_url ?? null, userId, created_at).run()
 
   return json({ ok: true, id }, 201)
 }

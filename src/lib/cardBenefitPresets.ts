@@ -5,6 +5,9 @@
 
 export const AI_NOTICE = 'AI가 조사한 정보이니 실제 카드 약관과 다를 수 있어 확인 필요'
 
+// 카드사 공식 홈페이지에서 조사해 R2에 업로드해둔 카드 실물 디자인 이미지
+const R2_CARD_IMAGE_BASE = 'https://pub-226d8250b81644e39f63d37bbc6ab853.r2.dev/card-presets'
+
 function withNotice(memo?: string): string {
   return memo ? `${memo} · ${AI_NOTICE}` : AI_NOTICE
 }
@@ -33,6 +36,7 @@ export interface CardPreset {
   requiresPackageChoice: boolean  // true면 "패키지 중 택1" 안내 + 활성 토글 UI 노출
   groups: PresetGroup[]
   benefits: PresetBenefit[]
+  imageUrl: string        // 카드 실물 디자인 이미지 (R2 공개 URL)
 }
 
 export const CARD_BENEFIT_PRESETS: CardPreset[] = [
@@ -41,6 +45,7 @@ export const CARD_BENEFIT_PRESETS: CardPreset[] = [
     label: '삼성카드 taptap O',
     requiresPackageChoice: true,
     groups: [],
+    imageUrl: `${R2_CARD_IMAGE_BASE}/samsung-taptap-o.png`,
     benefits: [
       {
         name: '통신비 10% 할인',
@@ -91,6 +96,7 @@ export const CARD_BENEFIT_PRESETS: CardPreset[] = [
     label: 'KB국민 쿠팡 와우카드',
     requiresPackageChoice: false,
     groups: [],
+    imageUrl: `${R2_CARD_IMAGE_BASE}/kb-coupang-wow.png`,
     benefits: [
       {
         name: '쿠팡/쿠팡이츠/쿠팡플레이 2% 적립',
@@ -118,6 +124,7 @@ export const CARD_BENEFIT_PRESETS: CardPreset[] = [
     groups: [
       { name: 'LOCA LIKIT 통합한도', monthly_cap: 13000 },
     ],
+    imageUrl: `${R2_CARD_IMAGE_BASE}/lotte-loca-likit.png`,
     benefits: [
       {
         name: '스타벅스 50% 할인',
@@ -173,6 +180,7 @@ export const CARD_BENEFIT_PRESETS: CardPreset[] = [
     groups: [
       { name: 'zgm.the pay 통합한도', monthly_cap: 100000 },
     ],
+    imageUrl: `${R2_CARD_IMAGE_BASE}/nh-zgm-the-pay.png`,
     benefits: [
       // 아래 3개 혜택은 실제로는 "어떤 결제 방식으로 냈는지"에 따라 하나만 적용되지만,
       // 지금 거래 데이터 모델은 카드 결제라는 것만 기록하고 그 카드가 어느 앱(NH페이/

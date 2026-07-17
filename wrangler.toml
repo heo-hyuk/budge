@@ -6,3 +6,7 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "budget-db"
 database_id = "ff31284d-4e34-4a03-a99c-313cc330d7d0"
+
+[[r2_buckets]]
+binding = "CARD_IMAGES"
+bucket_name = "budget-card-images"

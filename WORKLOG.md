@@ -1,25 +1,56 @@
 # WORKLOG
 
-## 2026-07-17 (42차) — 카드 관리 화면에 실제 카드 디자인 이미지 표시 (작업 시작)
+## 2026-07-17 (42차) — 카드 관리 화면에 실제 카드 디자인 이미지 표시
 
-### 계획
-- 카드사 공식 홈페이지에서 조사한 카드 4종 디자인 이미지를 Cloudflare R2에 업로드
-  (`card-presets/{preset_id}.png`), 사용자에게 URL 확인·승인받음
+카드 4종(삼성 taptap O, KB 쿠팡와우, 롯데 LOCA LIKIT, NH zgm.the pay)의 카드사 공식
+디자인 이미지를 R2에 올려 카드 관리 화면에 실물처럼 보이게 해달라는 요청.
+
+### 조사 및 사용자 승인
+- WebSearch/WebFetch로 각 카드사 공식 홈페이지에서 카드 실물 이미지 `<img>` src 직접 확인 후
+  다운로드해 Read 도구로 실제 카드 디자인이 맞는지 육안 검증(가짜/로고 이미지 아님을 확인)
   - 삼성카드 taptap O: static11.samsungcard.com/wcms/home/scard/image/personal/b_AAP1483.png
-  - KB국민 쿠팡와우카드(로켓 디자인): img1.kbcard.com/ST/img/cxc/kbcard/upload/img/product/09292_img.png
-  - 롯데카드 LOCA LIKIT(옐로우/맨해튼): image.lottecard.co.kr/webapp/pc/images/card/loca/img_card_yellow.png
+  - KB국민 쿠팡와우카드(로켓 디자인, 신용카드 페이지에서 확인 — 처음 찾은 09673 코드는
+    체크카드였어서 신용카드 상세 페이지(09293)로 재조사): img1.kbcard.com/ST/img/cxc/kbcard/upload/img/product/09292_img.png
+  - 롯데카드 LOCA LIKIT — 블루/옐로우 2색상 중 **옐로우(맨해튼)** 로 사용자 선택:
+    image.lottecard.co.kr/webapp/pc/images/card/loca/img_card_yellow.png
   - NH농협카드 zgm.the pay: card.nonghyup.com/content/html/bridge/zgm/images/1.png
-- wrangler.toml에 R2 버킷 바인딩 신규 추가(사용자 승인, 버킷 신규 생성)
-- `migrations/013_add_card_image_url.sql` — cards 테이블에 `image_url TEXT` 컬럼 추가,
-  schema.sql 동기화
-- `src/lib/cardBenefitPresets.ts` — 각 CardPreset에 imageUrl 필드 추가
-- `functions/api/cards/index.ts`(POST)/`[id].ts`(PATCH) — image_url 필드 처리 추가
-- `src/types.ts` — Card/NewCard에 image_url 필드 추가
-- `src/components/CardManager.tsx` — 프리셋 선택 시 image_url 함께 저장(handleSave),
-  카드 목록에 이미지 표시(object-fit, onError 폴백 → 기존 color 기반 비주얼)
-- 예상 변경 파일: `wrangler.toml`, `migrations/013_add_card_image_url.sql`, `schema.sql`,
-  `src/lib/cardBenefitPresets.ts`, `functions/api/cards/index.ts`, `functions/api/cards/[id].ts`,
-  `src/types.ts`, `src/components/CardManager.tsx`, `src/lib/api.ts`
+- AskUserQuestion으로 (1) LOCA LIKIT 색상 선택 (2) 4개 URL 업로드 승인 (3) R2 버킷 신규 생성
+  승인을 받은 뒤에만 진행 (CLAUDE.md 지시: 무단 스크래핑 금지, 승인 후 진행)
+
+### 완료
+- [x] R2 버킷 `budget-card-images` 신규 생성 + 퍼블릭 r2.dev URL 활성화
+  (`https://pub-226d8250b81644e39f63d37bbc6ab853.r2.dev`)
+- [x] `wrangler.toml` — `[[r2_buckets]]` 바인딩(`CARD_IMAGES`) 추가
+- [x] 4개 이미지를 `wrangler r2 object put --remote`로 `card-presets/{preset_id}.png` 경로에
+  업로드(최초 `--remote` 플래그 없이 실행해 로컬 시뮬레이션 버킷에 잘못 올라간 것 발견 →
+  재업로드로 수정). curl로 4개 전부 퍼블릭 URL에서 200/image/png 정상 서빙 확인
+- [x] `migrations/013_add_card_image_url.sql` — `cards.image_url TEXT` 컬럼 추가, `schema.sql`
+  동기화(001~013), 원격 D1에도 적용 완료
+- [x] `src/lib/cardBenefitPresets.ts` — `CardPreset.imageUrl` 필드 추가, 4개 프리셋 전부에
+  R2 공개 URL 채움
+- [x] `functions/api/cards/index.ts`(POST)/`[id].ts`(PATCH) — `image_url` 필드 insert/update
+  처리 추가
+- [x] `src/types.ts` — `Card.image_url`(string | null), `NewCard.image_url`(optional) 추가
+- [x] `src/components/CardManager.tsx` — 프리셋 선택 시 `handleSave`에서 `image_url`도 함께
+  저장(새 카드/기존 카드 수정 둘 다). 카드 목록 각 행 좌측에 70×44 썸네일 표시
+  (`object-cover`) — `image_url` 없거나 `onError` 발생 시 기존 `color` 필드 기반 그라데이션
+  블록으로 자동 폴백(카드별 실패 상태를 `imageLoadFailedIds` Set으로 추적). 실제 파일
+  리사이즈는 하지 않고 CSS 표시 크기만 제한(요청 스펙대로 충분한 수준)
+- [x] `tsc -b`(src) / `oxlint` / `vite build` 통과, `functions/api/cards/*.ts`는 애드혹
+  `tsc --noEmit --ignoreConfig`로 별도 타입 체크 통과
+
+### 검증 결과
+- 정적 검증(tsc/lint/build)만 진행, 사용자 요청 시에만 Chrome 실동작 검증 진행하는 기존
+  방침 유지(브라우저 화면 확인은 안 함)
+
+### 배포
+- 원격 D1에 `migrations/013_add_card_image_url.sql` 적용 완료
+- `npm run deploy` 완료 — https://735f6507.budget-3wb.pages.dev
+
+### 변경 파일
+- `wrangler.toml`, `migrations/013_add_card_image_url.sql`(신규), `schema.sql`
+- `src/lib/cardBenefitPresets.ts`, `functions/api/cards/index.ts`, `functions/api/cards/[id].ts`
+- `src/types.ts`, `src/components/CardManager.tsx`
 
 ---
 

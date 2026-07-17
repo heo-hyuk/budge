@@ -21,6 +21,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
   const userId = (data as { userId: string }).userId
   const body   = await request.json() as {
     name?: string; color?: string; billing_day?: number; closing_day?: number; benefits?: string
+    image_url?: string | null
   }
 
   if (body.billing_day !== undefined && (body.billing_day < 1 || body.billing_day > 31)) {
@@ -36,6 +37,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
   if (body.billing_day !== undefined) { fields.push('billing_day = ?'); values.push(body.billing_day) }
   if (body.closing_day !== undefined) { fields.push('closing_day = ?'); values.push(body.closing_day) }
   if (body.benefits !== undefined)    { fields.push('benefits = ?');    values.push(body.benefits) }
+  if (body.image_url !== undefined)   { fields.push('image_url = ?');   values.push(body.image_url) }
 
   if (fields.length === 0) return json({ error: 'No fields to update' }, 400)
 

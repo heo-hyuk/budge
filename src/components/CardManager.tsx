@@ -83,6 +83,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const [error, setError]         = useState('')
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null)
   const [presetId, setPresetId]   = useState('')  // 새 카드 등록 시 선택한 카드 프리셋 ('' = 직접 입력)
+  const [imageLoadFailedIds, setImageLoadFailedIds] = useState<Set<string>>(new Set())  // 이미지 깨진 카드 → color 기반 비주얼로 폴백
 
   // 카드별 혜택 규칙 상태
   const [openBenefitCardId, setOpenBenefitCardId] = useState<string | null>(null)
@@ -230,15 +231,16 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       form.benefits.split('\n').map((s) => s.trim()).filter(Boolean)
     )
 
+    const preset = presetId ? CARD_BENEFIT_PRESETS.find((p) => p.id === presetId) : undefined
+
     const data: NewCard = {
       name: form.name.trim(),
       color: form.color,
       billing_day,
       closing_day,
       benefits,
+      ...(preset ? { image_url: preset.imageUrl } : {}),
     }
-
-    const preset = presetId ? CARD_BENEFIT_PRESETS.find((p) => p.id === presetId) : undefined
 
     setSaving(true)
     try {
@@ -589,7 +591,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             // 말일 클램핑이 미리보기 숫자를 왜곡하지 않도록 함
             const { start, end, billingDate } = getCardBillingPeriod('2024-01', {
               id: '', name: '', color: '', billing_day: billingDay, closing_day: closingDay,
-              benefits: '[]', created_at: '',
+              benefits: '[]', image_url: null, created_at: '',
             })
             const endLabel   = MONTH_BACK_LABELS[monthsBetween(billingDate, end)]   ?? '이전월'
             const startLabel = MONTH_BACK_LABELS[monthsBetween(billingDate, start)] ?? '이전월'
@@ -649,6 +651,21 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                     "테스..."처럼 과도하게 줄어들지 않음. sm 이상에서는 한 줄로 합침 */}
                 <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
+                    {/* 카드 실물 썸네일 — 프리셋에서 이미지가 저장된 카드만 표시, 없거나
+                        로드 실패 시 color 필드 기반 그라데이션 블록으로 폴백 */}
+                    {card.image_url && !imageLoadFailedIds.has(card.id) ? (
+                      <img
+                        src={card.image_url}
+                        alt={`${card.name} 카드 디자인`}
+                        className="h-11 w-[70px] shrink-0 rounded-md object-cover shadow-sm"
+                        onError={() => setImageLoadFailedIds((prev) => new Set(prev).add(card.id))}
+                      />
+                    ) : (
+                      <div
+                        className="h-11 w-[70px] shrink-0 rounded-md shadow-sm"
+                        style={{ background: `linear-gradient(135deg, ${card.color}, ${card.color}99)` }}
+                      />
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{card.name}</p>
                       <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
