@@ -1,5 +1,22 @@
 # WORKLOG
 
+## 2026-07-18 (49차) — 빠른 입력 템플릿 메모 저장 누락 버그 수정
+
+사용자 리포트: "템플릿 저장하면 메모가 저장 되는게 중요한데 지금 이게 안되는데?"
+확인해보니 `quick_templates` 테이블에 애초에 `memo` 컬럼 자체가 없어서(label, type,
+category, amount, merchant, payment_method, card_id, sort_order만 있음)
+`TransactionForm.tsx`의 템플릿 저장/적용 로직도 memo를 아예 다루지 않고 있었음.
+
+### 예상 작업 항목
+- `migrations/016_*.sql` — `quick_templates`에 `memo TEXT DEFAULT ''` 컬럼 추가
+  (ALTER TABLE ADD COLUMN, 015와 달리 NOT NULL 제약 변경이 아니라 테이블 재생성
+  불필요), `schema.sql` 동기화, 로컬+원격 D1 적용
+- `functions/api/templates/index.ts`(POST), `[id].ts`(PATCH) — memo 필드 저장/수정
+- `src/types.ts` — `QuickTemplate.memo`, `NewQuickTemplate.memo?`
+- `src/components/TransactionForm.tsx` — `handleSaveAsTemplate`에서 memo 전송,
+  `applyTemplate`에서 memo 복원(현재 `applyPrefill` 호출 시 `memo: ''`로 하드코딩된
+  부분 수정)
+
 ## 2026-07-18 (48차) — 서비스명 "텅장" → "텅~ 장" 변경
 
 사용자 요청으로 서비스 표기명을 "텅장"에서 "텅~ 장"으로 변경. 사용자에게 노출되는
