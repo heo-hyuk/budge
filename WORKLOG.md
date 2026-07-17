@@ -39,13 +39,42 @@
 - [x] `tsc -b`(src) / `oxlint` / `vite build` 통과, `functions/api/cards/*.ts`는 애드혹
   `tsc --noEmit --ignoreConfig`로 별도 타입 체크 통과
 
-### 검증 결과
+### 검증 결과 (1차, 정적 검증만)
 - 정적 검증(tsc/lint/build)만 진행, 사용자 요청 시에만 Chrome 실동작 검증 진행하는 기존
   방침 유지(브라우저 화면 확인은 안 함)
 
-### 배포
+### 배포 (1차)
 - 원격 D1에 `migrations/013_add_card_image_url.sql` 적용 완료
 - `npm run deploy` 완료 — https://735f6507.budget-3wb.pages.dev
+
+### 버그 수정 — 다크모드에서 "카드 상품 선택" 드롭다운 글자가 안 보임
+사용자가 Chrome 실동작 검증을 요청하며 동시에 버그 리포트: 다크모드에서 카드 등록 폼의
+"카드 상품 선택" 드롭다운을 열면 옵션 글자가 하나도 안 보임.
+
+**원인**: `<select>` 요소에 `border`/`text-base` 등은 있었지만 배경색 클래스
+(`bg-white`/`dark:bg-neutral-900`)가 빠져 있었음. 일반 `<input>`은 부모 카드 컨테이너의
+배경 위에 얹혀 있어 배경이 없어도 문제 없지만, `<select>`가 펼치는 네이티브 옵션
+팝업은 브라우저가 **select 자신의 background-color**를 팝업 배경으로 사용함(배경이
+transparent면 브라우저 기본값인 흰색 사용). 다크모드 글자색(`oklch(0.97 0 0)`, 거의
+흰색)이 그 흰색 배경과 겹쳐 완전히 안 보이는 상태였음 — Chrome의 `getComputedStyle`로
+`background-color: rgba(0,0,0,0)` 확인해 원인 특정
+- [x] `src/components/CardManager.tsx` — select 클래스에 `bg-white dark:bg-neutral-900
+  text-neutral-900 dark:text-neutral-100` 추가(앱 내 유일한 `<select>` 요소)
+- [x] 배포 후 Chrome으로 재확인 — `getComputedStyle(select).backgroundColor`가
+  다크모드에서 `oklch(0.205 0 0)`(neutral-900)로 바뀐 것 확인, 텍스트색과 대비 확보됨.
+  네이티브 드롭다운 팝업 자체는 OS 레이어라 스크린샷에는 안 잡히지만(CDP 캡처가
+  30초 타임아웃 — 이전 세션들에서도 동일 현상 기록됨), computed style로 근본 원인이
+  해소됐음을 직접 확인
+- [x] tsc -b / oxlint / vite build 통과
+
+### 검증 결과 (2차)
+- Chrome으로 실제 배포 화면(다크모드) 확인: 로그인 상태 유지, 카드 관리 → 카드 추가 →
+  "카드 상품 선택" select 박스 자체는 다크 배경+밝은 텍스트로 정상 렌더링 확인.
+  네이티브 옵션 팝업 시각 확인은 스크린샷 도구 한계로 못 했지만 backgroundColor computed
+  style로 대비 문제 해소를 확인함
+
+### 배포 (2차, 버그 수정)
+- `npm run deploy` 완료 — https://16801107.budget-3wb.pages.dev
 
 ### 변경 파일
 - `wrangler.toml`, `migrations/013_add_card_image_url.sql`(신규), `schema.sql`

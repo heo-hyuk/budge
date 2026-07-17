@@ -497,7 +497,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
           <select
             value={presetId}
             onChange={(e) => setPresetId(e.target.value)}
-            className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+            className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           >
             <option value="">직접 입력</option>
             {CARD_BENEFIT_PRESETS.map((p) => (
