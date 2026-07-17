@@ -33,7 +33,10 @@
   정상 삭제. 콘솔 에러 없음
 
 ### 배포
-- `npm run deploy` 진행
+- `npm run deploy` 완료 — https://3a736a98.budget-3wb.pages.dev
+- PWA는 `self.skipWaiting()` + `clients.claim()`이 이미 적용돼 있어 새로고침 한
+  번이면 최신 SW로 갱신됨. 그래도 안 바뀌어 보이면 홈 화면 앱을 완전히 종료 후
+  재실행 권장
 
 ## 2026-07-18 (49차) — 빠른 입력 템플릿 메모 저장 누락 버그 수정
 
