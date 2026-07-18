@@ -1,5 +1,27 @@
 # WORKLOG
 
+## 2026-07-18 (52차) — 메모 분류(카테고리) 삭제 기능 추가
+
+사용자 요청: "분류 탭도 관리 버튼 만들어서 삭제가 가능해야 할거같은데?" — 메모
+작성/수정 폼의 카테고리 선택 칩("일상", "만남" 등)에 "관리" 버튼을 추가해 사용자가
+직접 추가한 분류를 삭제할 수 있게 함. 분류는 `src/lib/noteCategories.ts`에서
+localStorage(`budget:noteCategories`)로 브라우저별 저장되고 있음(서버 API 없음,
+기존 구조 그대로 유지).
+
+### 계획
+- `src/lib/noteCategories.ts` — `removeCustomNoteCategory(name)`(localStorage에서
+  제거), `isDefaultNoteCategory(name)`(기본 5종은 삭제 불가하도록 판별) 추가
+- `src/components/NotesView.tsx` — 카테고리 칩 목록 옆에 "관리" 토글 버튼 추가.
+  관리 모드일 때 사용자 정의 분류 칩에는 우측에 삭제(×) 표시가 붙고 클릭 시
+  확인 후 삭제(기본 분류는 관리 모드에서도 삭제 버튼 없이 그대로 선택만 가능).
+  이미 그 분류로 저장된 기존 메모는 데이터가 그대로 남고(카테고리 텍스트만 유지),
+  선택지 목록에서만 사라짐
+
+### 예상 변경 파일
+- `src/lib/noteCategories.ts`, `src/components/NotesView.tsx`
+
+---
+
 ## 2026-07-18 (51차) — 메모에 이미지(스크린샷) 첨부 기능 추가
 
 사용자 요청: "스크릿샷 첨부해서 지출중에 기억하고싶은 상품 기록하려고 하는데 메모에
