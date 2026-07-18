@@ -29,6 +29,31 @@
 ### 예상 변경 파일
 - `src/lib/categories.ts`, `src/components/TransactionForm.tsx`
 
+### 완료
+- [x] `src/lib/categories.ts` — `removeCategory(type, name)` 추가, 타입별
+  `removedDefaults` localStorage 키로 기본 분류 삭제 지원, `addCustomCategory`에
+  삭제한 기본 분류 복원 분기 추가
+- [x] `src/components/TransactionForm.tsx` — "분류" 라벨 옆 톱니바퀴 아이콘 전용
+  토글(`manageCategories` 상태), 삭제 모드에서 모든 칩(기본 포함)에 × 표시 +
+  클릭 시 확인 모달 경유 삭제. `handleTypeChange`/`applyPrefill`(복제·수정
+  프리필 공용)에 `setManageCategories(false)` 추가해 지출/수입 전환이나 다른
+  거래를 불러올 때 삭제 모드가 남아있지 않도록 처리
+- [x] `npx tsc -b`, `npm run lint`, `npm run build` 통과
+
+### 검증 결과
+- `wrangler pages dev` + Chrome/playwright-core(CDP)로 확인(재로드 전 서비스워커/
+  캐시 정리 후 진행): 사용자가 지적한 스크린샷과 동일한 "내역 추가" 폼의 "분류"
+  섹션에서 톱니 버튼이 텍스트 없이 아이콘만 있는 것 확인 → 클릭 시 기본 분류
+  "기타"에도 × 표시 → 클릭 → "'기타' 분류를 삭제할까요? 이미 이 분류로 저장된
+  거래는 그대로 남습니다" 확인 모달(스크린샷 직접 확인) → 확인 → 목록에서 정확히
+  제거됨(남은 8개 기본 분류만 확인됨) → 지출→수입 전환 시 분류가 급여/용돈/
+  기타수입으로 정확히 바뀌고 삭제 모드도 자동으로 꺼지는("+ 직접입력" 버튼 재노출)
+  것 확인
+
+### 배포
+- 순수 프론트엔드(localStorage) 변경, D1/R2 작업 없음
+- `npm run deploy` 완료 — https://f1ada081.budget-3wb.pages.dev
+
 ---
 
 ## 2026-07-18 (53차) — 메모 분류 삭제: 기본 분류도 삭제 가능 + UI를 톱니 아이콘으로 단순화

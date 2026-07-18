@@ -1,10 +1,11 @@
+import { Settings2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
-import { addCustomCategory, getCategories } from '../lib/categories'
+import { addCustomCategory, getCategories, removeCategory } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
@@ -48,6 +49,7 @@ function TransactionForm({
   const [saving, setSaving]           = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
+  const [manageCategories, setManageCategories] = useState(false)
   const [editingId, setEditingId]     = useState<string | null>(null)  // 있으면 수정 모드(생성 대신 onUpdateSubmit 호출)
 
   // 혜택 매칭 상태
@@ -87,6 +89,7 @@ function TransactionForm({
     setMemo(data.memo)
     setDate(todayStr())
     setAddingCategory(false)
+    setManageCategories(false)
   }
 
   // 거래 복제 — App.tsx가 nonce를 바꿔가며 주입
@@ -203,6 +206,7 @@ function TransactionForm({
     setCategory(nextCats[0])
     setCategoryManuallySet(false)
     setAddingCategory(false)
+    setManageCategories(false)
     // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
     if (next === 'expense') {
       setAmount((a) => a.replace(/^-/, ''))
@@ -223,6 +227,13 @@ function TransactionForm({
     setCategoryManuallySet(true)
     setNewCategory('')
     setAddingCategory(false)
+  }
+
+  async function handleDeleteCategory(name: string) {
+    if (!(await confirm(`"${name}" 분류를 삭제할까요? 이미 이 분류로 저장된 거래는 그대로 남습니다.`))) return
+    const updated = removeCategory(type, name)
+    setCategories(updated)
+    if (category === name) setCategory(updated[0] ?? '')
   }
 
   // 구매처 입력값과 겹치는 최근 구매처 제안 (최대 5개)
@@ -639,21 +650,43 @@ function TransactionForm({
 
       {/* 분류/날짜/메모 카드 */}
       <UiCard>
-        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">분류</span>
+        <div className="flex items-center">
+          <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">분류</span>
+          <button
+            type="button"
+            onClick={() => setManageCategories((m) => !m)}
+            aria-label={manageCategories ? '분류 삭제 모드 종료' : '분류 삭제'}
+            className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+              manageCategories ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
+            }`}
+          >
+            <Settings2 size={14} />
+          </button>
+        </div>
         <div className="mt-1.5 flex flex-wrap gap-2">
           {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => { setCategory(c); setCategoryManuallySet(true) }}
-              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
-                category === c ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-              }`}
-            >
-              {c}
-            </button>
+            <div key={c} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (manageCategories) { handleDeleteCategory(c); return }
+                  setCategory(c)
+                  setCategoryManuallySet(true)
+                }}
+                className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${manageCategories ? 'pr-7' : ''} ${
+                  category === c && !manageCategories ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                }`}
+              >
+                {c}
+              </button>
+              {manageCategories && (
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                  <X size={12} />
+                </span>
+              )}
+            </div>
           ))}
-          {!addingCategory && (
+          {!addingCategory && !manageCategories && (
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
