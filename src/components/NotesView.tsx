@@ -1,10 +1,10 @@
-import { CalendarDays, ImagePlus, List, Pencil, Plus, RotateCw, Trash2, X } from 'lucide-react'
+import { CalendarDays, ImagePlus, List, Pencil, Plus, RotateCw, Settings2, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
-import { addCustomNoteCategory, getNoteCategories } from '../lib/noteCategories'
+import { addCustomNoteCategory, getNoteCategories, isDefaultNoteCategory, removeCustomNoteCategory } from '../lib/noteCategories'
 import type { Note } from '../types'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한
@@ -47,6 +47,7 @@ function NotesView({ month }: Props) {
   const [content, setContent]         = useState('')
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
+  const [manageCategories, setManageCategories] = useState(false)
   const [saving, setSaving]           = useState(false)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
 
@@ -120,6 +121,7 @@ function NotesView({ month }: Props) {
   function startAdd(date: string) {
     setEditTarget({ date, note: null })
     setAddingCategory(false)
+    setManageCategories(false)
     setCategories(getNoteCategories())
     setCategory(getNoteCategories()[0])
     setContent('')
@@ -129,6 +131,7 @@ function NotesView({ month }: Props) {
   function startEdit(date: string, note: Note) {
     setEditTarget({ date, note })
     setAddingCategory(false)
+    setManageCategories(false)
     setCategories(getNoteCategories())
     setCategory(note.category)
     setContent(note.content)
@@ -139,6 +142,7 @@ function NotesView({ month }: Props) {
     setEditTarget(null)
     setContent('')
     setAddingCategory(false)
+    setManageCategories(false)
     resetImageState()
   }
 
@@ -150,6 +154,13 @@ function NotesView({ month }: Props) {
     setCategory(trimmed)
     setNewCategory('')
     setAddingCategory(false)
+  }
+
+  async function handleDeleteCategory(name: string) {
+    if (!(await confirm(`"${name}" 분류를 삭제할까요? 이미 이 분류로 저장된 메모는 그대로 남습니다.`))) return
+    const updated = removeCustomNoteCategory(name)
+    setCategories(updated)
+    if (category === name) setCategory(updated[0])
   }
 
   async function handleSave() {
@@ -267,20 +278,29 @@ function NotesView({ month }: Props) {
   function renderEditForm() {
     return (
       <div className="space-y-2 rounded-xl border border-coral-200 dark:border-coral-900 bg-coral-50/40 dark:bg-coral-900/20 p-3">
-        <div className="flex flex-wrap gap-1.5">
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCategory(c)}
-              className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${
-                category === c ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-              }`}
-            >
-              {c}
-            </button>
-          ))}
-          {!addingCategory && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {categories.map((c) => {
+            const deletable = manageCategories && !isDefaultNoteCategory(c)
+            return (
+              <div key={c} className="relative">
+                <button
+                  type="button"
+                  onClick={() => (deletable ? handleDeleteCategory(c) : setCategory(c))}
+                  className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${deletable ? 'pr-6' : ''} ${
+                    category === c && !deletable ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  {c}
+                </button>
+                {deletable && (
+                  <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                    <X size={11} />
+                  </span>
+                )}
+              </div>
+            )
+          })}
+          {!addingCategory && !manageCategories && (
             <button
               type="button"
               onClick={() => setAddingCategory(true)}
@@ -289,6 +309,16 @@ function NotesView({ month }: Props) {
               + 직접입력
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setManageCategories((m) => !m)}
+            aria-label={manageCategories ? '분류 관리 종료' : '분류 관리'}
+            className={`ml-auto flex min-h-7 items-center gap-1 rounded-full px-2.5 text-xs font-semibold transition-colors ${
+              manageCategories ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300'
+            }`}
+          >
+            <Settings2 size={12} /> {manageCategories ? '완료' : '관리'}
+          </button>
         </div>
         {addingCategory && (
           <div className="flex gap-2">

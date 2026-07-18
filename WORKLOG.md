@@ -20,6 +20,34 @@ localStorage(`budget:noteCategories`)로 브라우저별 저장되고 있음(서
 ### 예상 변경 파일
 - `src/lib/noteCategories.ts`, `src/components/NotesView.tsx`
 
+### 완료
+- [x] `src/lib/noteCategories.ts` — `removeCustomNoteCategory`, `isDefaultNoteCategory`
+  추가
+- [x] `src/components/NotesView.tsx` — 카테고리 칩 줄 우측에 "관리"/"완료" 토글 버튼
+  추가(`manageCategories` 상태). 관리 모드에서 사용자 정의 분류 칩은 클릭 동작이
+  선택 대신 삭제(확인 모달 경유)로 바뀌고 우측에 빨간 × 아이콘 표시, 기본 5종
+  분류는 관리 모드에서도 × 없이 그대로 선택만 가능하도록 분기. 메모 작성/수정
+  시작·취소 시 관리 모드도 함께 초기화되도록 `startAdd`/`startEdit`/`cancelEdit`에
+  `setManageCategories(false)` 추가
+- [x] `npx tsc -b`, `npm run lint`, `npm run build` 통과
+
+### 검증 결과
+- `wrangler pages dev` + Chrome/playwright-core(CDP)로 실제 화면 확인: 메모 작성 폼에서
+  "+ 직접입력"으로 커스텀 분류 2개("쇼핑", "테스트용삭제될분류") 추가 → "관리" 클릭 →
+  기본 분류(일상 등 5종)에는 × 표시 없음, 커스텀 분류에만 × 표시되는 것 확인 →
+  커스텀 분류 클릭 → "OO 분류를 삭제할까요? 이미 이 분류로 저장된 메모는 그대로
+  남습니다" 확인 모달 노출(스크린샷으로 직접 확인) → 확인 클릭 → 목록에서 정확히
+  제거됨 → "완료" 클릭 시 관리 모드 종료되고 "+ 직접입력" 버튼이 다시 노출되는 것 확인
+- 재배포 후 브라우저에 남아있던 예전 서비스워커가 새 번들을 안 물고 있어서(과거
+  44~46차에도 기록된 현상) 처음엔 새로 추가한 "관리" 버튼이 아예 안 보였음 —
+  `navigator.serviceWorker.getRegistrations()` 전체 unregister + `caches` 전체 삭제
+  후 새로고침으로 해결. 실사용자는 짧은 시간에 여러 번 재배포된 탭을 계속 붙들고
+  있지 않아 정상적으로는 안 겪는 상황(과거 기록과 동일한 결론)
+
+### 배포
+- 서버 API/스키마 변경이 없는 순수 프론트엔드(localStorage) 기능이라 D1/R2 작업 없음
+- `npm run deploy` 완료 — https://b022518a.budget-3wb.pages.dev
+
 ---
 
 ## 2026-07-18 (51차) — 메모에 이미지(스크린샷) 첨부 기능 추가

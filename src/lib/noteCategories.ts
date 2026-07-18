@@ -29,3 +29,14 @@ export function addCustomNoteCategory(name: string): string[] {
   }
   return getNoteCategories()
 }
+
+/** 사용자가 직접 추가한 분류만 삭제 가능(기본 제공 분류는 삭제 불가) */
+export function removeCustomNoteCategory(name: string): string[] {
+  const custom = loadCustomCategories().filter((c) => c !== name)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(custom))
+  return getNoteCategories()
+}
+
+export function isDefaultNoteCategory(name: string): boolean {
+  return DEFAULT_NOTE_CATEGORIES.includes(name)
+}
