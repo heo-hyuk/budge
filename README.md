@@ -14,6 +14,7 @@
 | 프론트엔드 | React 19 + TypeScript + Tailwind CSS v4 + Vite |
 | 백엔드 | Cloudflare Pages Functions (Edge) |
 | 데이터베이스 | Cloudflare D1 (SQLite) |
+| 오브젝트 스토리지 | Cloudflare R2 — 카드 상품 이미지(공개), 메모 첨부 이미지(비공개, 인증 API 경유) |
 | 인증 | 자체 이메일/비밀번호 (PBKDF2 + 세션 쿠키) |
 | PWA | vite-plugin-pwa(injectManifest) + 커스텀 Service Worker |
 | Push 알림 | Web Push(VAPID) — `@block65/webcrypto-web-push`(Workers 런타임용) |
@@ -39,6 +40,8 @@
 
 ### 홈 (거래 입력 / 목록)
 - 수입 / 지출 구분, 금액·분류·날짜·메모·구매처 입력
+- 분류 직접 추가("+ 직접입력") 및 삭제 관리(톱니 아이콘 → 기본 제공 분류 포함
+  전부 삭제 가능, 이미 저장된 거래의 분류 텍스트는 그대로 유지)
 - 결제 방법 선택 (현금 또는 등록된 카드) + 카드 혜택 자동 매칭 제안
 - 최근 사용한 구매처 자동완성(선택 시 대표 분류 자동 채움)
 - 빠른 입력 템플릿(즐겨찾기 칩으로 폼 한번에 채우기, 관리/재정렬)
@@ -85,7 +88,10 @@
 - 초과 시 홈 화면 배너 + 입력 폼 인라인 경고
 
 ### 메모장
-- 날짜별 자유 기록(카테고리 태그, 하루 여러 건 가능), 목록/달력 보기 토글
+- 날짜별 자유 기록(분류 태그, 하루 여러 건 가능), 목록/달력 보기 토글
+- 분류 직접 추가/삭제 관리(기본 제공 분류 포함 전부 삭제 가능)
+- 스크린샷/사진 첨부(메모당 1장, 5MB 이하) — 개인 구매 정보가 담길 수 있어 R2에
+  비공개로 저장하고 본인 메모만 인증된 API로 조회 가능(공개 URL 없음)
 
 ### 검색
 - 구매처/분류/메모 통합 검색 + 날짜·분류·결제수단·금액범위 필터(서버사이드 결합)
@@ -110,7 +116,8 @@ budget/
 │   │   ├── benefit-groups/           # 혜택 통합 한도 그룹 CRUD
 │   │   ├── recurring/                # 고정 수입/지출 CRUD
 │   │   ├── budgets/                  # 예산 CRUD + 현황 계산
-│   │   ├── notes/                    # 메모장 CRUD
+│   │   ├── notes/                    # 메모장 CRUD(이미지 첨부는 multipart/form-data)
+│   │   │   └── image/[id].ts         # 첨부 이미지 조회 전용(R2 스트리밍, 본인 메모만)
 │   │   ├── templates/                # 빠른 입력 템플릿 CRUD
 │   │   ├── settlement/               # daily/weekly/monthly/annual 정산 조회
 │   │   ├── push/                     # subscribe / unsubscribe (알림 구독)
@@ -121,7 +128,8 @@ budget/
 │       ├── budget.ts                 # 예산 현황 계산
 │       ├── benefitMatcher.ts         # 카드 혜택 매칭 로직
 │       ├── settlement.ts             # 일/주/월/연 정산 계산
-│       └── recurring.ts              # 고정지출 자동 생성
+│       ├── recurring.ts              # 고정지출 자동 생성
+│       └── noteImages.ts             # 메모 첨부 이미지 타입/용량 검증(5MB, JPEG/PNG/WEBP/GIF)
 ├── src/
 │   ├── components/
 │   │   ├── ui/Card.tsx               # 공통 카드형 레이아웃 컴포넌트
@@ -152,7 +160,7 @@ budget/
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~014, schema.sql과 항상 동기화
+├── migrations/                       # 001~017, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -178,9 +186,10 @@ card_benefits          -- id, user_id, card_id, name, category, merchant_pattern
                        --   benefit_group_id, benefit_type, active
 benefit_groups         -- id, card_id, name, monthly_cap (혜택 통합 한도)
 budgets                -- id, user_id, category, monthly_limit, year_month, active
-notes                  -- id, user_id, date, category, content
+notes                  -- id, user_id, date, category, content,
+                       --   image_key (R2 오브젝트 키, 첨부 이미지 없으면 NULL)
 quick_templates        -- id, user_id, label, type, category, amount, merchant,
-                       --   payment_method, card_id, sort_order
+                       --   payment_method, card_id, sort_order, memo
 push_subscriptions      -- id, user_id, endpoint, p256dh, auth (Web Push 구독)
 notification_log       -- id, user_id, type, reference_id, year_month, sent_at
                        --   (같은 카드·같은 청구월 중복 알림 방지)
