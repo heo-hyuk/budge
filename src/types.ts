@@ -286,6 +286,7 @@ export interface Note {
   date: string       // 'YYYY-MM-DD'
   category: string
   content: string
+  image_key: string | null  // R2 오브젝트 키, 없으면 null
   created_at: string
   updated_at: string
 }

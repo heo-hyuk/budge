@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
+import { validateNoteImage } from '../../lib/noteImages'
 
-interface Env { DB: D1Database }
+interface Env { DB: D1Database; NOTE_IMAGES: R2Bucket }
 
 interface NoteRow {
   id: string
@@ -8,6 +9,7 @@ interface NoteRow {
   date: string
   category: string
   content: string
+  image_key: string | null
   created_at: string
   updated_at: string
 }
@@ -31,32 +33,43 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   return Response.json({ data: result.results })
 }
 
-interface NoteBody {
-  date: string
-  category: string
-  content: string
-}
-
-/** POST /api/notes — 새 메모 생성 (하루 여러 건 가능, 항상 새 행 추가) */
+/** POST /api/notes — 새 메모 생성 (하루 여러 건 가능, 항상 새 행 추가, 이미지 첨부 1장 가능) */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, data, request } = context
   const userId = (data as Record<string, string>).userId
-  const body   = await request.json() as NoteBody
+  const form   = await request.formData()
 
-  if (!body.date || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+  const date     = form.get('date')
+  const category = form.get('category')
+  const content  = form.get('content')
+  const image    = form.get('image')
+
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return Response.json({ error: '날짜가 올바르지 않습니다' }, { status: 400 })
   }
-  if (!body.content || !body.content.trim()) {
+  if (typeof content !== 'string' || !content.trim()) {
     return Response.json({ error: '내용을 입력해주세요' }, { status: 400 })
+  }
+  if (image instanceof File && image.size > 0) {
+    const imageError = validateNoteImage(image)
+    if (imageError) return Response.json({ error: imageError }, { status: 400 })
   }
 
   const now = new Date().toISOString()
   const id  = crypto.randomUUID()
 
+  let imageKey: string | null = null
+  if (image instanceof File && image.size > 0) {
+    imageKey = `notes/${id}`
+    await env.NOTE_IMAGES.put(imageKey, await image.arrayBuffer(), {
+      httpMetadata: { contentType: image.type },
+    })
+  }
+
   await env.DB.prepare(`
-    INSERT INTO notes (id, user_id, date, category, content, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(id, userId, body.date, body.category || '일상', body.content.trim(), now, now).run()
+    INSERT INTO notes (id, user_id, date, category, content, image_key, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(id, userId, date, (typeof category === 'string' && category) || '일상', content.trim(), imageKey, now, now).run()
 
   return Response.json({ id }, { status: 201 })
 }

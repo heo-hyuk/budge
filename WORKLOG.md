@@ -33,6 +33,57 @@
   `functions/api/notes/image/[id].ts`(신규)
 - `src/types.ts`, `src/lib/api.ts`, `src/components/NotesView.tsx`
 
+### 완료
+- [x] R2 버킷 `budget-note-images` 신규 생성(`wrangler r2 bucket create`, 퍼블릭 액세스
+  켜지 않음). `wrangler.toml`에 `NOTE_IMAGES` 바인딩 추가
+- [x] `migrations/017_add_notes_image.sql`(`notes.image_key TEXT` 컬럼) + `schema.sql`
+  동기화, 로컬/원격 D1 둘 다 적용 완료
+- [x] `functions/lib/noteImages.ts`(신규) — 이미지 타입(JPEG/PNG/WEBP/GIF)/용량(5MB)
+  검증 로직을 index.ts/[id].ts에서 공용으로 사용
+- [x] `functions/api/notes/index.ts`(POST) — `multipart/form-data`로 전환, 이미지
+  첨부 시 R2에 `notes/{note_id}` 키로 업로드 후 `image_key` 저장
+- [x] `functions/api/notes/[id].ts`(PATCH/DELETE) — PATCH는 이미지 교체(같은 키
+  덮어쓰기)/제거(`removeImage=1`) 지원, DELETE는 메모 삭제 시 R2 오브젝트도 함께 삭제
+- [x] `functions/api/notes/image/[id].ts`(신규) — 본인 메모 소유권 확인 후 R2에서
+  이미지 스트리밍 응답(`Cache-Control: private`, `ETag`)
+- [x] `src/types.ts`(`Note.image_key`), `src/lib/api.ts`(`saveNote`/`updateNote`
+  FormData 전환, `noteImageUrl` 헬퍼)
+- [x] `src/components/NotesView.tsx` — 작성/수정 폼에 파일 첨부 필드(선택 전 드래그
+  아이콘 버튼 → 선택 후 미리보기+제거(X) 버튼, 수정 시 기존 첨부 이미지도 동일한
+  방식으로 표시/제거), 메모 목록/달력 상세에 첨부 썸네일 표시(클릭 시 새 탭에서 원본)
+- [x] `npx tsc -b`, `npm run lint`, `npm run build` 통과. Functions 코드는 애드혹
+  `tsc --noEmit --ignoreConfig --lib es2022`로 별도 확인(루트 tsconfig에 안 걸림, DOM
+  lib과 workers-types 충돌 방지 위해 `--lib es2022`만 지정)
+
+### 검증 결과
+- `wrangler pages dev`(로컬 D1+R2 전부 실제 바인딩) + curl로 API 전 경로 직접 검증:
+  회원가입 → 이미지 포함 메모 생성(201, `image_key: notes/{id}`) → 목록 조회에 정확히
+  반영 → 이미지 엔드포인트에서 원본과 바이트 단위로 동일한 파일 수신(diff 없음) →
+  **인증 없이 조회 시 401**, **다른 사용자 계정으로 조회 시 404**(소유권 확인 정상) →
+  PATCH로 이미지 교체 시 새 파일로 정확히 덮어써짐 → PATCH `removeImage=1`로 제거 시
+  `image_key`가 null로 바뀌고 이미지 엔드포인트 404 → 메모 삭제 시 R2 오브젝트도 같이
+  삭제되어 이후 조회 404 → 이미지 아닌 파일 첨부 시 400, 5MB 초과 파일 첨부 시 400
+  전부 확인
+- Chrome + playwright-core(CDP 직결)로 실제 브라우저 화면 확인: 로그인 → 메모 탭 →
+  "메모 추가" → "스크린샷/사진 첨부" 버튼으로 파일 선택 → 저장 전 미리보기 노출 확인 →
+  저장 후 목록에 썸네일이 올바른 비율(600×400 테스트 이미지 → 143×96px, `max-h-24`
+  제약에 맞게 정확히 스케일)로 렌더링되는 것 시각 확인(스크린샷으로 직접 캡처).
+  1×1 픽셀짜리 극단적으로 작은 테스트 이미지로는 썸네일이 거의 안 보이는 크기로
+  나오는데(이건 버그가 아니라 이미지 자체가 1px이라 당연한 현상 — 실제 스크린샷은
+  이 문제가 없음을 600×400 이미지로 재확인함), 실사용 시나리오에 해당하는 현실적인
+  크기의 이미지로는 정상적으로 잘 보이는 것을 확인
+- 이번 세션에서도 Chrome CDP 스크린샷/evaluate 호출이 간헐적으로 응답 없이 멈추는
+  현상이 여러 번 발생(과거 42~46차 WORKLOG에도 동일 현상 기록됨, 이 환경 자체의
+  고질적 문제로 보임) — Chrome 프로세스를 완전히 재시작하는 방식으로 우회하며 진행
+- 검증에 쓴 playwright 스크립트/테스트 이미지는 세션 스크래치패드에만 있고 저장소에는
+  커밋 안 함(일회성 수동 검증용). 로컬 D1의 테스트 계정/메모는 로컬 전용 dev 데이터라
+  정리 없이 그대로 둠(운영 D1과 무관)
+
+### 배포
+- 원격 D1에 `migrations/017_add_notes_image.sql` 적용 완료, R2 버킷 `budget-note-images`
+  원격 생성 완료(퍼블릭 액세스 미설정)
+- `npm run deploy` 완료 — https://72b865f9.budget-3wb.pages.dev
+
 ---
 
 ## 2026-07-18 (50차) — 홈 화면 설치 PWA에서 삭제 확인 버튼이 반응 없는 버그 수정

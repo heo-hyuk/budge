@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS notes (
   date TEXT NOT NULL,              -- 'YYYY-MM-DD'
   category TEXT NOT NULL DEFAULT '일상',
   content TEXT NOT NULL,
+  image_key TEXT,                  -- R2 오브젝트 키('notes/{note_id}'), migration 017
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

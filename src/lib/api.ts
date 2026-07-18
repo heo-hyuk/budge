@@ -233,16 +233,35 @@ export async function fetchNotes(month: string): Promise<Note[]> {
   return body.data
 }
 
-export async function saveNote(note: NewNote): Promise<void> {
-  await apiRequest('/api/notes', jsonInit('POST', note), '메모를 저장하지 못했습니다')
+export async function saveNote(note: NewNote, image?: File | null): Promise<void> {
+  const form = new FormData()
+  form.set('date', note.date)
+  form.set('category', note.category)
+  form.set('content', note.content)
+  if (image) form.set('image', image)
+  await apiRequest('/api/notes', { method: 'POST', body: form }, '메모를 저장하지 못했습니다')
 }
 
-export async function updateNote(id: string, data: Partial<Pick<NewNote, 'category' | 'content'>>): Promise<void> {
-  await apiRequest(`/api/notes/${id}`, jsonInit('PATCH', data), '메모를 수정하지 못했습니다')
+export async function updateNote(
+  id: string,
+  data: Partial<Pick<NewNote, 'category' | 'content'>>,
+  options?: { image?: File | null; removeImage?: boolean }
+): Promise<void> {
+  const form = new FormData()
+  if (data.category !== undefined) form.set('category', data.category)
+  if (data.content  !== undefined) form.set('content', data.content)
+  if (options?.image) form.set('image', options.image)
+  if (options?.removeImage) form.set('removeImage', '1')
+  await apiRequest(`/api/notes/${id}`, { method: 'PATCH', body: form }, '메모를 수정하지 못했습니다')
 }
 
 export async function deleteNote(id: string): Promise<void> {
   await apiRequest(`/api/notes/${id}`, { method: 'DELETE' }, '메모를 삭제하지 못했습니다')
+}
+
+/** 메모에 첨부된 이미지 URL(세션 쿠키 인증 필요, 본인 메모만 조회 가능) */
+export function noteImageUrl(noteId: string): string {
+  return `/api/notes/image/${noteId}`
 }
 
 // ── 최근 구매처 자동완성 API ─────────────────────────────

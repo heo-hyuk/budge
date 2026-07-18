@@ -10,3 +10,7 @@ database_id = "ff31284d-4e34-4a03-a99c-313cc330d7d0"
 [[r2_buckets]]
 binding = "CARD_IMAGES"
 bucket_name = "budget-card-images"
+
+[[r2_buckets]]
+binding = "NOTE_IMAGES"
+bucket_name = "budget-note-images"

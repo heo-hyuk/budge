@@ -1,11 +1,13 @@
-import { CalendarDays, List, Pencil, Plus, RotateCw, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { CalendarDays, ImagePlus, List, Pencil, Plus, RotateCw, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
-import { deleteNote, fetchNotes, saveNote, updateNote } from '../lib/api'
+import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
 import { addCustomNoteCategory, getNoteCategories } from '../lib/noteCategories'
 import type { Note } from '../types'
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한
 
 interface Props {
   month: string // 'YYYY-MM'
@@ -48,6 +50,40 @@ function NotesView({ month }: Props) {
   const [saving, setSaving]           = useState(false)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
 
+  // 첨부 이미지 — 새로 선택한 파일(imageFile)이 있으면 우선, 없고 수정 중인 메모에
+  // 기존 이미지가 있으면(removeExistingImage=false) 그걸 보여줌
+  const [imageFile, setImageFile]     = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [removeExistingImage, setRemoveExistingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function resetImageState() {
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
+    setImageFile(null)
+    setImagePreviewUrl(null)
+    setRemoveExistingImage(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      showToast('이미지 파일만 첨부할 수 있습니다', 'error')
+      e.target.value = ''
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      showToast('이미지 용량은 5MB 이하만 가능합니다', 'error')
+      e.target.value = ''
+      return
+    }
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
+    setImageFile(file)
+    setImagePreviewUrl(URL.createObjectURL(file))
+    setRemoveExistingImage(false)
+  }
+
   function load() {
     setLoading(true)
     setError('')
@@ -87,6 +123,7 @@ function NotesView({ month }: Props) {
     setCategories(getNoteCategories())
     setCategory(getNoteCategories()[0])
     setContent('')
+    resetImageState()
   }
 
   function startEdit(date: string, note: Note) {
@@ -95,12 +132,14 @@ function NotesView({ month }: Props) {
     setCategories(getNoteCategories())
     setCategory(note.category)
     setContent(note.content)
+    resetImageState()
   }
 
   function cancelEdit() {
     setEditTarget(null)
     setContent('')
     setAddingCategory(false)
+    resetImageState()
   }
 
   function handleAddCategory() {
@@ -119,9 +158,12 @@ function NotesView({ month }: Props) {
     setSaving(true)
     try {
       if (editTarget.note) {
-        await updateNote(editTarget.note.id, { category, content: content.trim() })
+        await updateNote(editTarget.note.id, { category, content: content.trim() }, {
+          image: imageFile,
+          removeImage: removeExistingImage,
+        })
       } else {
-        await saveNote({ date: editTarget.date, category, content: content.trim() })
+        await saveNote({ date: editTarget.date, category, content: content.trim() }, imageFile)
       }
       load()
       cancelEdit()
@@ -167,6 +209,57 @@ function NotesView({ month }: Props) {
           <RotateCw size={13} /> 다시 시도
         </button>
       </div>
+    )
+  }
+
+  // 이미지 첨부 필드 — 새로 고른 파일 미리보기 > 기존 첨부 이미지 > 첨부 버튼 순으로 표시
+  function renderImageAttachField() {
+    const existingImageKey = editTarget?.note?.image_key
+    const showExisting = !imageFile && !removeExistingImage && !!existingImageKey
+
+    if (imageFile && imagePreviewUrl) {
+      return (
+        <div className="relative inline-block">
+          <img src={imagePreviewUrl} alt="첨부할 이미지 미리보기" className="max-h-32 rounded-lg border border-neutral-200 dark:border-neutral-800 object-cover" />
+          <button
+            type="button"
+            onClick={resetImageState}
+            aria-label="첨부 이미지 제거"
+            className="absolute -right-2 -top-2 rounded-full bg-neutral-900/80 p-1 text-white transition-colors hover:bg-neutral-900"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )
+    }
+
+    if (showExisting && editTarget?.note) {
+      return (
+        <div className="relative inline-block">
+          <img src={noteImageUrl(editTarget.note.id)} alt="첨부된 이미지" className="max-h-32 rounded-lg border border-neutral-200 dark:border-neutral-800 object-cover" />
+          <button
+            type="button"
+            onClick={() => setRemoveExistingImage(true)}
+            aria-label="첨부 이미지 제거"
+            className="absolute -right-2 -top-2 rounded-full bg-neutral-900/80 p-1 text-white transition-colors hover:bg-neutral-900"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 px-2.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300">
+        <ImagePlus size={14} /> 스크린샷/사진 첨부
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+      </label>
     )
   }
 
@@ -225,6 +318,7 @@ function NotesView({ month }: Props) {
           placeholder="오늘 있었던 일, 만난 사람 등을 적어보세요"
           className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
         />
+        {renderImageAttachField()}
         <div className="flex gap-2">
           <button
             type="button"
@@ -265,6 +359,15 @@ function NotesView({ month }: Props) {
             {note.category}
           </span>
           <p className={`mt-1 whitespace-pre-wrap break-words text-neutral-800 dark:text-neutral-200 ${card ? 'text-base leading-relaxed' : 'text-sm'}`}>{note.content}</p>
+          {note.image_key && (
+            <a href={noteImageUrl(note.id)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block">
+              <img
+                src={noteImageUrl(note.id)}
+                alt="첨부 이미지"
+                className={`rounded-lg border border-neutral-200 dark:border-neutral-800 object-cover ${card ? 'max-h-40' : 'max-h-24'}`}
+              />
+            </a>
+          )}
         </div>
         <div className={`flex shrink-0 gap-1 transition-opacity ${card ? '' : 'opacity-0 group-hover:opacity-100'}`}>
           <button
