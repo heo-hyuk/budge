@@ -1,5 +1,36 @@
 # WORKLOG
 
+## 2026-07-18 (54차) — 거래 입력 폼의 "분류"에도 삭제 관리 기능 추가
+
+사용자가 스크린샷(`/home/h/사진/스크린샷/스크린샷 2026-07-18 15-24-39.png`)으로 지적:
+51~53차에서 작업한 건 메모(NotesView) 화면의 분류였는데, 사용자가 애초에 원했던
+건 "내역 추가"(거래 입력 폼, `TransactionForm.tsx`)의 "분류" 섹션(식비/교통/
+주거·공과금/의료/문화·여가/쇼핑/교육/경조사/기타)이었음. 메모 쪽 작업은 그대로 두고
+(사용자 지시: "그건그냥 두고") 거래 분류 쪽에 동일한 삭제 관리 기능을 추가.
+
+### 계획
+- `src/lib/categories.ts` — `noteCategories.ts`(53차)와 동일한 패턴으로 재구성:
+  기본 분류(타입별 `DEFAULT_CATEGORIES`)도 삭제 가능하도록 "삭제된 기본 분류" 목록을
+  타입별 별도 localStorage 키(`budget:categories:${type}:removedDefaults`)에 저장,
+  `removeCategory(type, name)` 신규 추가(기본/커스텀 구분 없이 삭제), 삭제한 기본
+  분류를 같은 이름으로 재입력하면 복원
+- `src/components/TransactionForm.tsx` — "분류" 라벨 옆에 톱니바퀴 아이콘(Settings2)
+  전용 토글 버튼 추가(51~53차와 동일한 아이콘 전용 UI, 이 폼에 이미 있는
+  "관리"/"완료" 텍스트 방식 빠른 입력 템플릿 관리 UI와는 별개로 사용자가 지정한
+  아이콘 방식을 그대로 적용). 삭제 모드에서 모든 분류 칩(기본 포함)에 × 표시,
+  클릭 시 확인 후 삭제. 타입 전환(지출/수입)·거래 복제/수정 프리필 시
+  삭제 모드 초기화
+- 영향 범위 확인: `getCategories`/`addCustomCategory`를 쓰는 다른 화면들
+  (WeeklySettlement, SearchView, AnnualSettlementTable, CardManager,
+  MonthlySettlementTable, BudgetManager, RecurringManager, TransactionList)은
+  삭제된 분류가 목록에서 빠지는 것 외엔 영향 없음(거래에 이미 저장된 분류 텍스트는
+  그대로 유지, FK 제약 없음) — 이번 삭제 관리 UI 자체는 `TransactionForm.tsx`에만 추가
+
+### 예상 변경 파일
+- `src/lib/categories.ts`, `src/components/TransactionForm.tsx`
+
+---
+
 ## 2026-07-18 (53차) — 메모 분류 삭제: 기본 분류도 삭제 가능 + UI를 톱니 아이콘으로 단순화
 
 사용자 피드백(52차 결과물에 대해): "모든 분류를 삭제 관리가 가능해야한다 그리고
