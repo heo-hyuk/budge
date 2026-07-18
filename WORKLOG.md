@@ -1,5 +1,40 @@
 # WORKLOG
 
+## 2026-07-18 (51차) — 메모에 이미지(스크린샷) 첨부 기능 추가
+
+사용자 요청: "스크릿샷 첨부해서 지출중에 기억하고싶은 상품 기록하려고 하는데 메모에
+첨부 기능 만들어줘". 지출 중 기억하고 싶은 상품의 스크린샷을 메모(NotesView)에 첨부.
+메모 내용이 개인 지출/구매 정보라 사용자와 상의 후 **비공개(인증 API 경유) + 메모당
+1장** 방식으로 결정(기존 카드 이미지 R2 버킷은 카드사 로고라 공개 URL이었지만 이번엔
+사용자 개인 사진이라 다른 방식 필요).
+
+### 계획
+- 새 R2 버킷 `budget-note-images` 신규 생성(카드 이미지 버킷과 달리 **공개 r2.dev
+  액세스는 켜지 않음** — 인증된 Function 엔드포인트로만 서빙)
+- `wrangler.toml` — `[[r2_buckets]]` `NOTE_IMAGES` 바인딩 추가
+- `migrations/017_add_notes_image.sql` — `notes.image_key TEXT` 컬럼 추가(R2 오브젝트
+  키, 이미지 없으면 NULL), `schema.sql` 동기화, 로컬+원격 D1 적용
+- `functions/api/notes/index.ts`(POST), `[id].ts`(PATCH/DELETE) — JSON 대신
+  `multipart/form-data` 파싱으로 전환(이미지 파일 포함 위해). 이미지 타입(JPEG/PNG/
+  WEBP/GIF)/용량(5MB) 서버 검증, R2 키는 `notes/{note_id}` 고정(메모당 1장이라 덮어쓰기
+  방식), 메모 삭제/이미지 교체/제거 시 R2 오브젝트도 함께 정리
+- `functions/api/notes/image/[id].ts`(신규) — `GET /api/notes/image/:id`, 본인 메모의
+  이미지만 R2에서 스트리밍 응답(소유권 확인 후 서빙)
+- `src/types.ts` — `Note.image_key: string | null`
+- `src/lib/api.ts` — `saveNote`/`updateNote`를 FormData 기반으로 전환, `noteImageUrl(id)`
+  헬퍼 추가
+- `src/components/NotesView.tsx` — 메모 작성/수정 폼에 이미지 파일 선택 입력(썸네일
+  미리보기, 제거 버튼) 추가, 메모 목록/달력 상세에 첨부 이미지 썸네일 표시(클릭 시 원본
+  새 탭에서 열기 — `<img>` 태그라 세션 쿠키로 인증되어 정상 로드됨)
+
+### 예상 변경/신규 파일
+- `wrangler.toml`, `migrations/017_add_notes_image.sql`(신규), `schema.sql`
+- `functions/api/notes/index.ts`, `functions/api/notes/[id].ts`,
+  `functions/api/notes/image/[id].ts`(신규)
+- `src/types.ts`, `src/lib/api.ts`, `src/components/NotesView.tsx`
+
+---
+
 ## 2026-07-18 (50차) — 홈 화면 설치 PWA에서 삭제 확인 버튼이 반응 없는 버그 수정
 
 사용자 리포트: "기존에 추가된 템플릿내용 삭제 하기 버튼이 반응이 없네" — 확인해보니
