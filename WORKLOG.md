@@ -24,6 +24,29 @@
 ### 예상 변경 파일
 - `src/lib/noteCategories.ts`, `src/components/NotesView.tsx`
 
+### 완료
+- [x] `src/lib/noteCategories.ts` — `removeCustomNoteCategory`/`isDefaultNoteCategory`
+  제거, `removeNoteCategory(name)`으로 통합(기본 분류는
+  `budget:noteCategories:removedDefaults` 키에 삭제 목록으로 기록, 커스텀 분류는
+  기존처럼 목록에서 직접 제거). `addCustomNoteCategory`에 "삭제했던 기본 분류
+  이름을 다시 입력하면 복원" 분기 추가
+- [x] `src/components/NotesView.tsx` — "관리"/"완료" 텍스트 버튼을 톱니바퀴
+  아이콘(Settings2) 전용 원형 버튼(`aria-label="분류 삭제"`/`"분류 삭제 모드 종료"`)
+  으로 교체. 삭제 모드에서는 `isDefaultNoteCategory` 분기 없이 모든 칩(기본 포함)에
+  × 표시가 붙도록 단순화
+- [x] `npx tsc -b`, `npm run lint`, `npm run build` 통과
+
+### 검증 결과
+- `wrangler pages dev` + Chrome/playwright-core(CDP)로 확인(이전 세션과 동일하게
+  재로드 전 서비스워커/캐시 강제 정리 후 진행): 톱니 버튼이 텍스트 라벨 없이
+  아이콘만 있는 것 확인(`textContent`가 빈 문자열), 클릭 시 **기본 분류("일상")
+  에도 × 표시가 뜨는 것** 확인 → 기본 분류 "건강" 삭제 시도 → 확인 모달 → 확인 →
+  목록에서 "건강"이 정확히 사라지는 것 확인(스크린샷으로 직접 확인)
+
+### 배포
+- 순수 프론트엔드(localStorage) 변경, D1/R2 작업 없음
+- `npm run deploy` 완료 — https://92a224ed.budget-3wb.pages.dev
+
 ---
 
 ## 2026-07-18 (52차) — 메모 분류(카테고리) 삭제 기능 추가
