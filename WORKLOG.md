@@ -30,11 +30,14 @@ URL을 처음부터 다시 설정해야 해서 지금은 보류). 대신 기존 
   `actions/checkout` → `actions/setup-node`(22, npm 캐시) → `npm ci` →
   `npm run build` → `cloudflare/wrangler-action@v4`로
   `wrangler pages deploy dist --project-name=budget` 실행
-- [ ] GitHub 저장소 시크릿(`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) 등록 —
-  사용자가 직접 진행 예정(토큰 값은 대화에 노출하지 않는 게 안전해서 Claude가
-  대신 등록하지 않음). 등록 전까지는 워크플로가 인증 실패로 실패함(정상 동작)
-- [ ] 시크릿 등록 후 실제 push로 자동배포 동작 확인 — 다음 세션 또는 사용자가
-  직접 확인 필요
+- [x] GitHub 저장소 시크릿(`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) 등록 —
+  사용자가 Cloudflare 대시보드에서 Pages 편집 권한 토큰 발급 후 GitHub 저장소
+  시크릿으로 직접 등록 완료
+- [x] 시크릿 등록 후 실제 push로 자동배포 동작 확인 — 빈 커밋(`5e15d9b`)으로
+  워크플로 재실행 트리거, GitHub Actions run `29681689255` `success`로 완료
+  확인(GitHub API로 상태 조회, `gh` CLI 미설치라 `api.github.com` REST 호출로 대체).
+  이제 main push마다 Cloudflare Pages 자동배포됨 — `npm run deploy` 수동 실행
+  불필요
 
 ---
 
