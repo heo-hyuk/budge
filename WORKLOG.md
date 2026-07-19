@@ -1,5 +1,53 @@
 # WORKLOG
 
+## 2026-07-19 (56차) — 정산 섹션 통합("정산" 탭 하나로) + 분류별 필터 조회
+
+사용자 요청: "정산 섹션을 하나로 통합하고 거기에 선택하는 방식으로 일간 주간 월간
+연간을 나누고 여기서 등록할 때 선택한 분류별로 조회가 가능하면 좋겠어". 확인 결과
+현재 최상단 메뉴에 "한눈에 보기"(일간·주간·월간·연간 선택 표, `OverviewView.tsx`)와
+별도로 "월정산"(카드 청구 기준 정산, `MonthlyReport.tsx`)·"연정산"(연간 차트+엑셀
+내보내기, `AnnualReport.tsx`) 탭이 중복 존재. 사용자에게 확인(AskUserQuestion)한
+결과: (1) 세 탭을 전부 하나로 통합(월정산/연정산 탭 제거, 기능은 통합 화면 안의
+서브 기능으로 유지), (2) 분류 필터는 하나 선택 시 그 분류만, 여러 개 선택 시
+합산해서 보기 — 둘 다 지원(다중 선택, 선택 0개 = 전체).
+
+### 계획
+- `src/lib/settlementFilter.ts`(신규) — 백엔드 `classifyIncomeGroup`과 동일한
+  수입 분류→그룹(소득/예금인출/기타) 매핑을 클라이언트에도 복제해, 선택한 수입
+  분류를 표의 그룹 열 필터링에 사용
+- `src/components/CategoryFilterBar.tsx`(신규) — 지출+수입 분류 전체를 칩으로
+  나열하는 다중 선택 필터 UI("전체" 버튼으로 초기화)
+- `src/components/OverviewView.tsx` — 상단에 `CategoryFilterBar` 추가(선택 상태를
+  서브탭 전환과 무관하게 유지), 월간/연간 서브탭에 각각 "분류별 표" ↔
+  "카드별 청구"(`MonthlyReport`) / "차트·내보내기"(`AnnualReport`) 토글 추가.
+  월/연도 상태를 `OverviewView`가 소유해 토글 전환 시에도 유지, 날짜 네비게이션은
+  서브탭당 한 번만 렌더링
+- `src/components/DailySettlement.tsx`, `WeeklySettlement.tsx`,
+  `MonthlySettlementTable.tsx`, `AnnualSettlementTable.tsx` — `categories?: string[]`
+  prop 추가해 선택된 분류만 필터링(선택 0개면 기존과 동일). Monthly/Annual은
+  내부 월/연도 state·네비게이션 UI를 제거하고 `month`/`year`를 prop으로 받도록 변경
+- `src/components/MonthlyReport.tsx`, `AnnualReport.tsx` — `categories` prop 추가해
+  집계 전 거래 목록을 필터링. `month`/`year`도 계속 prop으로 받되(기존과 동일),
+  자체 네비게이션 UI는 없었으므로 그대로 유지
+- `src/App.tsx` — `Tab` 타입에서 `'monthly'`/`'annual'` 제거, 최상단 메뉴에서
+  월정산/연정산 항목 삭제, "한눈에 보기" 탭 라벨을 "정산"으로 변경, 헤더의
+  월/연도 네비게이션 중 monthly/annual 탭 전용 분기 제거(OverviewView 내부로 이동),
+  `OverviewView`에 `cards` prop 전달, 홈 화면 "한눈에 보기 →" 버튼 문구 갱신
+- `workers/card-settlement-notifier/src/index.ts` — 카드 정산 push 알림 딥링크
+  `/?tab=monthly` → `/?tab=overview&view=monthly`로 변경(월정산 탭 삭제로 깨지는
+  링크 수정), `OverviewView`가 `?view=monthly` 쿼리로 초기 서브탭을 월간+카드별
+  청구 토글로 열도록 처리
+
+### 예상 변경 파일
+- `src/lib/settlementFilter.ts`(신규), `src/components/CategoryFilterBar.tsx`(신규),
+  `src/components/OverviewView.tsx`, `src/components/DailySettlement.tsx`,
+  `src/components/WeeklySettlement.tsx`, `src/components/MonthlySettlementTable.tsx`,
+  `src/components/AnnualSettlementTable.tsx`, `src/components/MonthlyReport.tsx`,
+  `src/components/AnnualReport.tsx`, `src/App.tsx`,
+  `workers/card-settlement-notifier/src/index.ts`
+
+---
+
 ## 2026-07-18 (55차) — README 갱신 (51~54차 기능 반영, 세션 마무리)
 
 51~54차(메모 이미지 첨부, 메모/거래 분류 삭제 관리)가 README에 전혀 반영 안
