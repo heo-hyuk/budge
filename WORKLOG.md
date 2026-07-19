@@ -1,5 +1,32 @@
 # WORKLOG
 
+## 2026-07-19 (57차) — GitHub Actions로 push 자동배포 설정
+
+`budget` Cloudflare Pages 프로젝트가 Direct Upload로 생성돼 있어(`wrangler pages
+project list`의 Git Provider 컬럼이 "No") 지금까지 `npm run deploy`를 수동으로
+실행해야 했음. 사용자의 다른 프로젝트(wedding-admin, wedd)는 Git 연동이라 push만
+하면 자동배포됨 — 같은 경험을 원함. 조사 결과 Cloudflare는 기존 Direct Upload
+프로젝트를 나중에 Git 연동으로 전환하는 기능을 제공하지 않음(공식 문서·커뮤니티
+확인, 새 프로젝트를 Git 연동으로 새로 만들어야 함 — 그러면 D1/R2 바인딩과 배포
+URL을 처음부터 다시 설정해야 해서 지금은 보류). 대신 기존 프로젝트/바인딩/도메인을
+그대로 유지하면서 GitHub Actions가 push마다 `wrangler pages deploy`를 대신
+실행하도록 설정하기로 사용자와 합의. 나중에 큰 개편이 필요해지면 그때 Git 연동
+새 프로젝트로 옮기기로 함(사용자 코멘트).
+
+### 계획
+- `.github/workflows/deploy.yml`(신규) — main 브랜치 push 시
+  `cloudflare/wrangler-action@v4`로 빌드 후 `wrangler pages deploy dist
+  --project-name=budget` 실행
+- GitHub 저장소 시크릿 `CLOUDFLARE_API_TOKEN`(Pages 편집 권한 토큰), 저장소
+  시크릿 `CLOUDFLARE_ACCOUNT_ID`(계정 ID: `558c8a68615e0f4d92f8d31c8816e799`,
+  민감정보 아님) 등록 — 이건 사용자가 Cloudflare/GitHub 대시보드에서 직접
+  진행(토큰 값은 대화에 노출하지 않는 게 안전해서 Claude가 대신 등록하지 않음)
+
+### 예상 변경 파일
+- `.github/workflows/deploy.yml`(신규)
+
+---
+
 ## 2026-07-19 (56차) — 정산 섹션 통합("정산" 탭 하나로) + 분류별 필터 조회
 
 사용자 요청: "정산 섹션을 하나로 통합하고 거기에 선택하는 방식으로 일간 주간 월간
