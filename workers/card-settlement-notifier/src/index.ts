@@ -119,7 +119,7 @@ async function processUser(
   sentAt: string,
 ): Promise<void> {
   const { title, body } = buildMessage(items)
-  const targetUrl = '/?tab=monthly'
+  const targetUrl = '/?tab=overview&view=monthly'
 
   const subsResult = await env.DB.prepare(
     'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?'

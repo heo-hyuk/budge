@@ -1,12 +1,10 @@
-import { BarChart3, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import AnnualReport from './components/AnnualReport'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import LoadingSpinner from './components/LoadingSpinner'
-import MonthlyReport from './components/MonthlyReport'
 import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
 import OverviewView from './components/OverviewView'
@@ -24,13 +22,11 @@ import { validateNicknameClient } from './lib/nickname'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'overview' | 'monthly' | 'annual' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'home',      label: '홈',       icon: Home },
-  { id: 'overview',  label: '한눈에 보기', icon: CalendarDays },
-  { id: 'monthly',   label: '월정산',   icon: BarChart3 },
-  { id: 'annual',    label: '연정산',   icon: TrendingUp },
+  { id: 'overview',  label: '정산',     icon: CalendarDays },
   { id: 'cards',     label: '카드',     icon: CreditCard },
   { id: 'recurring', label: '고정',     icon: Repeat },
   { id: 'budget',    label: '예산',     icon: ClipboardList },
@@ -43,17 +39,14 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function currentYear() {
-  return String(new Date().getFullYear())
-}
-
 function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map(Number)
   const d = new Date(y, m - 1 + delta, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-// 카드 정산 push 알림 클릭 시 월정산 화면으로 바로 이동시키기 위한 딥링크(?tab=monthly)
+// 카드 정산 push 알림 클릭 시 정산 화면의 월간·카드별 청구로 바로 이동시키기 위한
+// 딥링크(?tab=overview&view=monthly) — view는 OverviewView가 자체적으로 읽는다
 function initialTabFromUrl(): Tab {
   const tab = new URLSearchParams(window.location.search).get('tab')
   return TABS.some((t) => t.id === tab) ? (tab as Tab) : 'home'
@@ -72,7 +65,6 @@ function App() {
   const [nicknamePromptError, setNicknamePromptError] = useState('')
   const [nicknamePromptSaving, setNicknamePromptSaving] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
-  const [selectedYear, setSelectedYear]   = useState(currentYear)
   const [transactions, setTransactions]   = useState<Transaction[]>([])
   const [cards, setCards]                 = useState<Card[]>([])
   const [recurringItems, setRecurringItems] = useState<RecurringTransaction[]>([])
@@ -205,7 +197,7 @@ function App() {
     })
   }
 
-  // 한눈에 보기(일일/주간 정산)에서 항목 탭 시 — 홈 탭으로 이동해 TransactionForm을 수정 모드로 채움
+  // 정산(일간) 화면에서 항목 탭 시 — 홈 탭으로 이동해 TransactionForm을 수정 모드로 채움
   function handleEditRequest(tx: Transaction) {
     setActiveTab('home')
     setEditTarget({
@@ -342,8 +334,8 @@ function App() {
             </button>
           </div>
 
-          {/* 월/연도 네비게이션 (홈·월정산·예산 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'monthly' || activeTab === 'budget' || activeTab === 'notes') && (
+          {/* 월 네비게이션 (홈·예산·메모 탭에서 표시) */}
+          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -360,21 +352,6 @@ function App() {
                   className="min-h-8 rounded-lg bg-coral-400 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-coral-600 active:bg-coral-800"
                 >오늘</button>
               )}
-            </div>
-          )}
-
-          {/* 연도 네비게이션 (연정산 탭) */}
-          {activeTab === 'annual' && (
-            <div className="flex items-center gap-1">
-              <button onClick={() => setSelectedYear((y) => String(parseInt(y) - 1))}
-                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
-              >◀</button>
-              <span className="min-w-16 text-center text-sm font-bold">{selectedYear}년</span>
-              <button
-                onClick={() => setSelectedYear((y) => String(parseInt(y) + 1))}
-                disabled={selectedYear === currentYear()}
-                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
-              >▶</button>
             </div>
           )}
 
@@ -438,7 +415,7 @@ function App() {
                 onClick={() => setActiveTab('overview')}
                 className="w-full rounded-xl border border-coral-100 dark:border-coral-900 bg-coral-50 dark:bg-coral-900/30 px-4 py-2.5 text-center text-sm font-semibold text-coral-600 dark:text-coral-200 transition-colors hover:bg-coral-100 dark:hover:bg-coral-900/50"
               >
-                한눈에 보기 (일일·주간 정산) →
+                정산 보기 (일간·주간·월간·연간) →
               </button>
               {/* 예산 초과 카테고리 요약 배너 */}
               {(() => {
@@ -505,19 +482,9 @@ function App() {
           </div>
         )}
 
-        {/* 한눈에 보기 탭 (일일/주간 정산) */}
+        {/* 정산 탭 (일간/주간/월간/연간 통합) */}
         {activeTab === 'overview' && (
-          <OverviewView onEditTransaction={handleEditRequest} />
-        )}
-
-        {/* 월별 정산 탭 */}
-        {activeTab === 'monthly' && (
-          <MonthlyReport month={selectedMonth} cards={cards} />
-        )}
-
-        {/* 연간 정산 탭 */}
-        {activeTab === 'annual' && (
-          <AnnualReport year={selectedYear} />
+          <OverviewView onEditTransaction={handleEditRequest} cards={cards} />
         )}
 
         {/* 카드 관리 탭 */}

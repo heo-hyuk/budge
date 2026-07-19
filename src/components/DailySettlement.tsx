@@ -7,9 +7,10 @@ import type { DailySettlement as DailySettlementData, Transaction } from '../typ
 
 interface Props {
   onEditTransaction: (tx: Transaction) => void
+  categories?: string[]
 }
 
-function DailySettlement({ onEditTransaction }: Props) {
+function DailySettlement({ onEditTransaction, categories = [] }: Props) {
   const [date, setDate] = useState(todayStr)
   const [settlement, setSettlement] = useState<DailySettlementData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -44,6 +45,12 @@ function DailySettlement({ onEditTransaction }: Props) {
   }
 
   const isToday = date === todayStr()
+
+  // 분류 필터 — 선택된 분류가 있으면 목록/합계만 필터링(전일·오늘 잔액은 실제 잔액이므로 그대로 유지)
+  const incomes = settlement && categories.length > 0 ? settlement.incomes.filter((tx) => categories.includes(tx.category)) : settlement?.incomes ?? []
+  const expenses = settlement && categories.length > 0 ? settlement.expenses.filter((tx) => categories.includes(tx.category)) : settlement?.expenses ?? []
+  const incomeTotal = categories.length > 0 ? incomes.reduce((s, t) => s + t.amount, 0) : settlement?.income_total ?? 0
+  const expenseTotal = categories.length > 0 ? expenses.reduce((s, t) => s + t.amount, 0) : settlement?.expense_total ?? 0
 
   return (
     <div className="space-y-3" onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
@@ -98,11 +105,11 @@ function DailySettlement({ onEditTransaction }: Props) {
           {/* 수입내용 */}
           <div className="mt-3">
             <p className="text-sm font-bold text-neutral-700 dark:text-neutral-300">수입내용</p>
-            {settlement.incomes.length === 0 ? (
+            {incomes.length === 0 ? (
               <p className="mt-1.5 text-sm text-neutral-400 dark:text-neutral-500">내역 없음</p>
             ) : (
               <ul className="mt-1.5 space-y-1">
-                {settlement.incomes.map((tx) => (
+                {incomes.map((tx) => (
                   <li key={tx.id}>
                     <button
                       type="button"
@@ -123,17 +130,17 @@ function DailySettlement({ onEditTransaction }: Props) {
           {/* 수입합계 */}
           <div className="mt-2 flex items-center justify-between rounded-lg bg-blue-50 dark:bg-blue-950/40 px-3 py-2">
             <span className="text-sm font-bold text-blue-800 dark:text-blue-300">수입합계</span>
-            <span className="text-base font-bold text-blue-700 dark:text-blue-300">{formatWon(settlement.income_total)}</span>
+            <span className="text-base font-bold text-blue-700 dark:text-blue-300">{formatWon(incomeTotal)}</span>
           </div>
 
           {/* 지출내용 */}
           <div className="mt-4">
             <p className="text-sm font-bold text-neutral-700 dark:text-neutral-300">지출내용</p>
-            {settlement.expenses.length === 0 ? (
+            {expenses.length === 0 ? (
               <p className="mt-1.5 text-sm text-neutral-400 dark:text-neutral-500">내역 없음</p>
             ) : (
               <ul className="mt-1.5 space-y-1">
-                {settlement.expenses.map((tx) => (
+                {expenses.map((tx) => (
                   <li key={tx.id}>
                     <button
                       type="button"
@@ -154,7 +161,7 @@ function DailySettlement({ onEditTransaction }: Props) {
           {/* 지출합계 */}
           <div className="mt-2 flex items-center justify-between rounded-lg bg-coral-50 dark:bg-coral-900/30 px-3 py-2">
             <span className="text-sm font-bold text-coral-800 dark:text-coral-200">지출합계</span>
-            <span className="text-base font-bold text-coral-600 dark:text-coral-200">{formatWon(settlement.expense_total)}</span>
+            <span className="text-base font-bold text-coral-600 dark:text-coral-200">{formatWon(expenseTotal)}</span>
           </div>
 
           {/* 오늘잔액 */}

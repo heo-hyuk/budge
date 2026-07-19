@@ -6,6 +6,7 @@ import ExportButton from './ExportButton'
 
 interface Props {
   year: string  // 'YYYY'
+  categories?: string[]
 }
 
 interface MonthStat {
@@ -15,13 +16,14 @@ interface MonthStat {
   expense: number
 }
 
-function AnnualReport({ year }: Props) {
+function AnnualReport({ year, categories = [] }: Props) {
   const [stats, setStats] = useState<MonthStat[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    fetchTransactions({ year }).then((txs: Transaction[]) => {
+    fetchTransactions({ year }).then((allTxs: Transaction[]) => {
+      const txs = categories.length > 0 ? allTxs.filter((t) => categories.includes(t.category)) : allTxs
       // 12개월치 집계
       const monthMap = new Map<string, { income: number; expense: number }>()
       for (let m = 1; m <= 12; m++) {
@@ -44,7 +46,7 @@ function AnnualReport({ year }: Props) {
         }))
       )
     }).finally(() => setLoading(false))
-  }, [year])
+  }, [year, categories])
 
   if (loading) return <p className="text-base text-neutral-500 dark:text-neutral-400">불러오는 중...</p>
 

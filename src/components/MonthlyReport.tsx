@@ -7,6 +7,7 @@ import type { Card, Transaction } from '../types'
 interface Props {
   month: string   // 'YYYY-MM'
   cards: Card[]
+  categories?: string[]
 }
 
 interface CardBill {
@@ -28,7 +29,7 @@ function loadBasis(): DateBasis {
   return localStorage.getItem(BASIS_STORAGE_KEY) === 'transaction' ? 'transaction' : 'billing'
 }
 
-function MonthlyReport({ month, cards }: Props) {
+function MonthlyReport({ month, cards, categories = [] }: Props) {
   const [monthlyTx, setMonthlyTx] = useState<Transaction[]>([])
   const [cardBills, setCardBills] = useState<CardBill[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,22 +91,32 @@ function MonthlyReport({ month, cards }: Props) {
 
   if (loading) return <p className="text-base text-neutral-500 dark:text-neutral-400">불러오는 중...</p>
 
+  // 분류 필터 — 선택된 분류가 있으면 집계 전에 거래 목록 자체를 필터링
+  const filteredMonthlyTx = categories.length > 0 ? monthlyTx.filter((t) => categories.includes(t.category)) : monthlyTx
+  const filteredCardBills = categories.length > 0
+    ? cardBills.map((bill) => {
+        const transactions = bill.transactions.filter((t) => categories.includes(t.category))
+        const amount = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+        return { ...bill, transactions, amount }
+      })
+    : cardBills
+
   // 현금 수입/지출 (카드 거래 제외)
-  const cashIncome  = monthlyTx.filter((t) => t.type === 'income'  && !t.card_id).reduce((s, t) => s + t.amount, 0)
-  const cardIncome  = monthlyTx.filter((t) => t.type === 'income'  &&  t.card_id).reduce((s, t) => s + t.amount, 0)
-  const cashExpense = monthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount, 0)
+  const cashIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  && !t.card_id).reduce((s, t) => s + t.amount, 0)
+  const cardIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  &&  t.card_id).reduce((s, t) => s + t.amount, 0)
+  const cashExpense = filteredMonthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount, 0)
   const totalIncome = cashIncome + cardIncome
 
   // 이번달 실제 카드 청구 합계
-  const totalCardBill = cardBills.reduce((s, b) => s + b.amount, 0)
+  const totalCardBill = filteredCardBills.reduce((s, b) => s + b.amount, 0)
 
   // 실지출 = 현금지출 + 카드 청구액
   const totalExpense = cashExpense + totalCardBill
   const balance = totalIncome - totalExpense
 
   // 카드 입금 내역 (드문 케이스지만 수입정산에서 확인 가능해야 함)
-  const cashIncomeList = monthlyTx.filter((t) => t.type === 'income' && !t.card_id)
-  const cardIncomeList = monthlyTx.filter((t) => t.type === 'income' && t.card_id)
+  const cashIncomeList = filteredMonthlyTx.filter((t) => t.type === 'income' && !t.card_id)
+  const cardIncomeList = filteredMonthlyTx.filter((t) => t.type === 'income' && t.card_id)
 
   return (
     <div className="space-y-4">
@@ -254,10 +265,10 @@ function MonthlyReport({ month, cards }: Props) {
       )}
 
       {/* 카드별 청구 내역 (지출정산에서만) */}
-      {view === 'expense' && cardBills.length > 0 && (
+      {view === 'expense' && filteredCardBills.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-base font-bold text-neutral-700 dark:text-neutral-300">카드별 청구 내역</h3>
-          {cardBills.map((bill) => (
+          {filteredCardBills.map((bill) => (
             <div
               key={bill.card.id}
               className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden"
@@ -330,7 +341,7 @@ function MonthlyReport({ month, cards }: Props) {
         <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-sm">
           <h3 className="text-base font-bold text-neutral-700 dark:text-neutral-300 mb-3">현금 지출 내역</h3>
           <ul className="space-y-2">
-            {monthlyTx
+            {filteredMonthlyTx
               .filter((t) => t.type === 'expense' && !t.card_id)
               .map((tx) => (
                 <li key={tx.id} className="flex justify-between items-center gap-2">
