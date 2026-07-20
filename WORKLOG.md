@@ -1,5 +1,44 @@
 # WORKLOG
 
+## 2026-07-20 (63차) — 구매처/판매처에도 분류처럼 추가·삭제 관리 기능 + 검색 필터 추가
+
+사용자 요청: "구매처 판매처도 분류처럼 추가 삭제 관리 기능이 필요해, 검색옵션에도
+추가해야됨". 확인(AskUserQuestion) 결과 (1) 분류와 동일한 칩 리스트 UI로
+구매처 관리(기존 자유입력 + 최근 구매처 자동완성은 그대로 유지, 칩은 사용자가
+명시적으로 추가한 것만), (2) 검색 화면엔 분류 필터와 동일하게 드롭다운(정확일치)
+방식으로 채택. 거래 분류(58차)와 달리 구매처는 "기본값" 개념이 없어(사용자마다
+전혀 다른 상호명) `removed_default` 없이 단순 목록 테이블로 구현.
+
+### 계획
+- `schema.sql`, `migrations/020_add_merchants.sql` — `merchants` 테이블
+  (`id, user_id, name, created_at`, `UNIQUE(user_id, name)`) 추가. 기존
+  `/api/merchants/recent`(거래 이력 기반 자동완성, 별개 기능)와 공존
+- `functions/api/merchants/index.ts`(신규) — GET(목록 조회)/POST(추가)/
+  DELETE(`?name=`로 삭제) — `note_categories` API와 유사하지만 기본값 개념 없음
+- `src/lib/api.ts` — `fetchMerchantList`/`addMerchantApi`/`removeMerchantApi` 추가
+- `src/lib/merchants.ts`(신규) — 모듈 캐시 + `loadMerchants()`/`resetMerchants()`/
+  `getMerchants()`/`addMerchant()`/`removeMerchant()` (58~59차 categories.ts와
+  동일 패턴, 다만 커스텀 목록만 있고 기본값 삭제 개념 없음)
+- `src/contexts/AuthContext.tsx` — `logout()`에 `resetMerchants()` 추가
+- `src/App.tsx` — 로그인 effect에 `loadMerchants()` 추가(마이그레이션 대상
+  아니므로 `migrateLegacyLocalStorage()`와는 무관하게 바로 호출)
+- `src/components/TransactionForm.tsx` — "구매처 / 판매처" 라벨 옆에 분류와
+  동일한 톱니바퀴 관리 버튼 + 칩 목록("+ 직접입력"으로 추가, 관리 모드에서
+  ×로 삭제) 추가. 칩을 탭하면 구매처 입력칸이 채워짐. 기존 자유입력 텍스트
+  필드 + 최근 구매처 자동완성 드롭다운은 그대로 유지(별개 기능으로 공존).
+  마운트 시 `loadMerchants()` 완료 후 재동기화하는 effect 추가(카테고리와 동일 패턴)
+- `src/components/SearchView.tsx` — `Filters`에 `merchant` 필드 추가, 분류
+  필터와 동일한 칩 드롭다운(정확일치) UI 추가, 클라이언트 필터링(카테고리와
+  동일하게 서버 대신 클라이언트에서 정확일치 필터)
+
+### 예상 변경 파일
+- `schema.sql`, `migrations/020_add_merchants.sql`(신규),
+  `functions/api/merchants/index.ts`(신규), `src/lib/api.ts`,
+  `src/lib/merchants.ts`(신규), `src/contexts/AuthContext.tsx`, `src/App.tsx`,
+  `src/components/TransactionForm.tsx`, `src/components/SearchView.tsx`
+
+---
+
 ## 2026-07-20 (62차) — 거래 목록 메모를 카드 하단 전체 너비로 배치(61차 후속)
 
 61차에서 메모 줄바꿈은 됐지만, `<li>`가 여전히 `flex items-center
