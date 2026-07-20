@@ -1,5 +1,39 @@
 # WORKLOG
 
+## 2026-07-20 (65차) — 정산 표의 수입 열을 3그룹 대신 분류별 칩으로 표시
+
+사용자 요청: 정산 탭(주간/월간/연간 표)의 수입이 "소득/예금인출/기타" 3그룹으로만
+묶여 나오는데, 지출처럼 분류(칩) 하나하나가 열로 나와야 함. 현재는 `급여`→소득,
+`예금인출`→예금인출, 나머지 전부→기타로 분류하는 `classifyIncomeGroup`이 있어서,
+사용자가 기본 분류 `급여`를 삭제하고 커스텀 수입 분류(영업수익/카카오수수료 등)를
+쓰면 전부 "기타" 한 열로 뭉쳐 보임 — 사용자가 지적한 "급여 칩이 없어지면서
+기타로 들어간다"가 이 증상.
+
+### 원인 및 설계
+- `functions/lib/settlement.ts`의 `IncomeBucket`(소득/예금인출/기타/total 고정
+  4키)이 `ExpenseBucket`(`{[category]: number}` 동적 키)과 다른 구조라 발생.
+  수입도 지출과 동일하게 분류명을 키로 쓰는 동적 버킷으로 바꾸면 그대로 해결됨
+  — `classifyIncomeGroup`/`IncomeBucket`/`emptyIncomeBucket`/`addIncome` 제거하고
+  `ExpenseBucket`/`addExpense`(범용 버킷 함수로 이름 정리)를 수입에도 재사용
+- 프론트 `src/types.ts`의 `SettlementIncomeBucket`도 `SettlementExpenseBucket`과
+  동일한 동적 키 구조로 변경(타입 이름은 income/expense 구분 유지해 가독성 유지)
+- `src/lib/settlementFilter.ts`의 `classifyIncomeGroup`/`selectedIncomeGroups`/
+  `IncomeGroup`은 더 이상 필요 없음(수입도 지출처럼 분류명 그대로 필터링) —
+  기존 `selectedExpenseCategories`를 범용 이름으로 바꿔 수입에도 재사용
+- `WeeklySettlement.tsx`/`MonthlySettlementTable.tsx`/`AnnualSettlementTable.tsx`
+  — `ALL_INCOME_GROUPS` 고정 3열 대신 `getCategories('income')`로 지출과 동일한
+  패턴(열 렌더링, 합계 계산, 분류 필터 적용)으로 통일
+- `DailySettlement.tsx`(개별 거래 목록이라 원래도 영향 없음), `CategoryFilterBar`,
+  `OverviewView`는 변경 불필요
+
+### 예상 변경 파일
+- `functions/lib/settlement.ts`, `src/types.ts`, `src/lib/settlementFilter.ts`,
+  `src/components/WeeklySettlement.tsx`,
+  `src/components/MonthlySettlementTable.tsx`,
+  `src/components/AnnualSettlementTable.tsx`
+
+---
+
 ## 2026-07-20 (64차) — 결제 방법 "계좌이체" 추가 + "비정산" 거래 분리 기능
 
 사용자 요청 2건:
