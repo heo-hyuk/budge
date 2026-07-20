@@ -31,6 +31,15 @@ body {
   outline-offset: 2px;
 }
 
+/* iOS Safari는 <input type="date">의 네이티브 위젯(달력 아이콘·연월일 세그먼트)이
+   자체 계산한 최소 폭을 CSS width보다 우선시해서, w-full로 지정해도 카드 밖으로
+   삐져나오는 경우가 있음(잘 알려진 WebKit 특성) — 네이티브 외형을 초기화해야
+   CSS가 지정한 폭을 실제로 존중함. 앱 안의 모든 날짜 입력에 공통 적용 */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* 토스트 등장 애니메이션 (Tailwind 플러그인 없이 순수 CSS로) */
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(-8px); }
