@@ -207,55 +207,57 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
               ) : (
                 /* ── 일반 표시 ── */
                 <li key={tx.id}
-                  className="flex items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  className="flex flex-col gap-1 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 transition-colors last:border-b-0 hover:bg-neutral-50 dark:hover:bg-neutral-900"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                      {tx.merchant || tx.category}
-                    </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      {tx.merchant && (
-                        <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
-                      )}
-                      {/* 결제방법 뱃지 */}
-                      {tx.card_id && cardMap.get(tx.card_id) ? (
-                        <span
-                          className="text-xs font-semibold px-1.5 py-0.5 rounded text-white"
-                          style={{ backgroundColor: cardMap.get(tx.card_id)!.color }}
-                        >
-                          {cardMap.get(tx.card_id)!.name}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
-                          현금
-                        </span>
-                      )}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-100">
+                        {tx.merchant || tx.category}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        {tx.merchant && (
+                          <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
+                        )}
+                        {/* 결제방법 뱃지 */}
+                        {tx.card_id && cardMap.get(tx.card_id) ? (
+                          <span
+                            className="text-xs font-semibold px-1.5 py-0.5 rounded text-white"
+                            style={{ backgroundColor: cardMap.get(tx.card_id)!.color }}
+                          >
+                            {cardMap.get(tx.card_id)!.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
+                            현금
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {tx.memo && (
-                      <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>
+                        {/* 지출은 항상 양수라 '-' 고정, 수입은 차감 항목(음수)이면 formatWon이 이미 '-'를 표시하므로 '+'를 붙이지 않음 */}
+                        {tx.type === 'expense' ? '-' : tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}
+                      </span>
+                      <button type="button" onClick={() => onDuplicate(tx)}
+                        className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                      >
+                        복제
+                      </button>
+                      <button type="button" onClick={() => startEdit(tx)}
+                        className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                      >
+                        수정
+                      </button>
+                      <button type="button" onClick={() => handleDelete(tx.id)}
+                        className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>
-                      {/* 지출은 항상 양수라 '-' 고정, 수입은 차감 항목(음수)이면 formatWon이 이미 '-'를 표시하므로 '+'를 붙이지 않음 */}
-                      {tx.type === 'expense' ? '-' : tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}
-                    </span>
-                    <button type="button" onClick={() => onDuplicate(tx)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                    >
-                      복제
-                    </button>
-                    <button type="button" onClick={() => startEdit(tx)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                    >
-                      수정
-                    </button>
-                    <button type="button" onClick={() => handleDelete(tx.id)}
-                      className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400"
-                    >
-                      삭제
-                    </button>
-                  </div>
+                  {tx.memo && (
+                    <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
+                  )}
                 </li>
               )
             )}
