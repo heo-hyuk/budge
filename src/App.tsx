@@ -341,7 +341,7 @@ function App() {
       <div className="min-w-0 flex-1">
       {/* 헤더 */}
       <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 sticky top-0 z-10 shadow-sm">
-        <div className="mx-auto max-w-5xl flex items-center justify-between gap-2">
+        <div className="mx-auto max-w-5xl flex items-center justify-between gap-1">
           <div className="flex items-center gap-2 shrink-0">
             {/* 햄버거 버튼 — 모바일 전용 (데스크탑은 좌측 상시 사이드바로 대체) */}
             <button
@@ -361,18 +361,18 @@ function App() {
           {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled' || activeTab === 'calculator') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
-                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                className="min-h-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
               >◀</button>
-              <span className="min-w-24 text-center text-sm font-bold text-neutral-800 dark:text-neutral-200">
+              <span className="min-w-20 text-center text-sm font-bold text-neutral-800 dark:text-neutral-200">
                 {monthLabel}
               </span>
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, 1))}
                 disabled={isCurrentMonth}
-                className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
+                className="min-h-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
               {!isCurrentMonth && (
                 <button onClick={() => setSelectedMonth(currentMonth())}
-                  className="min-h-8 rounded-lg bg-coral-400 px-2.5 text-sm font-semibold text-white transition-colors hover:bg-coral-600 active:bg-coral-800"
+                  className="min-h-8 shrink-0 whitespace-nowrap rounded-lg bg-coral-400 px-2 text-sm font-semibold text-white transition-colors hover:bg-coral-600 active:bg-coral-800"
                 >오늘</button>
               )}
             </div>
@@ -388,15 +388,22 @@ function App() {
             {theme === 'dark' ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
           </button>
 
-          {/* 닉네임 — 클릭 시 드롭다운으로 내 정보/로그아웃 진입 */}
-          <div className="relative shrink-0">
+          {/* 닉네임 — 클릭 시 드롭다운으로 내 정보/로그아웃 진입.
+              min-w-0 + shrink로 좁은 화면에서 다른 헤더 요소(햄버거/로고,
+              월 이동, 다크모드 토글)와 자리다툼 시 페이지 전체가 가로로
+              넘치는 대신 닉네임 쪽이 줄어들게 함(아이폰 13프로 같은 좁은
+              기기에서 헤더 합계 폭이 뷰포트를 넘던 실제 버그). 버튼에
+              w-full+overflow-hidden을 줘야 부모(wrapper)가 줄어든 실제
+              폭만큼만 렌더링되고, 그 안의 텍스트도 truncate가 적용됨 —
+              안 그러면 wrapper만 줄고 버튼 내용물은 그대로 삐져나옴 */}
+          <div className="relative min-w-0 shrink">
             <button
               type="button"
               onClick={() => setUserMenuOpen((v) => !v)}
-              className="flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="flex min-h-8 w-full min-w-0 items-center gap-0.5 overflow-hidden rounded-lg px-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
-              {user.nickname ?? user.name}
-              <span className="text-neutral-400 dark:text-neutral-500">▾</span>
+              <span className="truncate">{user.nickname ?? user.name}</span>
+              <span className="shrink-0 text-neutral-400 dark:text-neutral-500">▾</span>
             </button>
             {userMenuOpen && (
               <>
