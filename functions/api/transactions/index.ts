@@ -33,9 +33,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   const dateEnd    = url.searchParams.get('date_end')
   const minAmount  = url.searchParams.get('min_amount')
   const maxAmount  = url.searchParams.get('max_amount')
+  // 비정산 거래는 기본적으로 모든 조회에서 제외(정산·예산·잔액과 완전히 분리) —
+  // 비정산 탭에서만 ?unsettled=1로 명시적으로 요청
+  const unsettled  = url.searchParams.get('unsettled') === '1'
 
-  let query = 'SELECT * FROM transactions WHERE user_id = ?'
-  const binds: unknown[] = [userId]
+  let query = 'SELECT * FROM transactions WHERE user_id = ? AND unsettled = ?'
+  const binds: unknown[] = [userId, unsettled ? 1 : 0]
 
   if (month && /^\d{4}-\d{2}$/.test(month)) { query += ' AND date LIKE ?'; binds.push(`${month}-%`) }
   else if (year && /^\d{4}$/.test(year))      { query += ' AND date LIKE ?'; binds.push(`${year}-%`) }
@@ -63,6 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     type: 'income' | 'expense'; category: string; amount: number
     memo?: string; date: string; merchant?: string; payment_method?: string; card_id?: string
     original_amount?: number; discount_amount?: number; benefit_id?: string; cashback_amount?: number
+    unsettled?: boolean
   }
 
   if (!body.type || !body.category || !body.amount || !body.date) {
@@ -82,14 +86,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   await env.DB.prepare(
     `INSERT INTO transactions
        (id, type, category, amount, memo, date, merchant, payment_method, card_id,
-        original_amount, discount_amount, benefit_id, cashback_amount, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        original_amount, discount_amount, benefit_id, cashback_amount, unsettled, user_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, body.type, body.category, body.amount,
     body.memo ?? '', body.date,
     body.merchant ?? '', body.payment_method ?? '현금', body.card_id ?? '',
     body.original_amount ?? 0, body.discount_amount ?? 0, body.benefit_id ?? '',
-    body.cashback_amount ?? 0,
+    body.cashback_amount ?? 0, body.unsettled ? 1 : 0,
     userId, created_at
   ).run()
 

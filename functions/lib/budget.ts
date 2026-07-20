@@ -56,7 +56,7 @@ export async function calculateBudgetStatus(
     .prepare(`
       SELECT category, SUM(amount) AS total
       FROM transactions
-      WHERE user_id = ? AND type = 'expense' AND date LIKE ?
+      WHERE user_id = ? AND type = 'expense' AND date LIKE ? AND unsettled = 0
       GROUP BY category
     `)
     .bind(userId, datePattern)

@@ -19,7 +19,7 @@ interface Filters {
   dateEnd: string
   category: string                   // '' = 전체
   merchant: string                   // '' = 전체
-  cardId: string                     // '' = 전체, 'cash' = 현금
+  cardId: string                     // '' = 전체, 'cash' = 현금, 'transfer' = 계좌이체
   amountMin: string
   amountMax: string
 }
@@ -68,20 +68,24 @@ function SearchView({ cards }: Props) {
     setError('')
     try {
       // 서버 필터: q, date_start, date_end, card_id('cash' 센티널 포함), min/max_amount
+      // 'transfer'(계좌이체)는 카드 미연결이라는 점에서 서버 조회는 'cash'와 동일하게 요청하고
+      // 현금/계좌이체 구분은 클라이언트에서 payment_method로 한 번 더 나눔
       const txs = await fetchTransactions({
         q:          filters.q.trim() || undefined,
         date_start: filters.dateStart || undefined,
         date_end:   filters.dateEnd   || undefined,
-        card_id:    filters.cardId || undefined,
+        card_id:    filters.cardId === 'transfer' ? 'cash' : (filters.cardId || undefined),
         min_amount: filters.amountMin ? parseInt(filters.amountMin, 10) : undefined,
         max_amount: filters.amountMax ? parseInt(filters.amountMax, 10) : undefined,
       })
 
-      // 클라이언트 필터: type, category, merchant (서버는 텍스트/날짜/금액/결제수단만 담당)
+      // 클라이언트 필터: type, category, merchant, 현금/계좌이체 구분 (서버는 텍스트/날짜/금액만 담당)
       const filtered = txs.filter((t) => {
         if (filters.type && t.type !== filters.type) return false
         if (filters.category && t.category !== filters.category) return false
         if (filters.merchant && t.merchant !== filters.merchant) return false
+        if (filters.cardId === 'cash' && t.payment_method === '계좌이체') return false
+        if (filters.cardId === 'transfer' && t.payment_method !== '계좌이체') return false
         return true
       })
 
@@ -335,6 +339,15 @@ function SearchView({ cards }: Props) {
                 >
                   현금
                 </button>
+                <button
+                  type="button"
+                  onClick={() => set('cardId', 'transfer')}
+                  className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                    filters.cardId === 'transfer' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  계좌이체
+                </button>
                 {cards.map((card) => (
                   <button
                     key={card.id}
@@ -474,7 +487,7 @@ function SearchView({ cards }: Props) {
                                 </span>
                               ) : (
                                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400">
-                                  현금
+                                  {tx.payment_method || '현금'}
                                 </span>
                               )}
                               {tx.memo && (

@@ -21,7 +21,8 @@ interface EditState {
   date: string
   memo: string
   merchant: string
-  paymentMethod: string // '현금' | card.id
+  paymentMethod: string // '현금' | '계좌이체' | card.id
+  unsettled: boolean
 }
 
 function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate }: Props) {
@@ -59,7 +60,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
       date: tx.date,
       memo: tx.memo ?? '',
       merchant: tx.merchant ?? '',
-      paymentMethod: tx.card_id || '현금',
+      paymentMethod: tx.card_id || tx.payment_method || '현금',
+      unsettled: tx.unsettled === 1,
     })
   }
 
@@ -81,8 +83,9 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
         date: editState.date,
         memo: editState.memo.trim(),
         merchant: editState.merchant.trim(),
-        payment_method: selectedCard ? selectedCard.id : '현금',
+        payment_method: selectedCard ? selectedCard.id : editState.paymentMethod,
         card_id: selectedCard ? selectedCard.id : '',
+        unsettled: editState.unsettled,
       })
       setEditingId(null)
       setEditState(null)
@@ -112,27 +115,38 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
               editingId === tx.id && editState ? (
                 /* ── 인라인 편집 폼 ── */
                 <li key={tx.id} className="border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0">
-                  {/* 수입/지출 */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {(['expense', 'income'] as TransactionType[]).map((t) => (
-                      <button key={t} type="button"
-                        onClick={() => {
-                          const cats = getCategories(t)
-                          setEditState((s) => s && {
-                            ...s, type: t, category: cats[0],
-                            // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
-                            amount: t === 'expense' ? s.amount.replace(/^-/, '') : s.amount,
-                          })
-                        }}
-                        className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
-                          editState.type === t
-                            ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
-                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
-                        }`}
-                      >
-                        {t === 'expense' ? '지출' : '수입'}
-                      </button>
-                    ))}
+                  {/* 수입/지출 + 비정산 */}
+                  <div className="mb-3 flex gap-2">
+                    <div className="grid flex-1 grid-cols-2 gap-2">
+                      {(['expense', 'income'] as TransactionType[]).map((t) => (
+                        <button key={t} type="button"
+                          onClick={() => {
+                            const cats = getCategories(t)
+                            setEditState((s) => s && {
+                              ...s, type: t, category: cats[0],
+                              // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
+                              amount: t === 'expense' ? s.amount.replace(/^-/, '') : s.amount,
+                            })
+                          }}
+                          className={`min-h-9 rounded-xl text-sm font-bold transition-colors ${
+                            editState.type === t
+                              ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
+                              : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                          }`}
+                        >
+                          {t === 'expense' ? '지출' : '수입'}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button"
+                      onClick={() => setEditState((s) => s && { ...s, unsettled: !s.unsettled })}
+                      title="가족 비용 확인 등 정산·예산·잔액에서 제외할 거래에 표시 — '비정산' 탭에서만 조회됨"
+                      className={`min-h-9 shrink-0 rounded-xl px-3 text-sm font-bold transition-colors ${
+                        editState.unsettled ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                      }`}
+                    >
+                      비정산
+                    </button>
                   </div>
                   {/* 금액 — 수입은 차감 항목을 위해 음수(-) 입력 허용 */}
                   <input type="text" inputMode={editState.type === 'income' ? 'text' : 'numeric'}
@@ -150,8 +164,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                   />
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
-                    {['현금', ...cards.map((c) => c.id)].map((pm) => {
-                      const card = pm !== '현금' ? cardMap.get(pm) : null
+                    {['현금', '계좌이체', ...cards.map((c) => c.id)].map((pm) => {
+                      const card = cardMap.get(pm)
                       return (
                         <button key={pm} type="button"
                           onClick={() => setEditState((s) => s && { ...s, paymentMethod: pm })}
@@ -160,7 +174,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                           }`}
                           style={editState.paymentMethod === pm ? { backgroundColor: card?.color ?? '#1f2937' } : {}}
                         >
-                          {card ? card.name : '현금'}
+                          {card ? card.name : pm}
                         </button>
                       )
                     })}
@@ -228,7 +242,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                           </span>
                         ) : (
                           <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
-                            현금
+                            {tx.payment_method || '현금'}
                           </span>
                         )}
                       </div>

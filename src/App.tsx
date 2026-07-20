@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TriangleAlert, X } from 'lucide-react'
+import { CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TriangleAlert, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
@@ -14,6 +14,7 @@ import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
 import type { TransactionPrefill } from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
+import UnsettledView from './components/UnsettledView'
 import { useAuth } from './contexts/AuthContext'
 import { useTheme } from './contexts/ThemeContext'
 import { useToast } from './contexts/ToastContext'
@@ -27,11 +28,12 @@ import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'overview' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'unsettled' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'home',      label: '홈',       icon: Home },
   { id: 'overview',  label: '정산',     icon: CalendarDays },
+  { id: 'unsettled', label: '비정산',   icon: Users },
   { id: 'cards',     label: '카드',     icon: CreditCard },
   { id: 'recurring', label: '고정',     icon: Repeat },
   { id: 'budget',    label: '예산',     icon: ClipboardList },
@@ -202,9 +204,10 @@ function App() {
         category: tx.category,
         amount: tx.amount,
         merchant: tx.merchant,
-        paymentMethod: tx.card_id || '현금',
+        paymentMethod: tx.card_id || tx.payment_method || '현금',
         memo: tx.memo,
         date: tx.date,
+        unsettled: tx.unsettled === 1,
       },
       nonce: Date.now(),
     })
@@ -220,9 +223,10 @@ function App() {
         category: tx.category,
         amount: tx.amount,
         merchant: tx.merchant,
-        paymentMethod: tx.card_id || '현금',
+        paymentMethod: tx.card_id || tx.payment_method || '현금',
         memo: tx.memo,
         date: tx.date,
+        unsettled: tx.unsettled === 1,
       },
       nonce: Date.now(),
     })
@@ -347,8 +351,8 @@ function App() {
             </button>
           </div>
 
-          {/* 월 네비게이션 (홈·예산·메모 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes') && (
+          {/* 월 네비게이션 (홈·예산·메모·비정산 탭에서 표시) */}
+          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -430,6 +434,13 @@ function App() {
               >
                 정산 보기 (일간·주간·월간·연간) →
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('unsettled')}
+                className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              >
+                비정산 보기 →
+              </button>
               {/* 예산 초과 카테고리 요약 배너 */}
               {(() => {
                 const exceeded = budgetStatuses.filter((s) => s.exceeded && s.budget.active === 1)
@@ -498,6 +509,11 @@ function App() {
         {/* 정산 탭 (일간/주간/월간/연간 통합) */}
         {activeTab === 'overview' && (
           <OverviewView onEditTransaction={handleEditRequest} cards={cards} />
+        )}
+
+        {/* 비정산 탭 — 가족 비용 확인용, 일반 정산/예산/잔액과 완전히 분리 */}
+        {activeTab === 'unsettled' && (
+          <UnsettledView month={selectedMonth} cards={cards} onDuplicate={handleDuplicate} />
         )}
 
         {/* 카드 관리 탭 */}

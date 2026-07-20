@@ -29,7 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       t.created_at
     FROM transactions t
     LEFT JOIN cards c ON t.card_id = c.id AND c.user_id = t.user_id
-    WHERE t.user_id = ?
+    WHERE t.user_id = ? AND t.unsettled = 0
   `
   const binds: unknown[] = [userId]
 

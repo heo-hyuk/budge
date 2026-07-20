@@ -44,11 +44,14 @@
   전부 삭제 가능, 이미 저장된 거래의 분류 텍스트는 그대로 유지)
 - 구매처/판매처 직접 추가("+ 직접입력") 및 삭제 관리(톱니 아이콘, 분류와 동일
   방식) — 자유 입력 텍스트 필드 및 최근 사용 구매처 자동완성과 별개로 공존
-- 결제 방법 선택 (현금 또는 등록된 카드) + 카드 혜택 자동 매칭 제안
+- 결제 방법 선택 (현금 / 계좌이체 / 등록된 카드) + 카드 혜택 자동 매칭 제안
 - 최근 사용한 구매처 자동완성(선택 시 대표 분류 자동 채움)
 - 빠른 입력 템플릿(즐겨찾기 칩으로 폼 한번에 채우기, 관리/재정렬)
 - 직전 거래 복제(날짜만 오늘로 재설정)
 - 저장 전 예산 반영 미리보기 ("저장 시 이번 달 '식비' 예산 68% 사용")
+- "비정산" 토글 — 가족 비용 확인 등 개인 정산과 분리하고 싶은 거래 표시.
+  일/주/월/연 정산·예산·홈 잔액·엑셀 내보내기에서 완전히 제외되고 별도
+  "비정산" 탭에서만 조회/합계됨
 - 날짜별 그룹 목록, 인라인 수정 / 삭제(3초 내 되돌리기 가능한 Undo)
 - 모바일에서 좌우 스와이프로 월 이동
 
@@ -88,6 +91,11 @@
 ### 예산 관리
 - 카테고리별(또는 전체) 월 예산 설정, 매월 반복 또는 특정 월 한정
 - 초과 시 홈 화면 배너 + 입력 폼 인라인 경고
+
+### 비정산
+- "비정산" 표시한 거래만 모아보는 별도 탭(홈의 "정산 보기" 바로 아래 "비정산
+  보기" 버튼으로 연결) — 월별 수입/지출/합계와 목록, 수정/삭제/복제 가능
+- 정산·예산·홈 잔액·엑셀 내보내기 등 일반적인 재무 계산에서는 전부 제외
 
 ### 메모장
 - 날짜별 자유 기록(분류 태그, 하루 여러 건 가능), 목록/달력 보기 토글
@@ -162,7 +170,7 @@ budget/
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~020, schema.sql과 항상 동기화
+├── migrations/                       # 001~021, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -180,7 +188,7 @@ cards                 -- id, name, color, billing_day, closing_day, benefits,
 transactions           -- id, type, category, amount, memo, date, merchant,
                        --   payment_method, card_id, recurring_id,
                        --   original_amount, discount_amount, benefit_id,
-                       --   cashback_amount, user_id
+                       --   cashback_amount, unsettled, user_id
 recurring_transactions -- id, user_id, name, type, category, amount, ...,
                        --   day_of_month, start_date, end_date, last_generated_date, active
 card_benefits          -- id, user_id, card_id, name, category, merchant_pattern,

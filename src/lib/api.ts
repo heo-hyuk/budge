@@ -51,6 +51,7 @@ export async function fetchTransactions(params?: {
   date_end?: string    // 날짜 범위 종료
   min_amount?: number  // 최소 금액
   max_amount?: number  // 최대 금액
+  unsettled?: boolean  // true면 비정산 거래만 조회(기본은 비정산 제외)
 }): Promise<Transaction[]> {
   const qs = new URLSearchParams()
   if (params?.month)      qs.set('month', params.month)
@@ -61,6 +62,7 @@ export async function fetchTransactions(params?: {
   if (params?.date_end)   qs.set('date_end', params.date_end)
   if (params?.min_amount != null) qs.set('min_amount', String(params.min_amount))
   if (params?.max_amount != null) qs.set('max_amount', String(params.max_amount))
+  if (params?.unsettled)  qs.set('unsettled', '1')
 
   const url = `/api/transactions${qs.toString() ? `?${qs}` : ''}`
   const body = await apiRequest<{ data: Transaction[] }>(url, undefined, '거래 내역을 불러오지 못했습니다')

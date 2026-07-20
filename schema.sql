@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~020 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~021 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   discount_amount INTEGER DEFAULT 0,     -- 적용된 할인액
   benefit_id TEXT DEFAULT '',            -- 적용된 카드 혜택 규칙 ID
   cashback_amount INTEGER DEFAULT 0,     -- 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, migration 011)
+  unsettled INTEGER NOT NULL DEFAULT 0,  -- 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외, migration 021)
   created_at TEXT NOT NULL
 );
 

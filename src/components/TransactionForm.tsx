@@ -16,9 +16,10 @@ export interface TransactionPrefill {
   category: string
   amount: number | null  // null = 금액 미지정 템플릿(금액 필드는 비워두고 포커스만 이동)
   merchant: string
-  paymentMethod: string  // '현금' | card.id
+  paymentMethod: string  // '현금' | '계좌이체' | card.id
   memo: string
   date: string  // 복제/템플릿 적용 시엔 무시되고 오늘로 재설정되지만, 수정 모드에선 원래 날짜를 유지하는 데 사용
+  unsettled?: boolean  // 비정산 거래 여부(가족 비용 확인용 — 정산/예산/잔액/내보내기에서 제외)
 }
 
 interface Props {
@@ -50,6 +51,7 @@ function TransactionForm({
   const [memo, setMemo]               = useState('')
   const [merchant, setMerchant]       = useState('')
   const [paymentMethod, setPaymentMethod] = useState('현금')
+  const [unsettled, setUnsettled]     = useState(false)
   const [saving, setSaving]           = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
@@ -111,6 +113,7 @@ function TransactionForm({
     setAmount(data.amount != null ? formatNumberInput(String(data.amount), data.type === 'income') : '')
     setMerchant(data.merchant)
     setPaymentMethod(data.paymentMethod)
+    setUnsettled(data.unsettled ?? false)
     setMemo(data.memo)
     setDate(todayStr())
     setAddingCategory(false)
@@ -142,6 +145,7 @@ function TransactionForm({
     setAmount('')
     setMemo('')
     setMerchant('')
+    setUnsettled(false)
     setMatches([])
     setSelectedMatch(null)
     setDate(todayStr())
@@ -153,7 +157,7 @@ function TransactionForm({
       category: t.category,
       amount: t.amount,
       merchant: t.merchant,
-      paymentMethod: t.card_id || '현금',
+      paymentMethod: t.card_id || t.payment_method || '현금',
       memo: t.memo,
       date: todayStr(),
     })
@@ -176,7 +180,7 @@ function TransactionForm({
         label, type, category,
         amount: saveTemplateAmount ? numericAmount : null,
         merchant: merchant.trim() || undefined,
-        payment_method: selectedCard ? selectedCard.id : '현금',
+        payment_method: selectedCard ? selectedCard.id : paymentMethod,
         card_id: selectedCard ? selectedCard.id : undefined,
         memo: memo.trim() || undefined,
       })
@@ -315,7 +319,8 @@ function TransactionForm({
   useEffect(() => {
     if (editingId) return
     if (type !== 'expense') return
-    const cardId = paymentMethod !== '현금' ? paymentMethod : ''
+    // paymentMethod가 카드 ID일 때만 혜택 매칭 대상 — '현금'/'계좌이체' 같은 비카드 값은 제외
+    const cardId = cards.some((c) => c.id === paymentMethod) ? paymentMethod : ''
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
     // 카드 미선택이거나 금액 없으면 초기화
@@ -354,7 +359,7 @@ function TransactionForm({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [paymentMethod, merchant, category, amount, date, type, editingId])
+  }, [paymentMethod, merchant, category, amount, date, type, editingId, cards])
 
   // 혜택 적용 취소
   function dismissBenefit() {
@@ -366,6 +371,7 @@ function TransactionForm({
     setAmount('')
     setMemo('')
     setMerchant('')
+    setUnsettled(false)
     setMatches([])
     setSelectedMatch(null)
   }
@@ -387,8 +393,9 @@ function TransactionForm({
           type, category, amount: numericAmount, date,
           memo: memo.trim(),
           merchant: merchant.trim(),
-          payment_method: selectedCard ? selectedCard.id : '현금',
+          payment_method: selectedCard ? selectedCard.id : paymentMethod,
           card_id: selectedCard ? selectedCard.id : '',
+          unsettled,
         })
         setEditingId(null)
         resetAfterSave()
@@ -414,12 +421,13 @@ function TransactionForm({
         type, category, amount: finalAmount, date,
         memo: memo.trim() || undefined,
         merchant: merchant.trim() || undefined,
-        payment_method: selectedCard ? selectedCard.id : '현금',
+        payment_method: selectedCard ? selectedCard.id : paymentMethod,
         card_id: selectedCard ? selectedCard.id : undefined,
         original_amount: discountAmount > 0 ? numericAmount : undefined,
         discount_amount: discountAmount > 0 ? discountAmount : undefined,
         benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
         cashback_amount: cashbackAmount > 0 ? cashbackAmount : undefined,
+        unsettled,
       })
       resetAfterSave()
       showToast('거래를 저장했습니다')
@@ -504,23 +512,35 @@ function TransactionForm({
         </div>
       )}
 
-      {/* 강조 카드: 수입/지출 + 금액 */}
+      {/* 강조 카드: 수입/지출 + 비정산 + 금액 */}
       <UiCard>
-        <div className="grid grid-cols-2 gap-2">
-          {(['expense', 'income'] as TransactionType[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => handleTypeChange(t)}
-              className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
-                type === t
-                  ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
-                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
-              }`}
-            >
-              {t === 'expense' ? '지출' : '수입'}
-            </button>
-          ))}
+        <div className="flex gap-2">
+          <div className="grid flex-1 grid-cols-2 gap-2">
+            {(['expense', 'income'] as TransactionType[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => handleTypeChange(t)}
+                className={`min-h-11 rounded-xl text-base font-bold transition-colors ${
+                  type === t
+                    ? t === 'expense' ? 'bg-coral-400 text-white' : 'bg-blue-600 text-white'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                }`}
+              >
+                {t === 'expense' ? '지출' : '수입'}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setUnsettled((u) => !u)}
+            title="가족 비용 확인 등 정산·예산·잔액에서 제외할 거래에 표시 — '비정산' 탭에서만 조회됨"
+            className={`min-h-11 shrink-0 rounded-xl px-3 text-sm font-bold transition-colors ${
+              unsettled ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+            }`}
+          >
+            비정산
+          </button>
         </div>
 
         <div className="mt-4">
@@ -663,6 +683,15 @@ function TransactionForm({
             >
               현금
             </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('계좌이체')}
+              className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+                paymentMethod === '계좌이체' ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+              }`}
+            >
+              계좌이체
+            </button>
             {cards.map((card) => (
               <button
                 key={card.id}
@@ -683,7 +712,7 @@ function TransactionForm({
         </div>
 
         {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서는 재계산 안 하므로 숨김) */}
-        {!editingId && type === 'expense' && paymentMethod !== '현금' && numericAmount > 0 && (
+        {!editingId && type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
           <div className="mt-4">
             {matchLoading && (
               <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>

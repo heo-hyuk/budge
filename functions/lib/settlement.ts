@@ -37,7 +37,7 @@ export async function calculateDailySettlement(
   date: string,  // 'YYYY-MM-DD'
 ): Promise<DailySettlementResult> {
   const { results: priorResults } = await db
-    .prepare('SELECT type, amount FROM transactions WHERE user_id = ? AND date < ?')
+    .prepare('SELECT type, amount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0')
     .bind(userId, date)
     .all<{ type: 'income' | 'expense'; amount: number }>()
 
@@ -45,7 +45,7 @@ export async function calculateDailySettlement(
     .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
 
   const { results: todayResults } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date = ? ORDER BY created_at ASC')
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date = ? AND unsettled = 0 ORDER BY created_at ASC')
     .bind(userId, date)
     .all<SettlementTransaction>()
 
@@ -133,7 +133,7 @@ export async function calculateWeeklySettlement(
   const monthStart = `${weekStart.slice(0, 7)}-01`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
     .bind(userId, monthStart, weekEnd)
     .all<SettlementTransaction>()
 
@@ -194,7 +194,7 @@ export async function calculateMonthlySettlement(
   const monthEnd = `${month}-${String(totalDays).padStart(2, '0')}`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
     .bind(userId, monthStart, monthEnd)
     .all<SettlementTransaction>()
 
@@ -248,7 +248,7 @@ export async function calculateAnnualSettlement(
   const yearEnd = `${year}-12-31`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
     .bind(userId, yearStart, yearEnd)
     .all<SettlementTransaction>()
 
