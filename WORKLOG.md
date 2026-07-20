@@ -1,5 +1,60 @@
 # WORKLOG
 
+## 2026-07-20 (67차) — 칩 순서 변경을 드래그 앤 드롭 + 기본 분류도 이동 가능하게 재설계
+
+사용자 요청(66차 결과물에 대한 수정 지시): "드래그 방식으로 움직여야하고
+기본제공 도 다 움직여야해". 66차에서 위/아래 버튼 + 커스텀 항목만 이동 가능하게
+구현했는데, 이 두 가지 설계 결정을 모두 뒤집는 명확한 반려 지시.
+
+### 설계
+- **기본 분류 이동 허용**: 기본 분류(식비/교통/급여 등)는 DB에 행이 없는
+  고정 배열이라 지금까지 순서를 저장할 곳이 없었음. → 재배치가 일어나는
+  시점에 그 배열에 포함된 모든 이름(기본+커스텀)을 DB 행으로 "물질화"
+  (upsert)하는 방식으로 해결. 아직 한 번도 재배치되지 않은 기본 분류는
+  행이 없는 채로 남아있고, 이땐 `DEFAULT_CATEGORIES` 배열 순서를 그대로
+  표시 순서로 사용(기존 동작과 동일) — 커스텀 항목의 `sort_order`엔 항상
+  큰 오프셋(100000)을 더해 비교하므로, 손대지 않은 기본 분류가 항상
+  손대지 않은 커스텀보다 앞에 오는 기존 UX가 자연히 유지되고, 실제로
+  재배치가 한 번 일어나면 그 시점부터는 오프셋 없이 각자의 sort_order로만
+  비교되어 완전히 자유롭게 섞임
+- GET 응답 형태를 `{custom, removedDefaults}` 델타가 아니라 서버가 이미
+  기본+커스텀을 병합/정렬까지 끝낸 최종 배열(`{expense: string[], income:
+  string[]}`, 메모 분류는 `{data: string[]}`)로 변경 — 프론트가 병합 로직을
+  가질 필요가 없어져 오히려 코드가 단순해짐
+- 삭제(DELETE) 핸들러도 손봐야 함: 기존엔 기본 분류 삭제 시 `INSERT ...
+  removed_default=1 ON CONFLICT DO NOTHING`이라, 이미 재배치돼 행이
+  존재하는(removed_default=0) 기본 분류를 삭제하면 충돌 시 아무 것도 안
+  갱신돼 삭제가 씹히는 버그가 생김 → `ON CONFLICT DO UPDATE SET
+  removed_default = 1`로 변경
+- **드래그 앤 드롭 UI**: 외부 라이브러리 추가 대신(월 이동 스와이프 등
+  기존 코드도 순수 포인터/터치 이벤트로 직접 구현하는 관례) Pointer Events
+  기반 커스텀 드래그 재정렬 컴포넌트 `ReorderableChipList`를 새로 만들어
+  분류/구매처/메모 분류 3곳에서 공용으로 사용. pointerdown 시작 위치에서
+  일정 거리(6px) 이상 움직이면 드래그로 간주해 실시간으로 배열을 재배열,
+  거의 안 움직이고 뗀 경우(탭)는 기존처럼 선택/삭제 동작으로 처리(드래그와
+  탭을 하나의 포인터 제스처에서 구분)
+
+### 계획
+- `functions/api/categories/index.ts` — GET을 병합·정렬된 `{expense,
+  income}` 최종 배열로 변경, PATCH를 upsert 방식으로 변경(기본 분류
+  이름도 물질화), DELETE의 ON CONFLICT를 DO UPDATE로 수정
+- `functions/api/note-categories/index.ts` — 동일 패턴 적용
+- `functions/api/merchants/index.ts` — 기본값 개념이 없어 변경 불필요(이미
+  전체 재정렬 지원)
+- `src/lib/api.ts` — `CategoriesResponse`/`CategoryOverrides` 타입을 최종
+  배열 형태로 변경
+- `src/lib/categories.ts`, `src/lib/noteCategories.ts` — 캐시를 델타가
+  아닌 최종 배열로 변경, `getCategories()`가 병합 로직 없이 캐시를 그대로
+  반환하도록 단순화, `reorderCustomCategories` → `reorderCategories`로
+  이름 변경(기본 분류도 대상이 되므로)
+- `src/components/ReorderableChipList.tsx` — 신규, 드래그 재정렬 공용 컴포넌트
+- `src/components/TransactionForm.tsx` — 분류/구매처 관리 모드의 위/아래
+  버튼 UI를 `ReorderableChipList` 기반 드래그로 교체, 기본/커스텀 구분
+  로직(`customCategories` 등) 제거
+- `src/components/NotesView.tsx` — 메모 분류 관리 모드도 동일하게 교체
+- 스키마 변경 없음(`sort_order` 컬럼은 66차에서 이미 추가됨)
+- `wrangler pages dev` + Playwright로 드래그 재정렬 및 기기 간 동기화 재검증
+
 ## 2026-07-20 (66차) — 관리 모드 칩(분류/구매처/메모 분류) 순서 변경 기능
 
 사용자 요청: "칩이 있는 모든 곳에 편집에서 칩 순서 변경할 수 있게 해줘". "칩이
