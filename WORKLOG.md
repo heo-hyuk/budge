@@ -1,5 +1,56 @@
 # WORKLOG
 
+## 2026-07-20 (66차) — 관리 모드 칩(분류/구매처/메모 분류) 순서 변경 기능
+
+사용자 요청: "칩이 있는 모든 곳에 편집에서 칩 순서 변경할 수 있게 해줘". "칩이
+있는 곳" 중 "편집(관리 모드)"이 있는 곳은 3군데: 거래 입력 폼의 분류(58차),
+구매처(63차), 메모장의 분류(59차) — 전부 톱니바�퀴 아이콘으로 삭제 모드 진입하는
+동일 패턴. (검색 화면의 분류/구매처 필터 칩, 결제 방법 칩은 관리 모드 자체가
+없어 이번 범위 밖 — 분류/구매처 순서가 바뀌면 필터 칩도 같은 순서로 자동 반영됨)
+
+### 설계
+- 기본 제공 분류(식비/교통/급여 등, DB 행이 없는 고정 배열)는 항상 맨 앞
+  고정 순서 유지 — 순서 변경 대상에서 제외. 사용자가 추가한 커스텀 분류/구매처
+  끼리만 순서 변경 가능. 이유: 기본 분류까지 자유롭게 섞으려면 기본 분류를
+  최초 재정렬 시점에 전부 DB 행으로 물질화해야 해서 훨씬 복잡해지고, 빠른
+  입력 템플릿(sort_order + 스왑 방식)과 다른 새로운 패턴이 필요해짐. 커스텀
+  항목은 이미 DB 행이 있으니 `sort_order` 컬럼만 추가하면 기존 템플릿 재정렬과
+  동일한 방식 재사용 가능
+- 스왑 대신 "전체 순서 배열 전송" 방식 채택(템플릿은 인접 2개 스왑이지만, 이번엔
+  프론트가 개별 sort_order 값을 몰라도 되게): 위/아래 버튼 클릭 시 프론트에서
+  커스텀 배열의 인접 두 이름을 바꾼 새 배열을 만들어 `PATCH .../reorder`로
+  전체 순서(이름 배열)를 보내면, 백엔드가 배열 인덱스를 그대로 각 행의
+  `sort_order`로 갱신
+
+### 계획
+- `schema.sql`, `migrations/022_add_sort_order.sql` — `categories`,
+  `note_categories`, `merchants` 테이블에 각각 `sort_order INTEGER NOT NULL
+  DEFAULT 0` 추가
+- `functions/api/categories/index.ts`, `functions/api/note-categories/index.ts`,
+  `functions/api/merchants/index.ts` — GET을 `ORDER BY sort_order ASC,
+  created_at ASC`로 변경, POST(추가) 시 `sort_order = 현재 최대값 + 1`로 저장
+  (빠른 입력 템플릿과 동일 패턴), `onRequestPatch` 신규 추가(`{order: string[]}`
+  받아 배열 인덱스를 각 행의 sort_order로 일괄 갱신 — 기본 분류 이름이 섞여
+  있어도 해당 행이 없으니 자동 무시됨)
+- `src/lib/api.ts` — `reorderCategoriesApi(type, order)`,
+  `reorderNoteCategoriesApi(order)`, `reorderMerchantsApi(order)` 추가
+- `src/lib/categories.ts`, `src/lib/noteCategories.ts`, `src/lib/merchants.ts`
+  — `reorderCustomCategories`/`reorderCustomNoteCategories`/
+  `reorderCustomMerchants` 추가(캐시의 custom 배열 순서 갱신 + API 호출)
+- `src/components/TransactionForm.tsx` — 분류/구매처 관리 모드에서 커스텀 칩에만
+  위/아래 이동 버튼(맨 앞/맨 뒤는 반대쪽 버튼 비활성화) 추가
+- `src/components/NotesView.tsx` — 메모 분류 관리 모드에 동일하게 위/아래 이동
+  버튼 추가
+
+### 예상 변경 파일
+- `schema.sql`, `migrations/022_add_sort_order.sql`(신규),
+  `functions/api/categories/index.ts`, `functions/api/note-categories/index.ts`,
+  `functions/api/merchants/index.ts`, `src/lib/api.ts`, `src/lib/categories.ts`,
+  `src/lib/noteCategories.ts`, `src/lib/merchants.ts`,
+  `src/components/TransactionForm.tsx`, `src/components/NotesView.tsx`
+
+---
+
 ## 2026-07-20 (65차) — 정산 표의 수입 열을 3그룹 대신 분류별 칩으로 표시
 
 사용자 요청: 정산 탭(주간/월간/연간 표)의 수입이 "소득/예금인출/기타" 3그룹으로만
