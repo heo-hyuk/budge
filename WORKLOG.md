@@ -1,5 +1,36 @@
 # WORKLOG
 
+## 2026-07-20 (60차) — 기존 로컬 분류/설정을 서버로 끌어올리는 1회성 마이그레이션(58~59차 후속)
+
+사용자가 실제 기존 고객("상희"님) 스크린샷을 첨부 — 지출/수입에 커스텀 분류를
+아주 많이 만들어둔 헤비 유저. 58~59차에서 분류/설정을 서버(D1) 동기화로
+바꿨지만, 예전에 각 기기의 `localStorage`에 이미 쌓여있던 데이터를 서버로
+끌어올리는 마이그레이션은 만들지 않았음을 확인 — 이 상태로는 기존 고객이
+앱을 다시 열면(새 코드가 배포된 뒤) 그 기기에 있던 커스텀 분류가 화면에서
+안 보이게 됨(데이터 자체가 삭제되진 않지만 더 이상 안 읽음). 상희님처럼 이미
+많은 분류를 만들어둔 기존 고객의 데이터를 지키기 위해 1회성 마이그레이션을
+추가하기로 함.
+
+### 계획
+- `src/lib/legacyMigration.ts`(신규) — 기기별 로컬 스토리지에 남아있는 예전 키
+  (`budget:categories:{type}`, `budget:categories:{type}:removedDefaults`,
+  `budget:noteCategories`, `budget:noteCategories:removedDefaults`,
+  `budget:monthlyBasis`)를 읽어 이미 만들어둔 `addCustomCategory`/
+  `removeCategory`/`addCustomNoteCategory`/`removeNoteCategory`/
+  `setMonthlyBasis`(58~59차, 내부적으로 서버 API 호출 + 캐시 갱신)를 통해
+  서버로 밀어올림. `budget:legacyMigratedToServer` 플래그로 기기당 1회만
+  실행, 완료 후 예전 키 정리. 여러 기기가 각자 다른 로컬 데이터를 갖고 있어도
+  추가/삭제 오퍼레이션이 멱등이라 순서 상관없이 안전하게 합쳐짐(같은 이름
+  중복 추가는 서버에서 무시, 삭제 표시는 재추가로 복원 가능)
+- `src/App.tsx` — 로그인 effect에서 `loadCategories`/`loadNoteCategories`/
+  `loadSettings` 호출 전에 `migrateLegacyLocalStorage()`를 먼저 실행해,
+  이 기기의 예전 데이터를 서버에 반영한 뒤에 최신 상태를 불러오도록 순서 조정
+
+### 예상 변경 파일
+- `src/lib/legacyMigration.ts`(신규), `src/App.tsx`
+
+---
+
 ## 2026-07-20 (59차) — 메모 분류 + 카드 정산 집계 기준도 서버 동기화(58차 후속)
 
 58차에서 거래 분류를 D1로 옮겨 기기 간 동기화한 뒤, 사용자가 "모든 작업은
