@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~021 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~022 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS categories (
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   name TEXT NOT NULL,
   removed_default INTEGER NOT NULL DEFAULT 0,  -- 0 = 사용자가 추가한 커스텀 분류, 1 = 삭제한 기본 분류 표시
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- 커스텀 분류끼리의 순서(기본 분류는 항상 앞에 고정, migration 022)
   created_at TEXT NOT NULL,
   UNIQUE(user_id, type, name)
 );
@@ -214,6 +215,7 @@ CREATE TABLE IF NOT EXISTS note_categories (
   user_id TEXT NOT NULL,
   name TEXT NOT NULL,
   removed_default INTEGER NOT NULL DEFAULT 0,  -- 0 = 커스텀 분류, 1 = 삭제한 기본 분류 표시
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- 커스텀 분류끼리의 순서(기본 분류는 항상 앞에 고정, migration 022)
   created_at TEXT NOT NULL,
   UNIQUE(user_id, name)
 );
@@ -238,6 +240,7 @@ CREATE TABLE IF NOT EXISTS merchants (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- 구매처끼리의 순서 (migration 022)
   created_at TEXT NOT NULL,
   UNIQUE(user_id, name)
 );

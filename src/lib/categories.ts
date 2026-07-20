@@ -1,8 +1,9 @@
-import { addCategoryApi, fetchCategoryOverrides, removeCategoryApi } from './api'
+import { addCategoryApi, fetchCategoryOverrides, removeCategoryApi, reorderCategoriesApi } from './api'
 import type { TransactionType } from '../types'
 
-// functions/lib/categories.ts의 DEFAULT_CATEGORIES와 항상 동일하게 유지할 것
-const DEFAULT_CATEGORIES: Record<TransactionType, string[]> = {
+// functions/lib/categories.ts의 DEFAULT_CATEGORIES와 항상 동일하게 유지할 것.
+// export하는 이유: UI에서 "이 분류가 기본 제공인지(= 순서 변경 불가)"를 판단해야 함
+export const DEFAULT_CATEGORIES: Record<TransactionType, string[]> = {
   expense: ['식비', '교통', '주거/공과금', '의료', '문화/여가', '쇼핑', '교육', '경조사', '기타'],
   income: ['급여', '용돈', '기타수입'],
 }
@@ -74,5 +75,12 @@ export async function removeCategory(type: TransactionType, name: string): Promi
   } else {
     cache[type].custom = cache[type].custom.filter((c) => c !== name)
   }
+  return getCategories(type)
+}
+
+/** 커스텀 분류 순서 변경 — 기본 분류는 항상 앞에 고정이라 대상에서 제외됨 */
+export async function reorderCustomCategories(type: TransactionType, order: string[]): Promise<string[]> {
+  await reorderCategoriesApi(type, order)
+  cache[type].custom = order
   return getCategories(type)
 }

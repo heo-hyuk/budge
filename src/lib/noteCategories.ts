@@ -1,7 +1,8 @@
-import { addNoteCategoryApi, fetchNoteCategoryOverrides, removeNoteCategoryApi } from './api'
+import { addNoteCategoryApi, fetchNoteCategoryOverrides, removeNoteCategoryApi, reorderNoteCategoriesApi } from './api'
 
-// functions/lib/noteCategories.ts의 DEFAULT_NOTE_CATEGORIES와 항상 동일하게 유지할 것
-const DEFAULT_NOTE_CATEGORIES = ['일상', '만남', '기념일', '건강', '기타']
+// functions/lib/noteCategories.ts의 DEFAULT_NOTE_CATEGORIES와 항상 동일하게 유지할 것.
+// export하는 이유: UI에서 "이 분류가 기본 제공인지(= 순서 변경 불가)"를 판단해야 함
+export const DEFAULT_NOTE_CATEGORIES = ['일상', '만남', '기념일', '건강', '기타']
 
 interface Overrides {
   custom: string[]
@@ -60,5 +61,12 @@ export async function removeNoteCategory(name: string): Promise<string[]> {
   } else {
     cache.custom = cache.custom.filter((c) => c !== name)
   }
+  return getNoteCategories()
+}
+
+/** 커스텀 분류 순서 변경 — 기본 분류는 항상 앞에 고정이라 대상에서 제외됨 */
+export async function reorderCustomNoteCategories(order: string[]): Promise<string[]> {
+  await reorderNoteCategoriesApi(order)
+  cache.custom = order
   return getNoteCategories()
 }

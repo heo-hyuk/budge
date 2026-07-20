@@ -1,14 +1,14 @@
-import { Settings2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Settings2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
-import { addCustomCategory, getCategories, loadCategories, removeCategory } from '../lib/categories'
+import { addCustomCategory, DEFAULT_CATEGORIES, getCategories, loadCategories, removeCategory, reorderCustomCategories } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
-import { addMerchant, getMerchants, loadMerchants, removeMerchant } from '../lib/merchants'
+import { addMerchant, getMerchants, loadMerchants, removeMerchant, reorderMerchants } from '../lib/merchants'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
 export interface TransactionPrefill {
@@ -273,6 +273,21 @@ function TransactionForm({
     }
   }
 
+  // 커스텀 분류끼리만 순서 변경(기본 분류는 항상 앞에 고정이라 대상에서 제외)
+  async function handleMoveCategory(name: string, direction: -1 | 1) {
+    const customOnly = categories.filter((c) => !DEFAULT_CATEGORIES[type].includes(c))
+    const idx = customOnly.indexOf(name)
+    const targetIdx = idx + direction
+    if (idx === -1 || targetIdx < 0 || targetIdx >= customOnly.length) return
+    const reordered = [...customOnly]
+    ;[reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]]
+    try {
+      setCategories(await reorderCustomCategories(type, reordered))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '순서를 변경하지 못했습니다', 'error')
+    }
+  }
+
   async function handleAddMerchant() {
     const trimmed = newMerchant.trim()
     if (!trimmed) { setAddingMerchant(false); return }
@@ -294,6 +309,19 @@ function TransactionForm({
       setMerchantList(updated)
     } catch (err) {
       showToast(err instanceof Error ? err.message : '구매처를 삭제하지 못했습니다', 'error')
+    }
+  }
+
+  async function handleMoveMerchant(name: string, direction: -1 | 1) {
+    const idx = merchantList.indexOf(name)
+    const targetIdx = idx + direction
+    if (idx === -1 || targetIdx < 0 || targetIdx >= merchantList.length) return
+    const reordered = [...merchantList]
+    ;[reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]]
+    try {
+      setMerchantList(await reorderMerchants(reordered))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '순서를 변경하지 못했습니다', 'error')
     }
   }
 
@@ -439,6 +467,8 @@ function TransactionForm({
   }
 
   const numericAmount = parseAmountInput(amount)
+  // 커스텀 분류끼리만 순서 변경 가능(기본 분류는 항상 앞에 고정) — 위/아래 버튼 활성/비활성 판단용
+  const customCategories = categories.filter((c) => !DEFAULT_CATEGORIES[type].includes(c))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -585,25 +615,49 @@ function TransactionForm({
 
         {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐 */}
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {merchantList.map((m) => (
-            <div key={m} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  if (manageMerchants) { handleDeleteMerchant(m); return }
-                  setMerchant(m)
-                }}
-                className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
-                  merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                }`}
-              >
-                {m}
-              </button>
+          {merchantList.map((m, idx) => (
+            <div key={m} className="flex items-center gap-0.5">
               {manageMerchants && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
-                  <X size={12} />
-                </span>
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => handleMoveMerchant(m, -1)}
+                    disabled={idx === 0}
+                    aria-label="위로 이동"
+                    className="flex h-4 w-5 items-center justify-center rounded-t text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                  >
+                    <ChevronUp size={11} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveMerchant(m, 1)}
+                    disabled={idx === merchantList.length - 1}
+                    aria-label="아래로 이동"
+                    className="flex h-4 w-5 items-center justify-center rounded-b text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                  >
+                    <ChevronDown size={11} />
+                  </button>
+                </div>
               )}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manageMerchants) { handleDeleteMerchant(m); return }
+                    setMerchant(m)
+                  }}
+                  className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
+                    merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  {m}
+                </button>
+                {manageMerchants && (
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                    <X size={12} />
+                  </span>
+                )}
+              </div>
             </div>
           ))}
           {!addingMerchant && !manageMerchants && (
@@ -817,28 +871,56 @@ function TransactionForm({
           </button>
         </div>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {categories.map((c) => (
-            <div key={c} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  if (manageCategories) { handleDeleteCategory(c); return }
-                  setCategory(c)
-                  setCategoryManuallySet(true)
-                }}
-                className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${manageCategories ? 'pr-7' : ''} ${
-                  category === c && !manageCategories ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                }`}
-              >
-                {c}
-              </button>
-              {manageCategories && (
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
-                  <X size={12} />
-                </span>
-              )}
-            </div>
-          ))}
+          {categories.map((c) => {
+            const customIdx = customCategories.indexOf(c)
+            const isCustom = customIdx !== -1
+            return (
+              <div key={c} className="flex items-center gap-0.5">
+                {manageCategories && isCustom && (
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCategory(c, -1)}
+                      disabled={customIdx === 0}
+                      aria-label="위로 이동"
+                      className="flex h-4 w-5 items-center justify-center rounded-t text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                    >
+                      <ChevronUp size={11} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCategory(c, 1)}
+                      disabled={customIdx === customCategories.length - 1}
+                      aria-label="아래로 이동"
+                      className="flex h-4 w-5 items-center justify-center rounded-b text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                    >
+                      <ChevronDown size={11} />
+                    </button>
+                  </div>
+                )}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (manageCategories) { handleDeleteCategory(c); return }
+                      setCategory(c)
+                      setCategoryManuallySet(true)
+                    }}
+                    className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${manageCategories ? 'pr-7' : ''} ${
+                      category === c && !manageCategories ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                  {manageCategories && (
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                      <X size={12} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
           {!addingCategory && !manageCategories && (
             <button
               type="button"

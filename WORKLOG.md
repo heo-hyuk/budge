@@ -49,6 +49,25 @@
   `src/lib/noteCategories.ts`, `src/lib/merchants.ts`,
   `src/components/TransactionForm.tsx`, `src/components/NotesView.tsx`
 
+### 완료
+- [x] 계획대로 전 파일 작업 완료. 구매처는 기본값 개념이 없어 전부 커스텀이라
+  함수명을 `reorderCustomMerchants` 대신 `reorderMerchants`로 단순화(계획과
+  다른 이름이지만 동작은 동일)
+- [x] `DEFAULT_CATEGORIES`/`DEFAULT_NOTE_CATEGORIES`를 각 lib 파일에서 export로
+  변경(UI가 "이 분류가 기본 제공이라 순서 변경 불가"를 판단해야 해서 필요)
+- [x] `README.md`에 마이그레이션 범위(001~021→001~022)·DB 스키마·기능 목록 반영
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과
+- [x] `wrangler pages dev` + 로컬 D1로 브라우저 검증: 거래 분류에 커스텀 "가/나/다"
+  추가 → 관리 모드에서 "가"를 한 번 아래로 이동 → 순서가 "나/가/다"로 정확히
+  바뀜(기본 분류는 위/아래 버튼 자체가 안 보임) 확인 → 완전히 새로운 브라우저
+  컨텍스트(다른 기기 시뮬레이션)로 같은 계정 로그인만 했더니 동일한 순서로
+  동기화됨 확인. 메모 분류도 동일하게 검증(관리 모드에서 이동 → 정확히 반영).
+  구매처는 별도 화면 테스트는 생략(카테고리와 100% 동일한 코드 패턴이라 위험 낮음).
+  콘솔 에러 없음
+- [x] 프로덕션 D1에 `022_add_sort_order.sql` 마이그레이션 적용, 커밋 push 후
+  GitHub Actions 자동배포 success 확인
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-20 (65차) — 정산 표의 수입 열을 3그룹 대신 분류별 칩으로 표시

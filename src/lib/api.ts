@@ -370,6 +370,10 @@ export async function removeCategoryApi(type: TransactionType, name: string): Pr
   )
 }
 
+export async function reorderCategoriesApi(type: TransactionType, order: string[]): Promise<void> {
+  await apiRequest('/api/categories', jsonInit('PATCH', { type, order }), '분류 순서를 저장하지 못했습니다')
+}
+
 // ── 메모 분류 API ────────────────────────────────────────
 // 거래 분류와 동일한 이유로 계정 단위 저장(타입 구분 없는 단일 목록)
 
@@ -387,6 +391,10 @@ export async function removeNoteCategoryApi(name: string): Promise<void> {
     { method: 'DELETE' },
     '메모 분류를 삭제하지 못했습니다'
   )
+}
+
+export async function reorderNoteCategoriesApi(order: string[]): Promise<void> {
+  await apiRequest('/api/note-categories', jsonInit('PATCH', { order }), '메모 분류 순서를 저장하지 못했습니다')
 }
 
 // ── 계정별 설정 API ──────────────────────────────────────
@@ -423,4 +431,8 @@ export async function removeMerchantApi(name: string): Promise<void> {
     { method: 'DELETE' },
     '구매처를 삭제하지 못했습니다'
   )
+}
+
+export async function reorderMerchantsApi(order: string[]): Promise<void> {
+  await apiRequest('/api/merchants', jsonInit('PATCH', { order }), '구매처 순서를 저장하지 못했습니다')
 }

@@ -41,9 +41,11 @@
 ### 홈 (거래 입력 / 목록)
 - 수입 / 지출 구분, 금액·분류·날짜·메모·구매처 입력
 - 분류 직접 추가("+ 직접입력") 및 삭제 관리(톱니 아이콘 → 기본 제공 분류 포함
-  전부 삭제 가능, 이미 저장된 거래의 분류 텍스트는 그대로 유지)
+  전부 삭제 가능, 이미 저장된 거래의 분류 텍스트는 그대로 유지). 관리 모드에서
+  커스텀 분류끼리 순서 변경 가능(기본 제공 분류는 항상 앞에 고정)
 - 구매처/판매처 직접 추가("+ 직접입력") 및 삭제 관리(톱니 아이콘, 분류와 동일
-  방식) — 자유 입력 텍스트 필드 및 최근 사용 구매처 자동완성과 별개로 공존
+  방식, 순서 변경 포함) — 자유 입력 텍스트 필드 및 최근 사용 구매처
+  자동완성과 별개로 공존
 - 결제 방법 선택 (현금 / 계좌이체 / 등록된 카드) + 카드 혜택 자동 매칭 제안
 - 최근 사용한 구매처 자동완성(선택 시 대표 분류 자동 채움)
 - 빠른 입력 템플릿(즐겨찾기 칩으로 폼 한번에 채우기, 관리/재정렬)
@@ -99,7 +101,8 @@
 
 ### 메모장
 - 날짜별 자유 기록(분류 태그, 하루 여러 건 가능), 목록/달력 보기 토글
-- 분류 직접 추가/삭제 관리(기본 제공 분류 포함 전부 삭제 가능)
+- 분류 직접 추가/삭제 관리(기본 제공 분류 포함 전부 삭제 가능), 커스텀 분류
+  순서 변경 가능
 - 스크린샷/사진 첨부(메모당 1장, 5MB 이하) — 개인 구매 정보가 담길 수 있어 R2에
   비공개로 저장하고 본인 메모만 인증된 API로 조회 가능(공개 URL 없음)
 
@@ -170,7 +173,7 @@ budget/
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~021, schema.sql과 항상 동기화
+├── migrations/                       # 001~022, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -203,12 +206,12 @@ quick_templates        -- id, user_id, label, type, category, amount, merchant,
 push_subscriptions      -- id, user_id, endpoint, p256dh, auth (Web Push 구독)
 notification_log       -- id, user_id, type, reference_id, year_month, sent_at
                        --   (같은 카드·같은 청구월 중복 알림 방지)
-categories             -- id, user_id, type, name, removed_default (거래 분류
-                       --   커스텀 추가/기본 삭제를 계정 단위로 저장, 기기 간 동기화)
-note_categories        -- id, user_id, name, removed_default (메모 분류, categories와 동일 구조)
+categories             -- id, user_id, type, name, removed_default, sort_order
+                       --   (거래 분류 커스텀 추가/기본 삭제/순서를 계정 단위로 저장, 기기 간 동기화)
+note_categories        -- id, user_id, name, removed_default, sort_order (메모 분류, categories와 동일 구조)
 user_settings          -- user_id, key, value (계정별 단일값 설정 — 카드 지출 집계
                        --   기준 등, PRIMARY KEY(user_id, key))
-merchants              -- id, user_id, name (구매처/판매처 관리 목록, 기본값 없는 단순 커스텀 목록)
+merchants              -- id, user_id, name, sort_order (구매처/판매처 관리 목록, 기본값 없는 단순 커스텀 목록)
 ```
 
 전체 정의는 `schema.sql` 참고. 스키마 변경 시 `migrations/`에 새 파일을 추가하고

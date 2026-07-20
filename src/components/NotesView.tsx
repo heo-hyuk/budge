@@ -1,11 +1,11 @@
-import { CalendarDays, ImagePlus, List, Pencil, Plus, RotateCw, Settings2, Trash2, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ChevronUp, ImagePlus, List, Pencil, Plus, RotateCw, Settings2, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
-import { addCustomNoteCategory, getNoteCategories, loadNoteCategories, removeNoteCategory } from '../lib/noteCategories'
+import { addCustomNoteCategory, DEFAULT_NOTE_CATEGORIES, getNoteCategories, loadNoteCategories, removeNoteCategory, reorderCustomNoteCategories } from '../lib/noteCategories'
 import type { Note } from '../types'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한
@@ -182,6 +182,21 @@ function NotesView({ month }: Props) {
     }
   }
 
+  // 커스텀 분류끼리만 순서 변경(기본 분류는 항상 앞에 고정이라 대상에서 제외)
+  async function handleMoveCategory(name: string, direction: -1 | 1) {
+    const customOnly = categories.filter((c) => !DEFAULT_NOTE_CATEGORIES.includes(c))
+    const idx = customOnly.indexOf(name)
+    const targetIdx = idx + direction
+    if (idx === -1 || targetIdx < 0 || targetIdx >= customOnly.length) return
+    const reordered = [...customOnly]
+    ;[reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]]
+    try {
+      setCategories(await reorderCustomNoteCategories(reordered))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '순서를 변경하지 못했습니다', 'error')
+    }
+  }
+
   async function handleSave() {
     if (!editTarget) return
     if (!content.trim()) { showToast('내용을 입력해주세요', 'error'); return }
@@ -295,27 +310,57 @@ function NotesView({ month }: Props) {
 
   // 카테고리 선택 + textarea + 저장/취소 버튼 (신규/수정 공용)
   function renderEditForm() {
+    // 커스텀 분류끼리만 순서 변경 가능(기본 분류는 항상 앞에 고정) — 위/아래 버튼 활성/비활성 판단용
+    const customCategories = categories.filter((c) => !DEFAULT_NOTE_CATEGORIES.includes(c))
     return (
       <div className="space-y-2 rounded-xl border border-coral-200 dark:border-coral-900 bg-coral-50/40 dark:bg-coral-900/20 p-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          {categories.map((c) => (
-            <div key={c} className="relative">
-              <button
-                type="button"
-                onClick={() => (manageCategories ? handleDeleteCategory(c) : setCategory(c))}
-                className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${manageCategories ? 'pr-6' : ''} ${
-                  category === c && !manageCategories ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                }`}
-              >
-                {c}
-              </button>
-              {manageCategories && (
-                <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
-                  <X size={11} />
-                </span>
-              )}
-            </div>
-          ))}
+          {categories.map((c) => {
+            const customIdx = customCategories.indexOf(c)
+            const isCustom = customIdx !== -1
+            return (
+              <div key={c} className="flex items-center gap-0.5">
+                {manageCategories && isCustom && (
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCategory(c, -1)}
+                      disabled={customIdx === 0}
+                      aria-label="위로 이동"
+                      className="flex h-3.5 w-4 items-center justify-center rounded-t text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                    >
+                      <ChevronUp size={10} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCategory(c, 1)}
+                      disabled={customIdx === customCategories.length - 1}
+                      aria-label="아래로 이동"
+                      className="flex h-3.5 w-4 items-center justify-center rounded-b text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
+                    >
+                      <ChevronDown size={10} />
+                    </button>
+                  </div>
+                )}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => (manageCategories ? handleDeleteCategory(c) : setCategory(c))}
+                    className={`min-h-7 rounded-full px-2.5 text-xs font-semibold transition-colors ${manageCategories ? 'pr-6' : ''} ${
+                      category === c && !manageCategories ? 'bg-coral-400 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                  {manageCategories && (
+                    <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                      <X size={11} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
           {!addingCategory && !manageCategories && (
             <button
               type="button"
