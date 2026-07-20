@@ -1,5 +1,34 @@
 # WORKLOG
 
+## 2026-07-20 (74차) — 수익 계산기 내역을 목록 대신 월정산과 같은 일별 표로 변경
+
+사용자 요청(73차 결과물에 대한 수정 지시): "월정산 처럼 표로 나와야되는데
+일별로 저 항목들이 매일 등록될거라". 73차에서 만든 개별 거래 카드 목록
+대신, 매일 반복 등록되는 항목의 특성상 `MonthlySettlementTable`처럼
+날짜를 행으로, 분류를 열로 하는 표 형태가 더 적합하다는 지시.
+
+### 설계
+- `IncomeCalculator`가 이미 `fetchMonthlySettlement(month)`로 받아오는
+  `settlement.days`(일별 분류별 합계)를 그대로 재사용 — 73차에서 추가한
+  `fetchTransactions({ month })` 개별 거래 조회는 더 이상 필요 없어 제거
+- `MonthlySettlementTable.tsx`와 같은 표 구조(날짜 열 + 분류별 열 + 합계
+  열, 마지막에 월계 행, `filterSelectedCategories`로 선택된 분류만
+  표시)를 그대로 가져오되, 수입만 다루므로 지출 열은 없음
+- 표 형태로 바뀌면서 일별 합계만 보이고 개별 거래를 그 자리에서
+  수정/삭제할 수는 없게 됨(하루에 같은 분류로 여러 건이면 합산된 값만
+  표시) — 개별 거래 수정은 기존처럼 홈/정산 탭에서 가능하므로 범위 밖으로
+  판단. 이에 따라 73차에서 추가했던 `cards`/`onDuplicate` props와
+  삭제/수정 핸들러, `TransactionList` 사용은 모두 제거
+
+### 계획
+- `src/components/IncomeCalculator.tsx` — `fetchTransactions`/`TransactionList`/
+  `cards`/`onDuplicate`/삭제·수정 핸들러 제거, `settlement.days` 기반
+  일별 표 렌더링 추가(선택된 수입 분류만 열로 표시 + 합계 열 + 월계 행)
+- `src/App.tsx` — `<IncomeCalculator>`에서 더 이상 필요 없는 `cards`/
+  `onDuplicate` props 제거
+- `wrangler pages dev` + Playwright로 표 렌더링, 선택 분류 변경 시 열
+  갱신, 일별/월계 합계 정확성 검증
+
 ## 2026-07-20 (73차) — 수익 계산기에 선택 분류의 거래 내역 목록 추가
 
 사용자 요청: "계산기 탭에 각항목선택을 하잖아 그럼 그 내역도 밑에 월
