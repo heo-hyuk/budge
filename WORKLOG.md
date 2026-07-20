@@ -1,5 +1,56 @@
 # WORKLOG
 
+## 2026-07-20 (68차) — 결제 방법 칩(현금/계좌이체) 관리 기능 추가(지출/수입 분리)
+
+사용자 요청: "수입창에서 결제방법 칩도 수정이 되야될거같아 여기도 삭제 추가
+가능하게 하자". 지금까지 결제 방법(현금/계좌이체 + 등록된 카드)은 지출/수입
+공통으로 하드코딩된 고정 목록이라, 분류/구매처/메모 분류처럼 추가·삭제·순서
+변경이 안 됐음.
+
+### 확인한 요구사항(AskUserQuestion)
+- 결제 방법 목록은 **지출용/수입용을 분리** 관리(지금은 지출/수입 화면에
+  같은 목록이 공유돼서 보이는데, 앞으로는 각자 따로 추가/삭제 가능)
+- **등록된 카드는 이 화면에서 삭제 대상이 아님** — 카드 삭제는 기존대로
+  '카드 관리'에서만. 특히 수입에서는 카드 자체가 의미가 없으니 수입
+  결제 방법 목록에는 카드를 아예 노출하지 않고, 커스텀 칩 직접 추가만
+  가능하면 됨(수입엔 카드가 기본 제공될 필요 없음)
+- **드래그 순서 변경도 포함**(분류/구매처/메모 분류와 동일하게)
+
+### 설계
+- 완전히 새 테이블 `payment_methods` 신설 — `categories` 테이블과 동일한
+  구조(기본 제공 '현금'/'계좌이체' + 커스텀 추가 + `removed_default` +
+  `sort_order`, `type`으로 지출/수입 분리, `UNIQUE(user_id, type, name)`).
+  67차에서 정리한 "재배치 시 기본 항목도 DB 행으로 물질화" 방식을 그대로
+  재사용
+- `functions/api/payment-methods/index.ts` — `functions/api/categories/index.ts`와
+  거의 동일한 GET(병합·정렬 최종 배열)/POST/PATCH(드래그 재배치, 물질화)/
+  DELETE(ON CONFLICT DO UPDATE로 물질화된 기본 항목 삭제도 정상 반영) 구현
+- 카드 목록은 이 새 시스템과 무관 — 프론트에서 결제 방법 관리 칩 목록 뒤에
+  기존처럼 별도로 이어붙여 표시(지출 타입일 때만), 삭제 대상에서 제외
+- `src/components/TransactionForm.tsx` — 결제 방법 섹션에 톱니바퀴(관리 모드)
+  버튼 추가, `ReorderableChipList`로 드래그 재정렬 지원. 카드 칩은 그
+  뒤에 지출일 때만 추가로 렌더링(관리 대상 아님)
+- `src/components/TransactionList.tsx` — 인라인 수정의 결제 방법 선택도
+  하드코딩된 `['현금','계좌이체',...cards]` 대신 `getPaymentMethods(type)`
+  기반으로 변경(분류 선택이 이미 이렇게 동작 중이라 동일 패턴), 카드는
+  지출일 때만 이어붙임. 여기는 분류와 마찬가지로 선택만 가능(관리 모드 없음)
+
+### 계획
+- `schema.sql`, `migrations/023_add_payment_methods.sql` — `payment_methods`
+  테이블 신설
+- `functions/lib/paymentMethods.ts` — `DEFAULT_PAYMENT_METHODS` 서버 사본
+- `functions/api/payment-methods/index.ts` — GET/POST/PATCH/DELETE
+- `src/lib/api.ts` — `fetchPaymentMethods`, `addPaymentMethodApi`,
+  `removePaymentMethodApi`, `reorderPaymentMethodsApi`
+- `src/lib/paymentMethods.ts` — `DEFAULT_PAYMENT_METHODS`, load/reset/get/
+  add/remove/reorder (categories.ts와 동일 패턴)
+- `src/contexts/AuthContext.tsx` — 로그아웃 시 `resetPaymentMethods()` 추가
+- `src/App.tsx` — 로그인 시 `loadPaymentMethods()` 추가
+- `src/components/TransactionForm.tsx`, `src/components/TransactionList.tsx` — 위 설계대로 수정
+- `wrangler pages dev` + Playwright로 지출/수입 분리 관리, 드래그 재정렬,
+  카드 미노출(수입), 기기 간 동기화 검증
+- 검증 후 원격 D1에 마이그레이션 적용, GitHub Actions 배포 확인
+
 ## 2026-07-20 (67차) — 칩 순서 변경을 드래그 앤 드롭 + 기본 분류도 이동 가능하게 재설계
 
 사용자 요청(66차 결과물에 대한 수정 지시): "드래그 방식으로 움직여야하고
