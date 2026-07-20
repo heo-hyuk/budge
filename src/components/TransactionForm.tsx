@@ -1,11 +1,12 @@
-import { ChevronDown, ChevronUp, Settings2, X } from 'lucide-react'
+import { Settings2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import ReorderableChipList from './ReorderableChipList'
 import UiCard from './ui/Card'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
-import { addCustomCategory, DEFAULT_CATEGORIES, getCategories, loadCategories, removeCategory, reorderCustomCategories } from '../lib/categories'
+import { addCustomCategory, getCategories, loadCategories, removeCategory, reorderCategories } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import { addMerchant, getMerchants, loadMerchants, removeMerchant, reorderMerchants } from '../lib/merchants'
@@ -273,16 +274,10 @@ function TransactionForm({
     }
   }
 
-  // 커스텀 분류끼리만 순서 변경(기본 분류는 항상 앞에 고정이라 대상에서 제외)
-  async function handleMoveCategory(name: string, direction: -1 | 1) {
-    const customOnly = categories.filter((c) => !DEFAULT_CATEGORIES[type].includes(c))
-    const idx = customOnly.indexOf(name)
-    const targetIdx = idx + direction
-    if (idx === -1 || targetIdx < 0 || targetIdx >= customOnly.length) return
-    const reordered = [...customOnly]
-    ;[reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]]
+  // 분류 드래그 재정렬 — 기본 제공 분류도 대상에 포함됨
+  async function handleReorderCategories(order: string[]) {
     try {
-      setCategories(await reorderCustomCategories(type, reordered))
+      setCategories(await reorderCategories(type, order))
     } catch (err) {
       showToast(err instanceof Error ? err.message : '순서를 변경하지 못했습니다', 'error')
     }
@@ -312,14 +307,9 @@ function TransactionForm({
     }
   }
 
-  async function handleMoveMerchant(name: string, direction: -1 | 1) {
-    const idx = merchantList.indexOf(name)
-    const targetIdx = idx + direction
-    if (idx === -1 || targetIdx < 0 || targetIdx >= merchantList.length) return
-    const reordered = [...merchantList]
-    ;[reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]]
+  async function handleReorderMerchants(order: string[]) {
     try {
-      setMerchantList(await reorderMerchants(reordered))
+      setMerchantList(await reorderMerchants(order))
     } catch (err) {
       showToast(err instanceof Error ? err.message : '순서를 변경하지 못했습니다', 'error')
     }
@@ -467,8 +457,6 @@ function TransactionForm({
   }
 
   const numericAmount = parseAmountInput(amount)
-  // 커스텀 분류끼리만 순서 변경 가능(기본 분류는 항상 앞에 고정) — 위/아래 버튼 활성/비활성 판단용
-  const customCategories = categories.filter((c) => !DEFAULT_CATEGORIES[type].includes(c))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -613,53 +601,34 @@ function TransactionForm({
           </button>
         </div>
 
-        {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐 */}
+        {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐.
+            관리 모드에선 드래그로 순서 변경 가능(ReorderableChipList) */}
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {merchantList.map((m, idx) => (
-            <div key={m} className="flex items-center gap-0.5">
-              {manageMerchants && (
-                <div className="flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => handleMoveMerchant(m, -1)}
-                    disabled={idx === 0}
-                    aria-label="위로 이동"
-                    className="flex h-4 w-5 items-center justify-center rounded-t text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
-                  >
-                    <ChevronUp size={11} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMoveMerchant(m, 1)}
-                    disabled={idx === merchantList.length - 1}
-                    aria-label="아래로 이동"
-                    className="flex h-4 w-5 items-center justify-center rounded-b text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
-                  >
-                    <ChevronDown size={11} />
-                  </button>
-                </div>
-              )}
+          <ReorderableChipList
+            items={merchantList}
+            draggable={manageMerchants}
+            onReorder={handleReorderMerchants}
+            onTap={(m) => {
+              if (manageMerchants) { handleDeleteMerchant(m); return }
+              setMerchant(m)
+            }}
+            renderChip={(m, dragging) => (
               <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (manageMerchants) { handleDeleteMerchant(m); return }
-                    setMerchant(m)
-                  }}
-                  className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
+                <div
+                  className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
                     merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                  }`}
+                  } ${dragging ? 'shadow-lg' : ''}`}
                 >
                   {m}
-                </button>
+                </div>
                 {manageMerchants && (
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
                     <X size={12} />
                   </span>
                 )}
               </div>
-            </div>
-          ))}
+            )}
+          />
           {!addingMerchant && !manageMerchants && (
             <button
               type="button"
@@ -870,57 +839,34 @@ function TransactionForm({
             <Settings2 size={14} />
           </button>
         </div>
+        {/* 관리 모드에선 기본 제공 분류도 포함해 드래그로 순서 변경 가능(ReorderableChipList) */}
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {categories.map((c) => {
-            const customIdx = customCategories.indexOf(c)
-            const isCustom = customIdx !== -1
-            return (
-              <div key={c} className="flex items-center gap-0.5">
-                {manageCategories && isCustom && (
-                  <div className="flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => handleMoveCategory(c, -1)}
-                      disabled={customIdx === 0}
-                      aria-label="위로 이동"
-                      className="flex h-4 w-5 items-center justify-center rounded-t text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
-                    >
-                      <ChevronUp size={11} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMoveCategory(c, 1)}
-                      disabled={customIdx === customCategories.length - 1}
-                      aria-label="아래로 이동"
-                      className="flex h-4 w-5 items-center justify-center rounded-b text-neutral-400 dark:text-neutral-500 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-20 disabled:hover:bg-transparent"
-                    >
-                      <ChevronDown size={11} />
-                    </button>
-                  </div>
-                )}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (manageCategories) { handleDeleteCategory(c); return }
-                      setCategory(c)
-                      setCategoryManuallySet(true)
-                    }}
-                    className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${manageCategories ? 'pr-7' : ''} ${
-                      category === c && !manageCategories ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                  {manageCategories && (
-                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
-                      <X size={12} />
-                    </span>
-                  )}
+          <ReorderableChipList
+            items={categories}
+            draggable={manageCategories}
+            onReorder={handleReorderCategories}
+            onTap={(c) => {
+              if (manageCategories) { handleDeleteCategory(c); return }
+              setCategory(c)
+              setCategoryManuallySet(true)
+            }}
+            renderChip={(c, dragging) => (
+              <div className="relative">
+                <div
+                  className={`inline-flex min-h-9 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors ${manageCategories ? 'pr-7' : ''} ${
+                    category === c && !manageCategories ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  } ${dragging ? 'shadow-lg' : ''}`}
+                >
+                  {c}
                 </div>
+                {manageCategories && (
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                    <X size={12} />
+                  </span>
+                )}
               </div>
-            )
-          })}
+            )}
+          />
           {!addingCategory && !manageCategories && (
             <button
               type="button"

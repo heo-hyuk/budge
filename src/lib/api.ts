@@ -345,13 +345,9 @@ export async function unsubscribePush(endpoint: string): Promise<void> {
 // ── 거래 분류(카테고리) API ───────────────────────────────
 // 계정 단위로 저장돼 기기 간 동기화됨(이전엔 localStorage에만 저장돼 기기마다 달랐음)
 
-export interface CategoryOverrides {
-  custom: string[]
-  removedDefaults: string[]
-}
 export interface CategoriesResponse {
-  expense: CategoryOverrides
-  income: CategoryOverrides
+  expense: string[]
+  income: string[]
 }
 
 export async function fetchCategoryOverrides(): Promise<CategoriesResponse> {
@@ -377,8 +373,9 @@ export async function reorderCategoriesApi(type: TransactionType, order: string[
 // ── 메모 분류 API ────────────────────────────────────────
 // 거래 분류와 동일한 이유로 계정 단위 저장(타입 구분 없는 단일 목록)
 
-export async function fetchNoteCategoryOverrides(): Promise<CategoryOverrides> {
-  return apiRequest<CategoryOverrides>('/api/note-categories', undefined, '메모 분류를 불러오지 못했습니다')
+export async function fetchNoteCategoryOverrides(): Promise<string[]> {
+  const body = await apiRequest<{ data: string[] }>('/api/note-categories', undefined, '메모 분류를 불러오지 못했습니다')
+  return body.data
 }
 
 export async function addNoteCategoryApi(name: string): Promise<void> {

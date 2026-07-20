@@ -55,6 +55,41 @@
 - 스키마 변경 없음(`sort_order` 컬럼은 66차에서 이미 추가됨)
 - `wrangler pages dev` + Playwright로 드래그 재정렬 및 기기 간 동기화 재검증
 
+### 완료
+- [x] `functions/api/categories/index.ts`, `functions/api/note-categories/index.ts`
+  — GET을 서버에서 병합·정렬한 최종 배열로 변경, PATCH를 upsert 방식으로
+  변경(기본 분류 이름 포함 물질화), DELETE의 `ON CONFLICT DO NOTHING` →
+  `DO UPDATE SET removed_default = 1`로 수정(이미 물질화된 기본 분류
+  삭제가 씹히던 버그 예방)
+- [x] `src/lib/api.ts` — `CategoriesResponse`를 `{expense: string[], income:
+  string[]}`로, `fetchNoteCategoryOverrides()`를 `string[]` 반환으로 변경.
+  `CategoryOverrides` 인터페이스 제거
+- [x] `src/lib/categories.ts`, `src/lib/noteCategories.ts` — 캐시를 최종
+  배열로 단순화, `reorderCategories`/`reorderNoteCategories`로 개명(기본
+  분류 포함), `addCustomCategory`/`removeCategory` 등은 서버 응답으로
+  캐시 재조회(위치 계산을 서버 로직에 위임)
+- [x] `src/components/ReorderableChipList.tsx` 신규 — Pointer Events 기반
+  드래그 재정렬 공용 컴포넌트. pointerdown~move 거리 6px 이상이면 드래그로
+  간주, 아니면 탭(선택/삭제)으로 처리. `setPointerCapture`로 칩 사이
+  빈틈에서도 이벤트 유실 없이 추적. 관리 모드가 아닐 때는 드래그 로직 자체를
+  타지 않아 기존 페이지 스크롤에 영향 없음
+- [x] `src/components/TransactionForm.tsx`, `src/components/NotesView.tsx`
+  — 분류/구매처/메모 분류 관리 모드의 위·아래 버튼 UI를
+  `ReorderableChipList` 기반 드래그로 교체, 기본/커스텀 구분 로직
+  (`customCategories`, `handleMoveCategory` 등) 전부 제거
+- [x] 버그 두 건 발견·수정: (1) 드래그 재정렬 로직에서 가변 ref(`st.idx`)를
+  `setOrder` 콜백 밖에서 먼저 갱신해버려, 리액트가 배칭 처리 시점에 이미
+  바뀐 값을 읽어 "같은 자리에 다시 넣는" 꼴이 되어 드래그해도 아무 변화가
+  없어 보이던 문제 — 지역 변수로 인덱스를 스냅샷 떠서 해결. (2) 관리
+  모드가 아닐 때 `handlePointerDown`이 조기 반환해 탭-선택이 전혀 동작하지
+  않던 문제 — draggable 여부와 무관하게 항상 포인터 상태를 추적하도록 수정
+- [x] `wrangler pages dev` + Playwright로 검증: 분류(기본 분류 포함 드래그
+  재정렬), 메모 분류, 구매처 각각 드래그 재정렬 확인, 재정렬 후 새 기기
+  컨텍스트 로그인 시 동일 순서로 동기화되는지 확인, 관리 모드 탭-삭제와
+  평소 모드 탭-선택 회귀 없는지 확인, 이미 물질화된 기본 분류 삭제가
+  정상 반영되는지 확인. `tsc -b`/`oxlint`/`npm run build` 모두 통과
+- 스키마 변경 없어 원격 D1 마이그레이션 불필요
+
 ## 2026-07-20 (66차) — 관리 모드 칩(분류/구매처/메모 분류) 순서 변경 기능
 
 사용자 요청: "칩이 있는 모든 곳에 편집에서 칩 순서 변경할 수 있게 해줘". "칩이
