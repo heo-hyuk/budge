@@ -1,5 +1,61 @@
 # WORKLOG
 
+## 2026-07-20 (58차) — 거래 분류(카테고리)를 서버(D1)로 이전해 기기 간 동기화
+
+사용자가 두 폰 스크린샷을 첨부 — 같은 계정으로 로그인했는데 "내역 추가" 폼의
+수입 분류 목록이 기기마다 다름(한쪽은 급여/용돈/기타수입, 다른 쪽은 기타수입/
+영업수익/카카오수수료/유가보조금및충전소보조). 원인 확인: `src/lib/categories.ts`가
+커스텀 분류 추가·기본 분류 삭제 내역을 서버가 아니라 각 기기의 브라우저
+`localStorage`에만 저장하고 있었음 — 거래 데이터 자체는 D1에 저장돼 기기 간
+동일하지만, "분류 설정"만 기기별로 따로 놀았음(계정이 아니라 브라우저에 귀속).
+메모(NotesView) 쪽 분류는 `noteCategories.ts`로 완전히 별개 시스템이라 이번
+범위에서 제외(메모용/거래용 분류는 항상 구분해서 다뤄야 함 — 51~54차에서도 헷갈렸던 부분).
+
+### 계획
+- `schema.sql`, `migrations/018_add_categories.sql` — `categories` 테이블 추가
+  (`id, user_id, type, name, removed_default, created_at`, `UNIQUE(user_id, type,
+  name)`). `removed_default=0` 행 = 사용자가 추가한 커스텀 분류, `removed_default=1`
+  행 = 사용자가 삭제한 기본 분류의 "삭제됨" 표시. 기존 `budgets`/`quick_templates`와
+  동일 패턴
+- `functions/lib/categories.ts`(신규) — `DEFAULT_CATEGORIES`를
+  `src/lib/categories.ts`와 동일하게 서버 쪽에도 복제(이 repo 컨벤션 —
+  `functions/`는 `src/`를 import하지 않고 필요한 상수/로직을 자체 복제,
+  56차 `settlementFilter.ts` 작업에서도 동일 패턴을 썼음)
+- `functions/api/categories/index.ts`(신규) — GET(현재 계정의 분류 오버라이드를
+  `{expense:{custom,removedDefaults}, income:{...}}` 형태로 반환) / POST(분류
+  추가 — 기본 분류였다가 삭제된 이름이면 삭제 표시 제거로 복원) / DELETE(분류
+  삭제 — 기본 분류면 삭제 표시 추가, 커스텀이면 행 삭제) 구현
+- `src/lib/api.ts` — `fetchCategoryOverrides`/`addCategoryApi`/`removeCategoryApi`
+  추가
+- `src/lib/categories.ts` — localStorage 기반을 모듈 레벨 캐시 + 서버 동기화로
+  전면 교체. `getCategories()`는 계속 동기 함수로 유지(캐시 읽기, 기존 호출부
+  다수를 안 건드리기 위함)하되, 새로 `loadCategories()`(로그인 후 캐시 채움)와
+  `resetCategories()`(로그아웃 시 캐시 비움, 계정 전환 시 이전 계정 분류가
+  새는 것 방지) 추가. `addCustomCategory`/`removeCategory`는 서버 호출이 필요해
+  Promise 반환으로 시그니처 변경(호출부 갱신 필요)
+- `src/contexts/AuthContext.tsx` — `logout()`에서 `resetCategories()` 호출
+- `src/App.tsx` — 로그인 후 카드/고정지출 로드하는 effect(라인 84~93 부근)에
+  `loadCategories()` 추가
+- `src/components/TransactionForm.tsx` — `addCustomCategory`/`removeCategory`
+  호출부에 `await` 추가, 마운트 시 `loadCategories()` 완료 후 `categories`/
+  `category` state를 서버 값으로 재동기화하는 effect 추가(초기 렌더 시점엔
+  캐시가 비어있어 기본값만 보였다가, 로드 완료 후 실제 값으로 갱신됨)
+- `src/components/CardManager.tsx` — `applyPreset` 내 `addCustomCategory` 호출에
+  `await` 추가
+- `src/components/BudgetManager.tsx`, `src/components/SearchView.tsx` — 모듈
+  최상단에서 한 번만 계산되던 `EXPENSE_CATEGORIES`/`EXPENSE_CATS`/`INCOME_CATS`를
+  컴포넌트 함수 내부로 이동(렌더마다 재계산 — 캐시가 로드된 이후 값을 반영하기 위함)
+
+### 예상 변경 파일
+- `schema.sql`, `migrations/018_add_categories.sql`(신규),
+  `functions/lib/categories.ts`(신규), `functions/api/categories/index.ts`(신규),
+  `src/lib/api.ts`, `src/lib/categories.ts`, `src/contexts/AuthContext.tsx`,
+  `src/App.tsx`, `src/components/TransactionForm.tsx`,
+  `src/components/CardManager.tsx`, `src/components/BudgetManager.tsx`,
+  `src/components/SearchView.tsx`
+
+---
+
 ## 2026-07-19 (57차) — GitHub Actions로 push 자동배포 설정
 
 `budget` Cloudflare Pages 프로젝트가 Direct Upload로 생성돼 있어(`wrangler pages
