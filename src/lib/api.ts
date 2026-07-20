@@ -457,3 +457,29 @@ export async function removePaymentMethodApi(type: TransactionType, name: string
 export async function reorderPaymentMethodsApi(type: TransactionType, order: string[]): Promise<void> {
   await apiRequest('/api/payment-methods', jsonInit('PATCH', { type, order }), '결제 방법 순서를 저장하지 못했습니다')
 }
+
+// ── 개인화 수익 계산기 선택 칩 API ─────────────────────────
+// 계정 단위 저장(기기 간 동기화). 기본값/순서 개념 없음 — 선택 안 함은 행 없음으로 표현
+
+export interface CalcSelection {
+  type: TransactionType
+  category: string
+  sign: 1 | -1
+}
+
+export async function fetchCalcSelections(): Promise<CalcSelection[]> {
+  const body = await apiRequest<{ selections: CalcSelection[] }>('/api/calc-selections', undefined, '계산기 선택을 불러오지 못했습니다')
+  return body.selections
+}
+
+export async function setCalcSelectionApi(type: TransactionType, category: string, sign: 1 | -1): Promise<void> {
+  await apiRequest('/api/calc-selections', jsonInit('POST', { type, category, sign }), '선택을 저장하지 못했습니다')
+}
+
+export async function removeCalcSelectionApi(type: TransactionType, category: string): Promise<void> {
+  await apiRequest(
+    `/api/calc-selections?type=${encodeURIComponent(type)}&category=${encodeURIComponent(category)}`,
+    { method: 'DELETE' },
+    '선택을 해제하지 못했습니다'
+  )
+}

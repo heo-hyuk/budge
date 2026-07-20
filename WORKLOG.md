@@ -55,6 +55,32 @@
   재계산, 기기 간 선택 동기화 검증
 - 검증 후 원격 D1에 마이그레이션 적용, GitHub Actions 배포 확인
 
+### 완료
+- [x] `migrations/024_add_calc_selections.sql`, `schema.sql` — `calc_selections`
+  테이블 신설
+- [x] `functions/api/calc-selections/index.ts` — GET/POST(upsert)/DELETE
+- [x] `src/lib/api.ts` — `CalcSelection` 타입, `fetchCalcSelections`/
+  `setCalcSelectionApi`/`removeCalcSelectionApi` 추가
+- [x] `src/lib/calcSelections.ts` 신규 — load/reset/get/getCalcSign/
+  cycleCalcSelection(미선택→+1→-1→미선택 순환, 낙관적 갱신+실패 시 롤백)
+- [x] `src/contexts/AuthContext.tsx`, `src/App.tsx` — 로그인/로그아웃 시
+  load/resetCalcSelections 연결
+- [x] `src/App.tsx` — `'calculator'` 탭 추가(Calculator 아이콘), 월
+  네비게이션 표시 탭에도 포함, `<IncomeCalculator month={selectedMonth} />`
+  렌더링
+- [x] `src/components/IncomeCalculator.tsx` 신규 — `/api/settlement/monthly`
+  (기존 API 재사용, 새 집계 로직 없음)로 월별 분류당 합계를 가져와 선택된
+  칩의 부호를 곱해 합산. 수입/지출 분류 칩 3단계 토글(미선택 회색 →
+  + 파란색 → − 빨간색), 선택 내역(분류·구분·금액)과 최종 합계를 함께 표시
+- [x] `wrangler pages dev` + Playwright로 검증: 영업수익(수입, 커스텀
+  분류)/식대·담배·LPG(지출, 커스텀 분류) 실제 거래 등록 후 계산기에서
+  +/-/-/- 선택 → 1,000,000 - 80,000 - 50,000 - 150,000 = 720,000원
+  정확히 계산됨, 3번 탭하면 선택 해제되어 0원으로 복귀, 새 기기 컨텍스트
+  로그인 시 동일 선택·합계로 동기화, 월 이동 시 해당 월 데이터로 재계산
+  (거래 없는 달은 0원, 에러 없이 정상 동작). `tsc -b`/`oxlint`/
+  `npm run build` 모두 통과
+- [x] 원격 D1에 `024_add_calc_selections.sql` 적용 완료(18개 테이블)
+
 ## 2026-07-20 (69차) — 수입 화면에서 구매처/판매처 섹션 제거
 
 사용자 요청: "수입에는 구매처 판매처가 필요없어 없애줘". 68차에서 결제

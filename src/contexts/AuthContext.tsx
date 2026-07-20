@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { resetCalcSelections } from '../lib/calcSelections'
 import { resetCategories } from '../lib/categories'
 import { resetMerchants } from '../lib/merchants'
 import { resetNoteCategories } from '../lib/noteCategories'
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetSettings()
     resetMerchants()
     resetPaymentMethods()
+    resetCalcSelections()
   }
 
   async function updateNickname(nickname: string) {

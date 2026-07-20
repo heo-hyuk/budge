@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~023 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~024 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -262,3 +262,18 @@ CREATE TABLE IF NOT EXISTS payment_methods (
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_methods_user ON payment_methods(user_id);
+
+-- ── 개인화 수익 계산기 선택 목록 (migration 024) ─────────────────
+-- 사용자가 선택한 분류 칩과 그 부호(+1/-1)를 저장. 선택 안 함 상태는
+-- 행이 아예 없는 것으로 표현(기본값 개념 없음)
+CREATE TABLE IF NOT EXISTS calc_selections (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  category TEXT NOT NULL,
+  sign INTEGER NOT NULL CHECK (sign IN (1, -1)),
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, type, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_calc_selections_user ON calc_selections(user_id);
