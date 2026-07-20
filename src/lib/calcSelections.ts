@@ -1,10 +1,11 @@
 import { fetchCalcSelections, removeCalcSelectionApi, setCalcSelectionApi, type CalcSelection } from './api'
-import type { TransactionType } from '../types'
 
 export type { CalcSelection }
 
 // 분류(src/lib/categories.ts)와 동일한 서버 동기화 캐시 패턴 — 자세한 설명은 그쪽 주석 참고.
-// 기본값 개념이 없어 빈 배열이 자연스러운 초기 상태
+// 기본값 개념이 없어 빈 배열이 자연스러운 초기 상태.
+// 계산기는 수입 분류만 대상으로 함(차감 항목은 수입 등록 시 금액 앞에 '-'를 붙여 이미
+// 표현 가능하므로 별도 지출 칩/부호 선택 없이 선택된 수입 분류 금액을 그대로 합산)
 let cache: CalcSelection[] = []
 let loadPromise: Promise<void> | null = null
 
@@ -24,36 +25,33 @@ export function resetCalcSelections() {
   loadPromise = null
 }
 
+/** 수입 분류 선택 목록만 반환(예전 버전에서 남은 지출 분류 선택이 있어도 걸러짐) */
 export function getCalcSelections(): CalcSelection[] {
-  return cache
+  return cache.filter((s) => s.type === 'income')
 }
 
-/** 현재 부호 조회 — 선택 안 함이면 0 */
-export function getCalcSign(type: TransactionType, category: string): 1 | -1 | 0 {
-  return cache.find((s) => s.type === type && s.category === category)?.sign ?? 0
+export function isCalcSelected(category: string): boolean {
+  return cache.some((s) => s.type === 'income' && s.category === category)
 }
 
-/** 칩 탭 — 미선택(0) → +1 → -1 → 미선택(0) 순환 */
-export async function cycleCalcSelection(type: TransactionType, category: string): Promise<CalcSelection[]> {
-  const current = getCalcSign(type, category)
-  const next = current === 0 ? 1 : current === 1 ? -1 : 0
-
+/** 칩 탭 — 선택/해제 토글(수입 분류 전용, 부호는 항상 +1) */
+export async function toggleCalcSelection(category: string): Promise<CalcSelection[]> {
+  const selected = isCalcSelected(category)
   const prev = cache
-  if (next === 0) {
-    cache = cache.filter((s) => !(s.type === type && s.category === category))
-  } else {
-    cache = [...cache.filter((s) => !(s.type === type && s.category === category)), { type, category, sign: next }]
-  }
+
+  cache = selected
+    ? cache.filter((s) => !(s.type === 'income' && s.category === category))
+    : [...cache.filter((s) => !(s.type === 'income' && s.category === category)), { type: 'income', category, sign: 1 }]
 
   try {
-    if (next === 0) {
-      await removeCalcSelectionApi(type, category)
+    if (selected) {
+      await removeCalcSelectionApi('income', category)
     } else {
-      await setCalcSelectionApi(type, category, next)
+      await setCalcSelectionApi('income', category, 1)
     }
   } catch (err) {
     cache = prev
     throw err
   }
-  return cache
+  return getCalcSelections()
 }

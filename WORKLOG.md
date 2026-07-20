@@ -1,5 +1,44 @@
 # WORKLOG
 
+## 2026-07-20 (71차) — 수익 계산기를 수입 분류 전용 + 단순 합산으로 변경
+
+70차에서 만든 계산기에 대한 사용자의 즉각적인 수정 지시: "이건 수입에서만
+칩을 가져와야해 음수값이 들어가게 해서 지출탭 정보는 필요가 없어 그러니까
+선택한 모든값을 더하면 되는거야". 지출 분류 칩과 +/- 부호 선택 자체가
+불필요 — 차감할 항목(식대/담배/LPG 등)은 애초에 수입 등록 시 금액 앞에
+'-'를 붙이는 기존 기능(차감 항목 입력)으로 이미 표현 가능하므로, 계산기는
+수입 분류만 보여주고 선택된 값을 그냥 더하기만 하면 됨.
+
+### 설계
+- `calc_selections` 테이블/API는 스키마 그대로 재사용(마이그레이션 불필요)
+  — 프론트에서 항상 `type='income'`만 쓰고 `sign`은 항상 `1`로 고정
+- `src/lib/calcSelections.ts`: 3단계(미선택→+1→-1→미선택) `cycleCalcSelection`
+  을 2단계(미선택↔선택) `toggleCalcSelection`/`isCalcSelected`로 교체.
+  `getCalcSelections()`는 혹시 남아있을 수 있는 지출 선택(구버전 테스트
+  데이터 등)을 방어적으로 걸러내도록 `type === 'income'`만 반환
+- `src/components/IncomeCalculator.tsx`: 지출 분류 섹션 전체 제거, 칩은
+  단일 파란색 선택 상태만 사용, 합계는 선택된 수입 분류 금액을 그대로
+  더함(부호 곱셈 없음 — 음수 수입 거래가 있으면 자연히 차감됨)
+
+### 계획
+- `src/lib/calcSelections.ts` — `toggleCalcSelection`/`isCalcSelected`로 교체
+- `src/components/IncomeCalculator.tsx` — 지출 분류 섹션 제거, 단순 합산으로 변경
+- `wrangler pages dev` + Playwright로 지출 섹션 미노출, 음수 수입(차감
+  항목) 선택 시 정상 차감, 토글 2단계 동작 검증
+
+### 완료
+- [x] `src/lib/calcSelections.ts` — `toggleCalcSelection(category)`/
+  `isCalcSelected(category)`로 교체, `getCalcSelections()`가 `type ===
+  'income'`만 반환하도록 방어적 필터링
+- [x] `src/components/IncomeCalculator.tsx` — 지출 분류 섹션 제거, 칩
+  선택 로직을 단일 색상 토글로 단순화, 합계 계산에서 부호 곱셈 제거(선택된
+  수입 분류 금액을 그대로 합산)
+- [x] `wrangler pages dev` + Playwright로 검증: "지출 분류" 섹션이 더 이상
+  렌더링되지 않음, 영업수익(+1,000,000) 수입 등록 + 식대를 "수입" 타입
+  차감 항목(-80,000)으로 등록 후 계산기에서 둘 다 선택 시 920,000원으로
+  정확히 계산, 다시 탭하면 해제되어 1,000,000원으로 복귀. `tsc -b`/
+  `oxlint`/`npm run build` 모두 통과. 스키마 변경 없어 D1 마이그레이션 불필요
+
 ## 2026-07-20 (70차) — 개인화 수익 계산기 탭 신설
 
 사용자 요청: "개인화 수익 계산기 탭을 하나 만들어야해 수익이 등록된것중에서
