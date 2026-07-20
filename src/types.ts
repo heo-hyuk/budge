@@ -232,11 +232,10 @@ export interface DailySettlement {
   today_balance: number
 }
 
+// 분류명을 키로 하는 동적 버킷(+ total 키) — 예전엔 수입만 소득/예금인출/기타
+// 3그룹으로 묶었었는데, 지출과 동일하게 분류별로 열을 보여주도록 통일함
 export interface SettlementIncomeBucket {
-  소득: number
-  예금인출: number
-  기타: number
-  total: number
+  [category: string]: number  // 카테고리별 합계 + total 키
 }
 
 export interface SettlementExpenseBucket {

@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { fetchMonthlySettlement } from '../lib/api'
 import { getCategories } from '../lib/categories'
-import { selectedExpenseCategories, selectedIncomeGroups, type IncomeGroup } from '../lib/settlementFilter'
+import { filterSelectedCategories } from '../lib/settlementFilter'
 import type { MonthlySettlement as MonthlySettlementData, SettlementExpenseBucket, SettlementIncomeBucket } from '../types'
 
-const ALL_INCOME_GROUPS: IncomeGroup[] = ['소득', '예금인출', '기타']
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
 function compactDateLabel(dateStr: string): string {
@@ -29,12 +28,11 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
   const expenseCategories = getCategories('expense')
   const incomeCategories = getCategories('income')
 
-  const activeIncomeGroupSet = selectedIncomeGroups(categories, incomeCategories)
-  const incomeGroups = categories.length > 0
-    ? ALL_INCOME_GROUPS.filter((g) => activeIncomeGroupSet.has(g))
-    : ALL_INCOME_GROUPS
+  const activeIncomeCategories = categories.length > 0
+    ? filterSelectedCategories(categories, incomeCategories)
+    : incomeCategories
   const activeExpenseCategories = categories.length > 0
-    ? selectedExpenseCategories(categories, expenseCategories)
+    ? filterSelectedCategories(categories, expenseCategories)
     : expenseCategories
 
   function load() {
@@ -51,7 +49,7 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
   const [year, mon] = month.split('-')
 
   function incomeSum(income: SettlementIncomeBucket): number {
-    return categories.length > 0 ? incomeGroups.reduce((s, g) => s + income[g], 0) : income.total
+    return categories.length > 0 ? activeIncomeCategories.reduce((s, c) => s + (income[c] ?? 0), 0) : (income.total ?? 0)
   }
   function expenseSum(expense: SettlementExpenseBucket): number {
     return categories.length > 0 ? activeExpenseCategories.reduce((s, c) => s + (expense[c] ?? 0), 0) : (expense.total ?? 0)
@@ -61,9 +59,9 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
     return (
       <tr key={key} className={emphasize ? 'bg-neutral-50 dark:bg-neutral-950 font-bold' : ''}>
         <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">{label}</td>
-        {incomeGroups.map((g) => (
-          <td key={g} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
-            {cell(income[g])}
+        {activeIncomeCategories.map((c) => (
+          <td key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
+            {cell(income[c] ?? 0)}
           </td>
         ))}
         <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">
@@ -105,12 +103,12 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
             <thead>
               <tr className="bg-neutral-100 dark:bg-neutral-800">
                 <th rowSpan={2} className="border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left align-bottom">날짜</th>
-                <th colSpan={incomeGroups.length + 1} className="border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-blue-800 dark:text-blue-300">수입</th>
+                <th colSpan={activeIncomeCategories.length + 1} className="border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-blue-800 dark:text-blue-300">수입</th>
                 <th colSpan={activeExpenseCategories.length + 1} className="border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-coral-700 dark:text-coral-200">지출</th>
               </tr>
               <tr className="bg-neutral-50 dark:bg-neutral-950">
-                {incomeGroups.map((g) => (
-                  <th key={g} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-700 dark:text-blue-300">{g}</th>
+                {activeIncomeCategories.map((c) => (
+                  <th key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-700 dark:text-blue-300">{c}</th>
                 ))}
                 <th className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">수입합계</th>
                 {activeExpenseCategories.map((c) => (

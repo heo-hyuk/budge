@@ -32,6 +32,23 @@
   `src/components/MonthlySettlementTable.tsx`,
   `src/components/AnnualSettlementTable.tsx`
 
+### 완료
+- [x] 계획대로 전 파일 작업 완료(예상 변경 파일과 동일). `IncomeBucket`/
+  `classifyIncomeGroup`/`emptyIncomeBucket`/`addIncome`을 `CategoryBucket`/
+  `addAmount`로 통합(백엔드), `SettlementIncomeBucket`을 동적 키 구조로 변경
+  (프론트), `settlementFilter.ts`를 `filterSelectedCategories` 하나로 단순화
+- [x] DB 스키마 변경 없음(계산 로직만 변경) — 마이그레이션 파일/원격 D1 적용 불필요
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과
+- [x] `wrangler pages dev` + 로컬 D1로 상희님 시나리오 재현해 검증: 기본 분류
+  "급여" 삭제 + 커스텀 수입 분류(영업수익/카카오수수료) 추가 후 급여/용돈/영업수익/
+  카카오수수료로 거래 등록 → 월간·연간 정산 표에서 용돈/기타수입/영업수익/
+  카카오수수료가 각각 별도 열로 정확히 표시됨(더 이상 "기타" 한 열로 뭉치지
+  않음) 확인. 삭제된 "급여" 분류는 열 자체는 없어지지만(지출 분류 삭제와 동일한
+  기존 동작) 수입합계에는 정상적으로 포함됨 확인. 콘솔 에러 없음
+- [x] 미완료 항목 없음
+- [ ] 실제 프로덕션 계정(상희님)의 정산 화면에서 최종 확인은 다음에 상희님이
+  접속했을 때 필요시 재확인
+
 ---
 
 ## 2026-07-20 (64차) — 결제 방법 "계좌이체" 추가 + "비정산" 거래 분리 기능

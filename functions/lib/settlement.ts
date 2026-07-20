@@ -61,52 +61,29 @@ export async function calculateDailySettlement(
 
 // ── 주간 정산 ────────────────────────────────────────
 
-export interface IncomeBucket {
-  소득: number
-  예금인출: number
-  기타: number
-  total: number
-}
-
-export interface ExpenseBucket {
+// 수입/지출 공통 — 분류명을 키로 하는 동적 버킷(+ total 키). 예전엔 수입만
+// 소득/예금인출/기타 3그룹으로 묶었었는데, 사용자가 기본 분류(급여)를 지우고
+// 커스텀 분류만 쓰면 전부 '기타'로 뭉개져 분류별 구분이 안 되는 문제가 있었음 —
+// 지출과 동일하게 분류명 그대로 열로 보여주도록 통일(migration 021 다음 세션)
+export interface CategoryBucket {
   [category: string]: number  // 카테고리별 합계 + total 키
 }
 
 export interface WeeklySettlementDay {
   date: string
-  income: IncomeBucket
-  expense: ExpenseBucket
+  income: CategoryBucket
+  expense: CategoryBucket
 }
 
 export interface WeeklySettlementResult {
   week_start: string
   week_end: string
   days: WeeklySettlementDay[]
-  week_total: { income: IncomeBucket; expense: ExpenseBucket }
-  month_cumulative_total: { income: IncomeBucket; expense: ExpenseBucket }
+  week_total: { income: CategoryBucket; expense: CategoryBucket }
+  month_cumulative_total: { income: CategoryBucket; expense: CategoryBucket }
 }
 
-/**
- * 수입 카테고리를 소득/예금인출/기타 3그룹으로 단순 분류.
- * 이 앱 기본 수입 분류(급여/용돈/기타수입)엔 '예금인출' 개념이 없어, 사용자가 직접
- * 그 이름으로 커스텀 분류를 만들었을 때만 잡히고 나머지는 전부 '기타'로 묶임
- */
-function classifyIncomeGroup(category: string): '소득' | '예금인출' | '기타' {
-  if (category === '급여') return '소득'
-  if (category === '예금인출') return '예금인출'
-  return '기타'
-}
-
-function emptyIncomeBucket(): IncomeBucket {
-  return { 소득: 0, 예금인출: 0, 기타: 0, total: 0 }
-}
-
-function addIncome(bucket: IncomeBucket, category: string, amount: number) {
-  bucket[classifyIncomeGroup(category)] += amount
-  bucket.total += amount
-}
-
-function addExpense(bucket: ExpenseBucket, category: string, amount: number) {
+function addAmount(bucket: CategoryBucket, category: string, amount: number) {
   bucket[category] = (bucket[category] ?? 0) + amount
   bucket.total = (bucket.total ?? 0) + amount
 }
@@ -141,27 +118,27 @@ export async function calculateWeeklySettlement(
 
   const dayDates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i))
   const days: WeeklySettlementDay[] = dayDates.map((date) => ({
-    date, income: emptyIncomeBucket(), expense: {},
+    date, income: {}, expense: {},
   }))
   const dayIndexByDate = new Map(days.map((d, i) => [d.date, i]))
 
-  const weekTotal = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
-  const monthCumulative = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
+  const weekTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
+  const monthCumulative = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
   for (const tx of rows) {
     // 누계는 monthStart~weekEnd 전체(조회 범위 그대로)에 누적
-    if (tx.type === 'income') addIncome(monthCumulative.income, tx.category, tx.amount)
-    else addExpense(monthCumulative.expense, tx.category, tx.amount)
+    if (tx.type === 'income') addAmount(monthCumulative.income, tx.category, tx.amount)
+    else addAmount(monthCumulative.expense, tx.category, tx.amount)
 
     const dayIdx = dayIndexByDate.get(tx.date)
     if (dayIdx === undefined) continue  // 이번 주 이전의 그 달 거래 — 누계에만 반영
     const bucket = days[dayIdx]
     if (tx.type === 'income') {
-      addIncome(bucket.income, tx.category, tx.amount)
-      addIncome(weekTotal.income, tx.category, tx.amount)
+      addAmount(bucket.income, tx.category, tx.amount)
+      addAmount(weekTotal.income, tx.category, tx.amount)
     } else {
-      addExpense(bucket.expense, tx.category, tx.amount)
-      addExpense(weekTotal.expense, tx.category, tx.amount)
+      addAmount(bucket.expense, tx.category, tx.amount)
+      addAmount(weekTotal.expense, tx.category, tx.amount)
     }
   }
 
@@ -172,14 +149,14 @@ export async function calculateWeeklySettlement(
 
 export interface MonthlySettlementDay {
   date: string
-  income: IncomeBucket
-  expense: ExpenseBucket
+  income: CategoryBucket
+  expense: CategoryBucket
 }
 
 export interface MonthlySettlementResult {
   month: string  // 'YYYY-MM'
   days: MonthlySettlementDay[]
-  month_total: { income: IncomeBucket; expense: ExpenseBucket }
+  month_total: { income: CategoryBucket; expense: CategoryBucket }
 }
 
 /** 월간 정산 계산 — 해당 월의 모든 날짜를 행으로, 마지막에 월계 */
@@ -202,22 +179,22 @@ export async function calculateMonthlySettlement(
 
   const dayDates = Array.from({ length: totalDays }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const days: MonthlySettlementDay[] = dayDates.map((date) => ({
-    date, income: emptyIncomeBucket(), expense: {},
+    date, income: {}, expense: {},
   }))
   const dayIndexByDate = new Map(days.map((d, i) => [d.date, i]))
 
-  const monthTotal = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
+  const monthTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
   for (const tx of rows) {
     const dayIdx = dayIndexByDate.get(tx.date)
     if (dayIdx === undefined) continue
     const bucket = days[dayIdx]
     if (tx.type === 'income') {
-      addIncome(bucket.income, tx.category, tx.amount)
-      addIncome(monthTotal.income, tx.category, tx.amount)
+      addAmount(bucket.income, tx.category, tx.amount)
+      addAmount(monthTotal.income, tx.category, tx.amount)
     } else {
-      addExpense(bucket.expense, tx.category, tx.amount)
-      addExpense(monthTotal.expense, tx.category, tx.amount)
+      addAmount(bucket.expense, tx.category, tx.amount)
+      addAmount(monthTotal.expense, tx.category, tx.amount)
     }
   }
 
@@ -228,14 +205,14 @@ export async function calculateMonthlySettlement(
 
 export interface AnnualSettlementMonth {
   month: string  // 'YYYY-MM'
-  income: IncomeBucket
-  expense: ExpenseBucket
+  income: CategoryBucket
+  expense: CategoryBucket
 }
 
 export interface AnnualSettlementResult {
   year: string  // 'YYYY'
   months: AnnualSettlementMonth[]
-  year_total: { income: IncomeBucket; expense: ExpenseBucket }
+  year_total: { income: CategoryBucket; expense: CategoryBucket }
 }
 
 /** 연간 정산 계산 — 1~12월을 행으로, 마지막에 연계 */
@@ -256,22 +233,22 @@ export async function calculateAnnualSettlement(
 
   const monthKeys = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`)
   const months: AnnualSettlementMonth[] = monthKeys.map((month) => ({
-    month, income: emptyIncomeBucket(), expense: {},
+    month, income: {}, expense: {},
   }))
   const monthIndexByKey = new Map(months.map((mo, i) => [mo.month, i]))
 
-  const yearTotal = { income: emptyIncomeBucket(), expense: {} as ExpenseBucket }
+  const yearTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
   for (const tx of rows) {
     const idx = monthIndexByKey.get(tx.date.slice(0, 7))
     if (idx === undefined) continue
     const bucket = months[idx]
     if (tx.type === 'income') {
-      addIncome(bucket.income, tx.category, tx.amount)
-      addIncome(yearTotal.income, tx.category, tx.amount)
+      addAmount(bucket.income, tx.category, tx.amount)
+      addAmount(yearTotal.income, tx.category, tx.amount)
     } else {
-      addExpense(bucket.expense, tx.category, tx.amount)
-      addExpense(yearTotal.expense, tx.category, tx.amount)
+      addAmount(bucket.expense, tx.category, tx.amount)
+      addAmount(yearTotal.expense, tx.category, tx.amount)
     }
   }
 
