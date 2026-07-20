@@ -1,5 +1,60 @@
 # WORKLOG
 
+## 2026-07-20 (70차) — 개인화 수익 계산기 탭 신설
+
+사용자 요청: "개인화 수익 계산기 탭을 하나 만들어야해 수익이 등록된것중에서
+영업수익에서 식대및 담배 LPG를 차감한 금액이 따로 정리되서 보고싶은데
+이걸 항목별 선택으로 내가원하는 수익칩만 선택해서 합산결과를 보는 형태로
+만들고싶어". 개인택시/자영업 등으로 짐작되는 사용 맥락 — 영업수익(수입)에서
+식대/담배/LPG(지출) 같은 특정 항목을 차감한 "순수익"을 자유롭게 조합해서
+보고 싶다는 요청.
+
+### 확인한 요구사항(AskUserQuestion)
+- 칩 선택 방식: **모든 칩(수입 분류 + 지출 분류 구분 없이 전부)을 개별적으로
+  +/- 직접 지정** — 수입은 자동 +, 지출은 자동 - 가 아니라, 사용자가 각
+  분류 칩을 탭해서 +(더하기)/-(빼기)/선택안함 3단계를 직접 고름(더 자유로움)
+- 집계 기간: **다른 탭(홈/예산/메모/비정산)과 동일하게 월 단위** — App.tsx의
+  전역 `selectedMonth` + 상단 ◀▶ 월 이동 재사용
+- 선택 상태 저장: **계정에 저장해 기기 간 동기화**(분류/구매처와 동일 원칙)
+
+### 설계
+- 월별 분류당 합계는 이미 `/api/settlement/monthly?month=` (`calculateMonthlySettlement`)
+  가 `month_total.income`/`month_total.expense`로 카테고리별 합계를
+  전부 계산해서 내려주고 있음 — 새 집계 로직 불필요, 프론트에서 이 기존
+  API(`fetchMonthlySettlement`)를 그대로 재사용하고 선택된 칩의 부호를
+  곱해 합산만 하면 됨
+- 새 테이블 `calc_selections` — `(user_id, type, category)`별로 부호(1
+  또는 -1)를 저장. 선택 안 한 상태는 행이 아예 없는 것으로 표현(3단계
+  중 하나가 "행 없음"과 자연히 대응)
+- `functions/api/calc-selections/index.ts` — GET(전체 목록)/POST(upsert
+  로 부호 설정)/DELETE(행 삭제 = 선택 해제) — categories류 API보다 단순
+  (기본값 개념도, 순서도 없음)
+- 프론트 칩은 `getCategories('income')`/`getCategories('expense')`
+  전체 분류를 그대로 보여줌(해당 월에 금액이 0이어도 노출 — 선택 상태는
+  월과 무관하게 유지되는 게 자연스러움), 탭할 때마다 미선택→+→-→미선택
+  순환
+- 결과 카드에 선택된 칩별 금액과 부호를 나열한 내역 + 최종 합계를 함께
+  표시(사용자가 계산 근거를 바로 확인 가능하게)
+
+### 계획
+- `schema.sql`, `migrations/024_add_calc_selections.sql` — `calc_selections`
+  테이블 신설
+- `functions/api/calc-selections/index.ts` — GET/POST/DELETE
+- `src/lib/api.ts` — `CalcSelection` 타입, `fetchCalcSelections`,
+  `setCalcSelectionApi`, `removeCalcSelectionApi`
+- `src/lib/calcSelections.ts` — load/reset/get/cycleCalcSelection
+  (categories.ts류와 동일한 모듈 캐시 패턴)
+- `src/contexts/AuthContext.tsx` 로그아웃 시 `resetCalcSelections()`,
+  `src/App.tsx` 로그인 시 `loadCalcSelections()`
+- `src/App.tsx` — `Tab`에 `'calculator'` 추가, 네비게이션에 계산기 탭
+  추가(Calculator 아이콘), 월 네비게이션 표시 탭 목록에도 추가, 활성 탭일
+  때 `<IncomeCalculator month={selectedMonth} />` 렌더링
+- `src/components/IncomeCalculator.tsx` 신규 — 수입/지출 분류 칩(3단계
+  토글) + 선택 내역/합계 카드
+- `wrangler pages dev` + Playwright로 칩 토글, 계산 정확성, 월 이동 시
+  재계산, 기기 간 선택 동기화 검증
+- 검증 후 원격 D1에 마이그레이션 적용, GitHub Actions 배포 확인
+
 ## 2026-07-20 (69차) — 수입 화면에서 구매처/판매처 섹션 제거
 
 사용자 요청: "수입에는 구매처 판매처가 필요없어 없애줘". 68차에서 결제
