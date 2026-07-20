@@ -30,6 +30,20 @@
 - `wrangler pages dev` + Playwright로 지출/수입 전환 시 섹션 표시/숨김,
   수입 거래 저장, 인라인 수정 화면 반영 검증
 
+### 완료
+- [x] `src/components/TransactionForm.tsx` — 구매처 섹션 전체를
+  `{type === 'expense' && (...)}`로 감쌈, 결제 방법 섹션은 같은 카드
+  안에서 그대로 유지. `handleTypeChange`에서 수입 전환 시 `merchant` 비움
+  + `addingMerchant`/`manageMerchants` 닫기
+- [x] `src/components/TransactionList.tsx` — 인라인 수정의 구매처 입력을
+  `editState.type === 'expense'`일 때만 렌더링, 타입 전환 버튼 클릭 시
+  수입이면 `merchant` 비움
+- [x] `wrangler pages dev` + Playwright로 검증: 지출 화면엔 구매처 섹션
+  표시, 수입 화면엔 사라지고 결제 방법은 유지, 지출로 되돌리면 다시
+  표시, 수입 거래가 구매처 없이 정상 저장, 인라인 수정 화면에서도
+  수입일 때 구매처 입력창이 없는 것 확인. `tsc -b`/`oxlint`/`npm run build`
+  모두 통과. 스키마 변경 없어 D1 마이그레이션 불필요
+
 ## 2026-07-20 (68차) — 결제 방법 칩(현금/계좌이체) 관리 기능 추가(지출/수입 분리)
 
 사용자 요청: "수입창에서 결제방법 칩도 수정이 되야될거같아 여기도 삭제 추가

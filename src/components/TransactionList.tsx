@@ -129,6 +129,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                               // 결제 방법도 지출/수입 독립 관리라 타입 전환 시 재동기화(카드가 선택된
                               // 채로 수입으로 넘어가지 않도록 — TransactionForm과 동일 원칙)
                               paymentMethod: pms[0],
+                              // 수입엔 구매처 개념이 없어 입력창 자체를 숨김 — 전환 시 비움(TransactionForm과 동일 원칙)
+                              merchant: t === 'income' ? '' : s.merchant,
                               // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
                               amount: t === 'expense' ? s.amount.replace(/^-/, '') : s.amount,
                             })
@@ -160,13 +162,15 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                     className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-right text-base font-bold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                     placeholder="금액"
                   />
-                  {/* 구매처 */}
-                  <input type="text"
-                    value={editState.merchant}
-                    onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
-                    placeholder="구매처 (선택)"
-                    className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-                  />
+                  {/* 구매처 — 수입엔 구매처 개념이 없어 지출일 때만 표시(TransactionForm과 동일 원칙) */}
+                  {editState.type === 'expense' && (
+                    <input type="text"
+                      value={editState.merchant}
+                      onChange={(e) => setEditState((s) => s && { ...s, merchant: e.target.value })}
+                      placeholder="구매처 (선택)"
+                      className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                    />
+                  )}
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {/* 카드는 지출일 때만 이어붙임 — 수입엔 카드 개념이 없음(TransactionForm과 동일 원칙) */}

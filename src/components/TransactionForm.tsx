@@ -261,10 +261,13 @@ function TransactionForm({
     if (next === 'expense') {
       setAmount((a) => a.replace(/^-/, ''))
     }
-    // 수입으로 바꾸면 혜택 초기화
+    // 수입으로 바꾸면 혜택 초기화 + 구매처 비움(수입엔 구매처 개념이 없어 입력창 자체를 숨김)
     if (next === 'income') {
       setMatches([])
       setSelectedMatch(null)
+      setMerchant('')
+      setAddingMerchant(false)
+      setManageMerchants(false)
     }
   }
 
@@ -636,116 +639,120 @@ function TransactionForm({
         </div>
       </UiCard>
 
-      {/* 구매처/결제 카드 */}
+      {/* 구매처/결제 카드 — 구매처는 지출에만 필요(수입엔 판매처 개념이 없음), 결제 방법은 공통 */}
       <UiCard>
-        <div className="flex items-center">
-          <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-            구매처 / 판매처 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
-          </label>
-          <button
-            type="button"
-            onClick={() => setManageMerchants((m) => !m)}
-            aria-label={manageMerchants ? '구매처 삭제 모드 종료' : '구매처 삭제'}
-            className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
-              manageMerchants ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
-            }`}
-          >
-            <Settings2 size={14} />
-          </button>
-        </div>
+        {type === 'expense' && (
+          <>
+            <div className="flex items-center">
+              <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                구매처 / 판매처 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setManageMerchants((m) => !m)}
+                aria-label={manageMerchants ? '구매처 삭제 모드 종료' : '구매처 삭제'}
+                className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+                  manageMerchants ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
+                }`}
+              >
+                <Settings2 size={14} />
+              </button>
+            </div>
 
-        {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐.
-            관리 모드에선 드래그로 순서 변경 가능(ReorderableChipList) */}
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          <ReorderableChipList
-            items={merchantList}
-            draggable={manageMerchants}
-            onReorder={handleReorderMerchants}
-            onTap={(m) => {
-              if (manageMerchants) { handleDeleteMerchant(m); return }
-              setMerchant(m)
-            }}
-            renderChip={(m, dragging) => (
-              <div className="relative">
-                <div
-                  className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
-                    merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                  } ${dragging ? 'shadow-lg' : ''}`}
-                >
-                  {m}
-                </div>
-                {manageMerchants && (
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
-                    <X size={12} />
-                  </span>
+            {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐.
+                관리 모드에선 드래그로 순서 변경 가능(ReorderableChipList) */}
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              <ReorderableChipList
+                items={merchantList}
+                draggable={manageMerchants}
+                onReorder={handleReorderMerchants}
+                onTap={(m) => {
+                  if (manageMerchants) { handleDeleteMerchant(m); return }
+                  setMerchant(m)
+                }}
+                renderChip={(m, dragging) => (
+                  <div className="relative">
+                    <div
+                      className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
+                        merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                      } ${dragging ? 'shadow-lg' : ''}`}
+                    >
+                      {m}
+                    </div>
+                    {manageMerchants && (
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                        <X size={12} />
+                      </span>
+                    )}
+                  </div>
                 )}
+              />
+              {!addingMerchant && !manageMerchants && (
+                <button
+                  type="button"
+                  onClick={() => setAddingMerchant(true)}
+                  className="min-h-8 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 px-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300"
+                >
+                  + 직접입력
+                </button>
+              )}
+            </div>
+            {addingMerchant && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="새 구매처 이름"
+                  value={newMerchant}
+                  onChange={(e) => setNewMerchant(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddMerchant() } }}
+                  className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMerchant}
+                  className="min-h-9 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600"
+                >
+                  추가
+                </button>
               </div>
             )}
-          />
-          {!addingMerchant && !manageMerchants && (
-            <button
-              type="button"
-              onClick={() => setAddingMerchant(true)}
-              className="min-h-8 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 px-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300"
-            >
-              + 직접입력
-            </button>
-          )}
-        </div>
-        {addingMerchant && (
-          <div className="mt-2 flex gap-2">
-            <input
-              type="text"
-              autoFocus
-              placeholder="새 구매처 이름"
-              value={newMerchant}
-              onChange={(e) => setNewMerchant(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddMerchant() } }}
-              className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-            />
-            <button
-              type="button"
-              onClick={handleAddMerchant}
-              className="min-h-9 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600"
-            >
-              추가
-            </button>
-          </div>
-        )}
 
-        <div className="relative">
-          <input
-            id="merchant"
-            type="text"
-            autoComplete="off"
-            placeholder="예: 스타벅스, 쿠팡"
-            value={merchant}
-            onChange={(e) => { setMerchant(e.target.value); setMerchantSuggestOpen(true) }}
-            onFocus={() => setMerchantSuggestOpen(true)}
-            onBlur={() => {
-              // 클릭으로 제안을 선택할 시간을 주기 위해 살짝 지연 후 닫음
-              setTimeout(() => setMerchantSuggestOpen(false), 150)
-            }}
-            className="mt-2 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-          />
-          {merchantSuggestions.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg">
-              {merchantSuggestions.map((m) => (
-                <li key={m.merchant}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}  // blur보다 먼저 처리되도록
-                    onClick={() => selectMerchantSuggestion(m)}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                  >
-                    <span className="truncate font-semibold text-neutral-800 dark:text-neutral-200">{m.merchant}</span>
-                    {m.category && <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">{m.category}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+            <div className="relative">
+              <input
+                id="merchant"
+                type="text"
+                autoComplete="off"
+                placeholder="예: 스타벅스, 쿠팡"
+                value={merchant}
+                onChange={(e) => { setMerchant(e.target.value); setMerchantSuggestOpen(true) }}
+                onFocus={() => setMerchantSuggestOpen(true)}
+                onBlur={() => {
+                  // 클릭으로 제안을 선택할 시간을 주기 위해 살짝 지연 후 닫음
+                  setTimeout(() => setMerchantSuggestOpen(false), 150)
+                }}
+                className="mt-2 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+              />
+              {merchantSuggestions.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg">
+                  {merchantSuggestions.map((m) => (
+                    <li key={m.merchant}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}  // blur보다 먼저 처리되도록
+                        onClick={() => selectMerchantSuggestion(m)}
+                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                      >
+                        <span className="truncate font-semibold text-neutral-800 dark:text-neutral-200">{m.merchant}</span>
+                        {m.category && <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">{m.category}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="mt-4">
           <div className="flex items-center">
