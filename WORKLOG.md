@@ -29,6 +29,21 @@
 - `wrangler pages dev` + Playwright로 표 렌더링, 선택 분류 변경 시 열
   갱신, 일별/월계 합계 정확성 검증
 
+### 완료
+- [x] `src/components/IncomeCalculator.tsx` — `fetchTransactions`/
+  `TransactionList`/`cards`/`onDuplicate`/삭제·수정 핸들러 전부 제거,
+  `MonthlySettlementTable`과 동일한 표 구조(날짜 행 + 선택된 수입 분류
+  열 + 합계 열 + 월계 행)를 `settlement.days`/`settlement.month_total.income`
+  으로 렌더링, `filterSelectedCategories`로 선택된 분류만 열로 표시
+- [x] `src/App.tsx` — `<IncomeCalculator>`에서 불필요해진 `cards`/
+  `onDuplicate` props 제거
+- [x] `wrangler pages dev` + Playwright로 검증: 분류 미선택 시 표 없음,
+  선택 시 해당 분류 열 + 합계 열 생성, 서로 다른 날짜에 등록한 거래가
+  각 날짜 행에 정확히 반영되고 나머지 날짜는 '-' 표시, 월계 행이
+  일별 합의 총합과 정확히 일치, 다른 분류 선택 시 헤더/데이터 열 정상
+  교체. `tsc -b`/`oxlint`/`npm run build` 모두 통과. 스키마 변경 없어
+  D1 마이그레이션 불필요
+
 ## 2026-07-20 (73차) — 수익 계산기에 선택 분류의 거래 내역 목록 추가
 
 사용자 요청: "계산기 탭에 각항목선택을 하잖아 그럼 그 내역도 밑에 월

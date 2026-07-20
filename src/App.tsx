@@ -524,7 +524,7 @@ function App() {
 
         {/* 개인화 수익 계산기 탭 — 원하는 분류 칩만 +/- 선택해 순수익을 자유롭게 계산 */}
         {activeTab === 'calculator' && (
-          <IncomeCalculator month={selectedMonth} cards={cards} onDuplicate={handleDuplicate} />
+          <IncomeCalculator month={selectedMonth} />
         )}
 
         {/* 카드 관리 탭 */}

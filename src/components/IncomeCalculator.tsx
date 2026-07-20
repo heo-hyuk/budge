@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
-import TransactionList from './TransactionList'
 import UiCard from './ui/Card'
-import { useToast } from '../contexts/ToastContext'
-import { deleteTransaction, fetchMonthlySettlement, fetchTransactions, updateTransaction } from '../lib/api'
+import { fetchMonthlySettlement } from '../lib/api'
 import { getCalcSelections, isCalcSelected, loadCalcSelections, toggleCalcSelection } from '../lib/calcSelections'
 import { getCategories, loadCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
-import type { Card, MonthlySettlement, Transaction, UpdateTransaction } from '../types'
+import { filterSelectedCategories } from '../lib/settlementFilter'
+import type { MonthlySettlement } from '../types'
 
 interface Props {
   month: string  // 'YYYY-MM'
-  cards: Card[]
-  onDuplicate: (tx: Transaction) => void
+}
+
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+function compactDateLabel(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${d.getDate()}일(${WEEKDAY_LABELS[d.getDay()]})`
+}
+
+function cell(amount: number): string {
+  return amount !== 0 ? amount.toLocaleString('ko-KR') : '-'
 }
 
 /**
@@ -20,13 +28,12 @@ interface Props {
  * 예: 영업수익 + 급여 선택 → 두 분류의 월 합계를 더함. 차감할 항목(식대/담배/LPG 등)은
  * 지출이 아니라 수입 등록 시 금액 앞에 '-'를 붙여 이미 표현 가능하므로, 계산기는
  * 수입 분류만 대상으로 하고 선택된 값을 그대로 더하기만 한다(부호 선택 없음).
- * 분류별 월 합계는 이미 계산되는 /api/settlement/monthly를 그대로 재사용하고,
- * 선택된 분류에 속하는 개별 거래는 fetchTransactions로 따로 조회해 목록으로 보여준다.
+ * 분류별 합계(일별/월계)는 이미 계산되는 /api/settlement/monthly를 그대로 재사용하고,
+ * 선택된 분류만 열로 골라 MonthlySettlementTable과 같은 일별 표로 보여준다(매일
+ * 반복 등록되는 항목 특성상 개별 거래 목록보다 표가 한눈에 보기 좋음).
  */
-function IncomeCalculator({ month, cards, onDuplicate }: Props) {
-  const { showToast } = useToast()
+function IncomeCalculator({ month }: Props) {
   const [settlement, setSettlement] = useState<MonthlySettlement | null>(null)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [, forceRerender] = useState(0)  // calcSelections 캐시(모듈 전역) 변경을 반영하기 위한 트리거
@@ -34,8 +41,8 @@ function IncomeCalculator({ month, cards, onDuplicate }: Props) {
   function load() {
     setLoading(true)
     setError('')
-    Promise.all([fetchMonthlySettlement(month), fetchTransactions({ month })])
-      .then(([s, tx]) => { setSettlement(s); setTransactions(tx) })
+    fetchMonthlySettlement(month)
+      .then(setSettlement)
       .catch((err) => setError(err instanceof Error ? err.message : '불러오기에 실패했습니다'))
       .finally(() => setLoading(false))
   }
@@ -55,31 +62,17 @@ function IncomeCalculator({ month, cards, onDuplicate }: Props) {
     forceRerender((n) => n + 1)
   }
 
-  async function handleUpdate(id: string, data: UpdateTransaction) {
-    await updateTransaction(id, data)
-    load()  // 분류가 바뀌면 선택 목록에서 빠지거나 들어올 수 있으므로 재조회
-  }
-
-  // TransactionList가 onDelete 호출 전에 이미 자체적으로 확인 모달을 띄우므로
-  // 여기서 또 confirm()을 부르면 확인을 두 번 눌러야 하는 버그가 생김(모달이 똑같은
-  // 문구로 다시 뜨는 것처럼 보임) — 여기서는 바로 삭제만 수행
-  async function handleDelete(id: string) {
-    try {
-      await deleteTransaction(id)
-      load()
-      showToast('삭제됨')
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '삭제하지 못했습니다', 'error')
-    }
-  }
-
   const incomeBucket = settlement?.month_total.income ?? {}
   const selections = getCalcSelections()
-  const selectedCategories = new Set(selections.map((s) => s.category))
+  const selectedCategoryNames = selections.map((s) => s.category)
   const breakdown = selections.map((s) => ({ ...s, amount: incomeBucket[s.category] ?? 0 }))
   const total = breakdown.reduce((sum, s) => sum + s.amount, 0)
   const categories = getCategories('income')
-  const selectedTransactions = transactions.filter((tx) => tx.type === 'income' && selectedCategories.has(tx.category))
+  const activeIncomeCategories = filterSelectedCategories(selectedCategoryNames, categories)
+
+  function rowSum(income: Record<string, number>): number {
+    return activeIncomeCategories.reduce((s, c) => s + (income[c] ?? 0), 0)
+  }
 
   return (
     <div className="space-y-4">
@@ -106,7 +99,7 @@ function IncomeCalculator({ month, cards, onDuplicate }: Props) {
             다시 시도
           </button>
         </div>
-      ) : (
+      ) : settlement && (
         <>
           <UiCard>
             <p className="text-sm font-semibold text-neutral-500 dark:text-neutral-400">선택 합계</p>
@@ -153,23 +146,50 @@ function IncomeCalculator({ month, cards, onDuplicate }: Props) {
             </div>
           </UiCard>
 
-          {/* 선택된 분류에 속하는 개별 거래 내역 — 월 정산처럼 실제 내역을 그대로 보여줌 */}
-          {selections.length > 0 && (
+          {/* 선택된 분류의 일별 내역 — 매일 반복 등록되는 항목 특성상 월정산과 같은
+              날짜별 표로 표시(MonthlySettlementTable과 동일한 구조, 수입만) */}
+          {activeIncomeCategories.length > 0 && (
             <div>
-              <p className="mb-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">선택 분류 내역</p>
-              {selectedTransactions.length === 0 ? (
-                <UiCard>
-                  <p className="text-sm text-neutral-400 dark:text-neutral-500">이번 달엔 선택한 분류의 내역이 없습니다.</p>
-                </UiCard>
-              ) : (
-                <TransactionList
-                  transactions={selectedTransactions}
-                  cards={cards}
-                  onDelete={handleDelete}
-                  onUpdate={handleUpdate}
-                  onDuplicate={onDuplicate}
-                />
-              )}
+              <p className="mb-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">선택 분류 일별 내역</p>
+              <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+                <table className="w-full min-w-[420px] border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-neutral-100 dark:bg-neutral-800">
+                      <th className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">날짜</th>
+                      {activeIncomeCategories.map((c) => (
+                        <th key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-700 dark:text-blue-300">{c}</th>
+                      ))}
+                      <th className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">합계</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {settlement.days.map((day) => (
+                      <tr key={day.date}>
+                        <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">{compactDateLabel(day.date)}</td>
+                        {activeIncomeCategories.map((c) => (
+                          <td key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
+                            {cell(day.income[c] ?? 0)}
+                          </td>
+                        ))}
+                        <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">
+                          {cell(rowSum(day.income))}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-neutral-50 dark:bg-neutral-950 font-bold">
+                      <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">월계</td>
+                      {activeIncomeCategories.map((c) => (
+                        <td key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
+                          {cell(incomeBucket[c] ?? 0)}
+                        </td>
+                      ))}
+                      <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">
+                        {cell(rowSum(incomeBucket))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
