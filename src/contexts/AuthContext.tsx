@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { resetCategories } from '../lib/categories'
+import { resetNoteCategories } from '../lib/noteCategories'
+import { resetSettings } from '../lib/settings'
 
 interface User {
   id: string
@@ -59,7 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     setUser(null)
-    resetCategories()  // 다음 로그인(다른 계정일 수도)에 이전 계정 분류가 새지 않게
+    // 다음 로그인(다른 계정일 수도)에 이전 계정 분류/설정이 새지 않게
+    resetCategories()
+    resetNoteCategories()
+    resetSettings()
   }
 
   async function updateNickname(nickname: string) {

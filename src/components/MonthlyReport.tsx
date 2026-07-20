@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useToast } from '../contexts/ToastContext'
 import { getCardBillingPeriod } from '../lib/billing'
 import { fetchTransactions } from '../lib/api'
 import { formatWon } from '../lib/format'
+import { getMonthlyBasis, loadSettings, setMonthlyBasis } from '../lib/settings'
 import type { Card, Transaction } from '../types'
 
 interface Props {
@@ -23,27 +25,32 @@ type SettlementView = 'expense' | 'income'
 // billing = 카드 청구(출금)일 기준, transaction = 거래(결제)한 날짜 기준
 type DateBasis = 'billing' | 'transaction'
 
-const BASIS_STORAGE_KEY = 'budget:monthlyBasis'
-
-function loadBasis(): DateBasis {
-  return localStorage.getItem(BASIS_STORAGE_KEY) === 'transaction' ? 'transaction' : 'billing'
-}
-
 function MonthlyReport({ month, cards, categories = [] }: Props) {
+  const { showToast } = useToast()
   const [monthlyTx, setMonthlyTx] = useState<Transaction[]>([])
   const [cardBills, setCardBills] = useState<CardBill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [view, setView] = useState<SettlementView>('expense')
-  const [basis, setBasis] = useState<DateBasis>(loadBasis)
+  const [basis, setBasis] = useState<DateBasis>(getMonthlyBasis)
 
   const [year, mon] = month.split('-')
   const label = `${year}년 ${parseInt(mon)}월 정산`
   const shortMonthLabel = `${parseInt(mon)}월`
 
-  function changeBasis(next: DateBasis) {
+  // 마운트 시점엔 서버 설정이 아직 로드되기 전이라 기본값(billing)일 수 있음 —
+  // 로드가 끝나면 실제 값으로 재동기화
+  useEffect(() => {
+    loadSettings().then(() => setBasis(getMonthlyBasis()))
+  }, [])
+
+  async function changeBasis(next: DateBasis) {
     setBasis(next)
-    localStorage.setItem(BASIS_STORAGE_KEY, next)
+    try {
+      await setMonthlyBasis(next)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '설정을 저장하지 못했습니다', 'error')
+    }
   }
 
   useEffect(() => {

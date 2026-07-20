@@ -4,7 +4,7 @@ import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
-import { addCustomNoteCategory, getNoteCategories, removeNoteCategory } from '../lib/noteCategories'
+import { addCustomNoteCategory, getNoteCategories, loadNoteCategories, removeNoteCategory } from '../lib/noteCategories'
 import type { Note } from '../types'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한
@@ -96,6 +96,16 @@ function NotesView({ month }: Props) {
 
   useEffect(load, [month])
 
+  // 마운트 시점엔 서버 분류 오버라이드가 아직 로드되기 전이라 categories 초기값이
+  // 기본 분류뿐일 수 있음 — 로드가 끝나면 최신 목록으로 재동기화
+  useEffect(() => {
+    loadNoteCategories().then(() => {
+      const next = getNoteCategories()
+      setCategories(next)
+      setCategory((c) => (next.includes(c) ? c : next[0]))
+    })
+  }, [])
+
   // 달력에서 선택한 날짜는 월이 바뀌면 의미가 없어지므로, 이번 달이면 오늘을 기본 선택
   useEffect(() => {
     setSelectedDate(todayStr().slice(0, 7) === month ? todayStr() : null)
@@ -146,21 +156,29 @@ function NotesView({ month }: Props) {
     resetImageState()
   }
 
-  function handleAddCategory() {
+  async function handleAddCategory() {
     const trimmed = newCategory.trim()
     if (!trimmed) { setAddingCategory(false); return }
-    const updated = addCustomNoteCategory(trimmed)
-    setCategories(updated)
-    setCategory(trimmed)
-    setNewCategory('')
     setAddingCategory(false)
+    try {
+      const updated = await addCustomNoteCategory(trimmed)
+      setCategories(updated)
+      setCategory(trimmed)
+      setNewCategory('')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '분류를 추가하지 못했습니다', 'error')
+    }
   }
 
   async function handleDeleteCategory(name: string) {
     if (!(await confirm(`"${name}" 분류를 삭제할까요? 이미 이 분류로 저장된 메모는 그대로 남습니다.`))) return
-    const updated = removeNoteCategory(name)
-    setCategories(updated)
-    if (category === name) setCategory(updated[0] ?? '')
+    try {
+      const updated = await removeNoteCategory(name)
+      setCategories(updated)
+      if (category === name) setCategory(updated[0] ?? '')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '분류를 삭제하지 못했습니다', 'error')
+    }
   }
 
   async function handleSave() {

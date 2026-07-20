@@ -367,3 +367,37 @@ export async function removeCategoryApi(type: TransactionType, name: string): Pr
     '분류를 삭제하지 못했습니다'
   )
 }
+
+// ── 메모 분류 API ────────────────────────────────────────
+// 거래 분류와 동일한 이유로 계정 단위 저장(타입 구분 없는 단일 목록)
+
+export async function fetchNoteCategoryOverrides(): Promise<CategoryOverrides> {
+  return apiRequest<CategoryOverrides>('/api/note-categories', undefined, '메모 분류를 불러오지 못했습니다')
+}
+
+export async function addNoteCategoryApi(name: string): Promise<void> {
+  await apiRequest('/api/note-categories', jsonInit('POST', { name }), '메모 분류를 추가하지 못했습니다')
+}
+
+export async function removeNoteCategoryApi(name: string): Promise<void> {
+  await apiRequest(
+    `/api/note-categories?name=${encodeURIComponent(name)}`,
+    { method: 'DELETE' },
+    '메모 분류를 삭제하지 못했습니다'
+  )
+}
+
+// ── 계정별 설정 API ──────────────────────────────────────
+// 카드 지출 집계 기준 등 계정당 값 하나뿐인 설정(이전엔 localStorage에만 저장돼 기기마다 달랐음)
+
+export interface UserSettings {
+  monthlyBasis: 'billing' | 'transaction'
+}
+
+export async function fetchUserSettings(): Promise<UserSettings> {
+  return apiRequest<UserSettings>('/api/settings', undefined, '설정을 불러오지 못했습니다')
+}
+
+export async function updateUserSetting(key: string, value: string): Promise<void> {
+  await apiRequest('/api/settings', jsonInit('PATCH', { key, value }), '설정을 저장하지 못했습니다')
+}

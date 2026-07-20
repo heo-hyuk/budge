@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~018 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~019 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -205,3 +205,27 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id);
+
+-- ── 메모 분류 오버라이드 (migration 019) ────────────────────────
+-- 거래 분류(categories)와 동일 구조, 메모장은 수입/지출 구분이 없어 타입 없이 단일 목록
+CREATE TABLE IF NOT EXISTS note_categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  removed_default INTEGER NOT NULL DEFAULT 0,  -- 0 = 커스텀 분류, 1 = 삭제한 기본 분류 표시
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_note_categories_user ON note_categories(user_id);
+
+-- ── 계정별 단일값 설정 (migration 019) ───────────────────────────
+-- 카드 지출 집계 기준(출금일/거래일) 등, 계정당 값 하나뿐인 설정을 위한 범용 key-value.
+-- 새 설정이 늘어나도 스키마 변경 없이 API의 허용 key 목록만 늘리면 됨
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, key)
+);

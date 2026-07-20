@@ -47,6 +47,25 @@
   `src/contexts/AuthContext.tsx`, `src/App.tsx`, `src/components/NotesView.tsx`,
   `src/components/MonthlyReport.tsx`
 
+### 완료
+- [x] 계획대로 전 파일 작업 완료(예상 변경 파일과 동일), `README.md` 마이그레이션
+  범위(001~018→001~019)와 DB 스키마 목록에 `note_categories`/`user_settings`
+  설명도 반영
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과. `functions/`는 `wrangler pages dev`의
+  "Compiled Worker successfully"로 대체 확인(58차와 동일 이유)
+- [x] `wrangler pages dev` + 로컬 D1(스키마 재초기화)로 실제 시나리오 검증 — 두
+  건 모두 브라우저 컨텍스트 A(회원가입 후 변경) → 완전히 새로운 컨텍스트
+  B(= 다른 기기 시뮬레이션, 같은 계정 로그인만) 순서로 확인:
+  - 메모 분류: A에서 기본 분류 "일상" 삭제 + 커스텀 "가족모임" 추가 →
+    B에서도 동일하게 만남/기념일/건강/기타/가족모임으로 정확히 동기화
+  - 카드 정산 집계 기준: A에서 "거래일 기준"으로 변경 → B에서도 로그인만
+    했는데 "거래일 기준"이 그대로 선택된 상태로 열림
+  - 두 경우 다 콘솔 에러 없음
+- [x] 프로덕션 D1에 `019_add_note_categories.sql` 마이그레이션 적용
+  (`wrangler d1 execute budget-db --remote`), 커밋 push 후 GitHub Actions
+  자동배포 success 확인
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-20 (58차) — 거래 분류(카테고리)를 서버(D1)로 이전해 기기 간 동기화

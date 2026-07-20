@@ -160,7 +160,7 @@ budget/
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~018, schema.sql과 항상 동기화
+├── migrations/                       # 001~019, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -195,6 +195,9 @@ notification_log       -- id, user_id, type, reference_id, year_month, sent_at
                        --   (같은 카드·같은 청구월 중복 알림 방지)
 categories             -- id, user_id, type, name, removed_default (거래 분류
                        --   커스텀 추가/기본 삭제를 계정 단위로 저장, 기기 간 동기화)
+note_categories        -- id, user_id, name, removed_default (메모 분류, categories와 동일 구조)
+user_settings          -- user_id, key, value (계정별 단일값 설정 — 카드 지출 집계
+                       --   기준 등, PRIMARY KEY(user_id, key))
 ```
 
 전체 정의는 `schema.sql` 참고. 스키마 변경 시 `migrations/`에 새 파일을 추가하고

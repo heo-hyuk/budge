@@ -20,6 +20,8 @@ import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { loadCategories } from './lib/categories'
 import { validateNicknameClient } from './lib/nickname'
+import { loadNoteCategories } from './lib/noteCategories'
+import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
@@ -81,7 +83,7 @@ function App() {
   const pendingDeletesRef = useRef(new Map<string, PendingDelete>())
   const UNDO_DELAY_MS = 3000
 
-  // 로그인 상태일 때 카드 + 고정지출 + 분류 오버라이드 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
+  // 로그인 상태일 때 카드 + 고정지출 + 분류/설정 오버라이드 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
   useEffect(() => {
     if (!user) return
     fetchCards().then(setCards).catch((err) => {
@@ -91,6 +93,8 @@ function App() {
       showToast(err instanceof Error ? err.message : '고정지출 목록을 불러오지 못했습니다', 'error')
     })
     loadCategories()
+    loadNoteCategories()
+    loadSettings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
