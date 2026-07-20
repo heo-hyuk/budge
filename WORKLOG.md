@@ -30,6 +30,20 @@
   타당성만 재확인하고 배포, 사용자에게 기존 PWA 아이콘 삭제 후 재설치
   요청
 
+### 완료
+- [x] `public/manifest.json` — `"orientation": "portrait"` 필드 제거
+  (다른 필드는 그대로 유지)
+- [x] `vite.config.ts`의 PWA 플러그인이 `manifest: false`로 설정돼 있어
+  `public/manifest.json`을 그대로 빌드 산출물에 복사한다는 것 확인 —
+  다른 곳에 중복된 manifest 정의 없음
+- [x] `npm run build` 후 `dist/manifest.json`에 `orientation` 필드가
+  정상적으로 빠진 것 확인. `tsc -b`/`oxlint` 통과(코드 변경 없어 영향
+  없음이 당연하지만 확인차 실행)
+- [ ] **iOS 실기기 육안 검증은 이 환경에서 불가능** — 사용자가 실제
+  아이폰에서 확인 필요. 배포 후 사용자에게 안내: 기존 홈 화면 아이콘을
+  삭제하고 "홈 화면에 추가"를 다시 해야 새 manifest가 반영될 가능성이
+  높음(iOS가 설치 시점 manifest를 캐시하는 경향)
+
 ## 2026-07-20 (74차) — 수익 계산기 내역을 목록 대신 월정산과 같은 일별 표로 변경
 
 사용자 요청(73차 결과물에 대한 수정 지시): "월정산 처럼 표로 나와야되는데
