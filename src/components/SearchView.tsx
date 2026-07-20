@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
+import { getMerchants } from '../lib/merchants'
 import type { Card, Transaction, TransactionType } from '../types'
 import ExportButton from './ExportButton'
 import LoadingSpinner from './LoadingSpinner'
@@ -17,6 +18,7 @@ interface Filters {
   dateStart: string
   dateEnd: string
   category: string                   // '' = 전체
+  merchant: string                   // '' = 전체
   cardId: string                     // '' = 전체, 'cash' = 현금
   amountMin: string
   amountMax: string
@@ -24,12 +26,12 @@ interface Filters {
 
 const DEFAULT_FILTERS: Filters = {
   q: '', type: '', dateStart: '', dateEnd: '',
-  category: '', cardId: '', amountMin: '', amountMax: '',
+  category: '', merchant: '', cardId: '', amountMin: '', amountMax: '',
 }
 
 function activeCount(f: Filters): number {
   return [
-    f.type, f.dateStart, f.dateEnd, f.category,
+    f.type, f.dateStart, f.dateEnd, f.category, f.merchant,
     f.cardId, f.amountMin, f.amountMax,
   ].filter(Boolean).length
 }
@@ -75,10 +77,11 @@ function SearchView({ cards }: Props) {
         max_amount: filters.amountMax ? parseInt(filters.amountMax, 10) : undefined,
       })
 
-      // 클라이언트 필터: type, category (서버는 텍스트/날짜/금액/결제수단만 담당)
+      // 클라이언트 필터: type, category, merchant (서버는 텍스트/날짜/금액/결제수단만 담당)
       const filtered = txs.filter((t) => {
         if (filters.type && t.type !== filters.type) return false
         if (filters.category && t.category !== filters.category) return false
+        if (filters.merchant && t.merchant !== filters.merchant) return false
         return true
       })
 
@@ -279,6 +282,36 @@ function SearchView({ cards }: Props) {
                 ))}
               </div>
             </div>
+
+            {/* 구매처 — 관리 목록(TransactionForm에서 등록)이 있을 때만 표시 */}
+            {getMerchants().length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2">구매처</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => set('merchant', '')}
+                    className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                      filters.merchant === '' ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {getMerchants().map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => set('merchant', m)}
+                      className={`min-h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                        filters.merchant === m ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 결제 방법 */}
             <div>

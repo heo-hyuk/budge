@@ -8,6 +8,7 @@ import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, m
 import { addCustomCategory, getCategories, loadCategories, removeCategory } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
+import { addMerchant, getMerchants, loadMerchants, removeMerchant } from '../lib/merchants'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
 export interface TransactionPrefill {
@@ -65,6 +66,12 @@ function TransactionForm({
   const [recentMerchants, setRecentMerchants] = useState<RecentMerchant[]>([])
   const [merchantSuggestOpen, setMerchantSuggestOpen] = useState(false)
 
+  // 구매처 관리 목록(칩) 상태 — 분류와 동일한 패턴, 자동완성과는 별개
+  const [merchantList, setMerchantList] = useState(() => getMerchants())
+  const [addingMerchant, setAddingMerchant] = useState(false)
+  const [newMerchant, setNewMerchant] = useState('')
+  const [manageMerchants, setManageMerchants] = useState(false)
+
   // 빠른 입력 템플릿 상태
   const [templates, setTemplates] = useState<QuickTemplate[]>([])
   const [manageTemplates, setManageTemplates] = useState(false)
@@ -87,6 +94,11 @@ function TransactionForm({
       setCategories(next)
       setCategory((c) => (next.includes(c) ? c : next[0]))
     })
+  }, [])
+
+  // 구매처 관리 목록도 분류와 동일하게 마운트 시점엔 비어있을 수 있어 로드 후 재동기화
+  useEffect(() => {
+    loadMerchants().then(() => setMerchantList(getMerchants()))
   }, [])
 
   // 폼 전체를 한번에 채우는 공통 로직 — 거래 복제 / 템플릿 적용 둘 다 이걸 씀
@@ -254,6 +266,30 @@ function TransactionForm({
       if (category === name) setCategory(updated[0] ?? '')
     } catch (err) {
       showToast(err instanceof Error ? err.message : '분류를 삭제하지 못했습니다', 'error')
+    }
+  }
+
+  async function handleAddMerchant() {
+    const trimmed = newMerchant.trim()
+    if (!trimmed) { setAddingMerchant(false); return }
+    setAddingMerchant(false)
+    try {
+      const updated = await addMerchant(trimmed)
+      setMerchantList(updated)
+      setMerchant(trimmed)
+      setNewMerchant('')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '구매처를 추가하지 못했습니다', 'error')
+    }
+  }
+
+  async function handleDeleteMerchant(name: string) {
+    if (!(await confirm(`"${name}" 구매처를 삭제할까요? 이미 이 구매처로 저장된 거래는 그대로 남습니다.`))) return
+    try {
+      const updated = await removeMerchant(name)
+      setMerchantList(updated)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '구매처를 삭제하지 못했습니다', 'error')
     }
   }
 
@@ -511,10 +547,77 @@ function TransactionForm({
 
       {/* 구매처/결제 카드 */}
       <UiCard>
-        <div className="relative">
+        <div className="flex items-center">
           <label htmlFor="merchant" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             구매처 / 판매처 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
           </label>
+          <button
+            type="button"
+            onClick={() => setManageMerchants((m) => !m)}
+            aria-label={manageMerchants ? '구매처 삭제 모드 종료' : '구매처 삭제'}
+            className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+              manageMerchants ? 'bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900' : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
+            }`}
+          >
+            <Settings2 size={14} />
+          </button>
+        </div>
+
+        {/* 구매처 관리 목록(칩) — 분류와 동일한 패턴, 탭하면 아래 입력칸이 채워짐 */}
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {merchantList.map((m) => (
+            <div key={m} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (manageMerchants) { handleDeleteMerchant(m); return }
+                  setMerchant(m)
+                }}
+                className={`min-h-8 rounded-full px-3 text-sm font-semibold transition-colors ${manageMerchants ? 'pr-7' : ''} ${
+                  merchant === m && !manageMerchants ? 'bg-coral-50 dark:bg-coral-900/30 text-coral-800 dark:text-coral-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                }`}
+              >
+                {m}
+              </button>
+              {manageMerchants && (
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400">
+                  <X size={12} />
+                </span>
+              )}
+            </div>
+          ))}
+          {!addingMerchant && !manageMerchants && (
+            <button
+              type="button"
+              onClick={() => setAddingMerchant(true)}
+              className="min-h-8 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 px-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400 transition-colors hover:border-coral-200 dark:hover:border-coral-900 hover:text-coral-400 dark:hover:text-coral-300"
+            >
+              + 직접입력
+            </button>
+          )}
+        </div>
+        {addingMerchant && (
+          <div className="mt-2 flex gap-2">
+            <input
+              type="text"
+              autoFocus
+              placeholder="새 구매처 이름"
+              value={newMerchant}
+              onChange={(e) => setNewMerchant(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddMerchant() } }}
+              className="min-h-9 flex-1 rounded-lg border border-neutral-300 dark:border-neutral-700 px-3 text-sm transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+            />
+            <button
+              type="button"
+              onClick={handleAddMerchant}
+              className="min-h-9 rounded-lg bg-coral-400 px-3 text-sm font-semibold text-white transition-colors hover:bg-coral-600"
+            >
+              추가
+            </button>
+          </div>
+        )}
+
+        <div className="relative">
           <input
             id="merchant"
             type="text"
@@ -527,7 +630,7 @@ function TransactionForm({
               // 클릭으로 제안을 선택할 시간을 주기 위해 살짝 지연 후 닫음
               setTimeout(() => setMerchantSuggestOpen(false), 150)
             }}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+            className="mt-2 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
           {merchantSuggestions.length > 0 && (
             <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg">

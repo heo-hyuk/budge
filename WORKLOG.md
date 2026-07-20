@@ -37,6 +37,22 @@
   `src/lib/merchants.ts`(신규), `src/contexts/AuthContext.tsx`, `src/App.tsx`,
   `src/components/TransactionForm.tsx`, `src/components/SearchView.tsx`
 
+### 완료
+- [x] 계획대로 전 파일 작업 완료(예상 변경 파일과 동일), `README.md` 마이그레이션
+  범위(001~019→001~020)·DB 스키마 목록·기능 설명(홈/검색)에 반영
+- [x] SearchView의 구매처 필터 섹션은 관리 목록이 비어있으면(신규 사용자) 숨김
+  처리해 빈 섹션이 노출되지 않게 함
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과
+- [x] `wrangler pages dev` + 로컬 D1로 브라우저 검증: 구매처 칩 추가("스타벅스
+  강남점", "이마트 죽전점") → 칩 탭 시 입력칸 자동 채움 확인 → 관리 모드로
+  "스타벅스 강남점" 삭제 확인 → 거래 저장 후 검색 화면 필터 패널에 "구매처"
+  섹션이 정확히 나타나고 정확일치로 필터링됨(1건 검색) 확인 → 완전히 새로운
+  브라우저 컨텍스트(다른 기기 시뮬레이션)로 같은 계정 로그인만 했더니 구매처
+  칩 목록이 동일하게 동기화됨 확인. 콘솔 에러 없음
+- [x] 프로덕션 D1에 `020_add_merchants.sql` 마이그레이션 적용, 커밋 push 후
+  GitHub Actions 자동배포 success 확인
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-20 (62차) — 거래 목록 메모를 카드 하단 전체 너비로 배치(61차 후속)

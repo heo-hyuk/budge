@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~019 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~020 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -229,3 +229,16 @@ CREATE TABLE IF NOT EXISTS user_settings (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (user_id, key)
 );
+
+-- ── 구매처/판매처 관리 목록 (migration 020) ─────────────────────
+-- 분류와 달리 기본값 개념이 없음(사용자마다 상호명이 전혀 다름) — 단순 커스텀 목록.
+-- /api/merchants/recent(거래 이력 기반 자동완성)와는 별개 기능
+CREATE TABLE IF NOT EXISTS merchants (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_merchants_user ON merchants(user_id);

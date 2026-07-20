@@ -20,6 +20,7 @@ import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { loadCategories } from './lib/categories'
 import { migrateLegacyLocalStorage } from './lib/legacyMigration'
+import { loadMerchants } from './lib/merchants'
 import { validateNicknameClient } from './lib/nickname'
 import { loadNoteCategories } from './lib/noteCategories'
 import { loadSettings } from './lib/settings'
@@ -84,7 +85,7 @@ function App() {
   const pendingDeletesRef = useRef(new Map<string, PendingDelete>())
   const UNDO_DELAY_MS = 3000
 
-  // 로그인 상태일 때 카드 + 고정지출 + 분류/설정 오버라이드 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
+  // 로그인 상태일 때 카드 + 고정지출 + 분류/설정/구매처 오버라이드 로드 (배경 로드라 인라인 재시도 UI가 없어 토스트로 알림)
   useEffect(() => {
     if (!user) return
     fetchCards().then(setCards).catch((err) => {
@@ -100,6 +101,7 @@ function App() {
       loadNoteCategories()
       loadSettings()
     })
+    loadMerchants()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 

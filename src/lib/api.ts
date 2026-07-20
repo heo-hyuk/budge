@@ -401,3 +401,24 @@ export async function fetchUserSettings(): Promise<UserSettings> {
 export async function updateUserSetting(key: string, value: string): Promise<void> {
   await apiRequest('/api/settings', jsonInit('PATCH', { key, value }), '설정을 저장하지 못했습니다')
 }
+
+// ── 구매처/판매처 관리 목록 API ───────────────────────────
+// 분류처럼 사용자가 직접 추가/삭제하는 계정 단위 목록(기본값 없음).
+// /api/merchants/recent(거래 이력 기반 자동완성)와는 별개 기능
+
+export async function fetchMerchantList(): Promise<string[]> {
+  const body = await apiRequest<{ data: string[] }>('/api/merchants', undefined, '구매처 목록을 불러오지 못했습니다')
+  return body.data
+}
+
+export async function addMerchantApi(name: string): Promise<void> {
+  await apiRequest('/api/merchants', jsonInit('POST', { name }), '구매처를 추가하지 못했습니다')
+}
+
+export async function removeMerchantApi(name: string): Promise<void> {
+  await apiRequest(
+    `/api/merchants?name=${encodeURIComponent(name)}`,
+    { method: 'DELETE' },
+    '구매처를 삭제하지 못했습니다'
+  )
+}
