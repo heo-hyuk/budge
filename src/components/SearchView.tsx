@@ -27,9 +27,6 @@ const DEFAULT_FILTERS: Filters = {
   category: '', cardId: '', amountMin: '', amountMax: '',
 }
 
-const EXPENSE_CATS = getCategories('expense')
-const INCOME_CATS  = getCategories('income')
-
 function activeCount(f: Filters): number {
   return [
     f.type, f.dateStart, f.dateEnd, f.category,
@@ -48,9 +45,11 @@ function SearchView({ cards }: Props) {
 
   /** 현재 필터 기준으로 카테고리 목록 (수입/지출 선택에 따라 변경) */
   function categoryList(): string[] {
-    if (filters.type === 'expense') return EXPENSE_CATS
-    if (filters.type === 'income')  return INCOME_CATS
-    return [...EXPENSE_CATS, ...INCOME_CATS.filter((c) => !EXPENSE_CATS.includes(c))]
+    const expenseCats = getCategories('expense')
+    const incomeCats  = getCategories('income')
+    if (filters.type === 'expense') return expenseCats
+    if (filters.type === 'income')  return incomeCats
+    return [...expenseCats, ...incomeCats.filter((c) => !expenseCats.includes(c))]
   }
 
   function set<K extends keyof Filters>(key: K, val: Filters[K]) {

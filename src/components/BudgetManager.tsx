@@ -19,8 +19,6 @@ interface FormState {
   repeat: 'monthly' | 'once'  // monthly = NULL, once = 이번 달만
 }
 
-const EXPENSE_CATEGORIES = ['전체', ...getCategories('expense')]
-
 function defaultForm(): FormState {
   return {
     category: '전체',
@@ -51,6 +49,7 @@ function bgColor(pct: number): string {
 function BudgetManager({ statuses, month, onRefresh }: Props) {
   const { showToast } = useToast()
   const confirm = useConfirm()
+  const EXPENSE_CATEGORIES = ['전체', ...getCategories('expense')]
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(defaultForm)
   const [editingId, setEditingId] = useState<string | null>(null)

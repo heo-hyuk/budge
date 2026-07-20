@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~016 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~018 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -191,3 +191,17 @@ CREATE TABLE IF NOT EXISTS notification_log (
   sent_at TEXT NOT NULL,
   UNIQUE(user_id, type, reference_id, year_month)  -- 같은 카드, 같은 청구월 중복 발송 방지
 );
+
+-- ── 거래 분류(카테고리) 오버라이드 (migration 018) ─────────────────
+-- 계정별로 저장해 기기 간 동기화(이전엔 localStorage에만 저장돼 기기마다 달랐음)
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  name TEXT NOT NULL,
+  removed_default INTEGER NOT NULL DEFAULT 0,  -- 0 = 사용자가 추가한 커스텀 분류, 1 = 삭제한 기본 분류 표시
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, type, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id);

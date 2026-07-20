@@ -201,7 +201,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       groupIdByName.set(g.name, id)
     }
     for (const b of preset.benefits) {
-      if (b.category) addCustomCategory('expense', b.category)
+      if (b.category) await addCustomCategory('expense', b.category)
     }
     for (const b of preset.benefits) {
       await createBenefit({

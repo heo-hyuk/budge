@@ -5,7 +5,7 @@ import UiCard from './ui/Card'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
-import { addCustomCategory, getCategories, removeCategory } from '../lib/categories'
+import { addCustomCategory, getCategories, loadCategories, removeCategory } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
@@ -37,6 +37,8 @@ function TransactionForm({
   const { showToast } = useToast()
   const confirm = useConfirm()
   const [type, setType]               = useState<TransactionType>('expense')
+  const typeRef = useRef(type)
+  typeRef.current = type
   const [categories, setCategories]   = useState(() => getCategories('expense'))
   const [category, setCategory]       = useState(categories[0])
   const [categoryManuallySet, setCategoryManuallySet] = useState(false)
@@ -74,6 +76,16 @@ function TransactionForm({
   useEffect(() => {
     fetchRecentMerchants().then(setRecentMerchants).catch(() => {})
     fetchTemplates().then(setTemplates).catch(() => {})
+  }, [])
+
+  // 마운트 시점엔 서버 분류 오버라이드가 아직 로드되기 전이라 categories 초기값이
+  // 기본 분류뿐일 수 있음 — 로드가 끝나면 최신 목록으로 재동기화
+  useEffect(() => {
+    loadCategories().then(() => {
+      const next = getCategories(typeRef.current)
+      setCategories(next)
+      setCategory((c) => (next.includes(c) ? c : next[0]))
+    })
   }, [])
 
   // 폼 전체를 한번에 채우는 공통 로직 — 거래 복제 / 템플릿 적용 둘 다 이걸 씀
@@ -218,22 +230,30 @@ function TransactionForm({
     }
   }
 
-  function handleAddCategory() {
+  async function handleAddCategory() {
     const trimmed = newCategory.trim()
     if (!trimmed) { setAddingCategory(false); return }
-    const updated = addCustomCategory(type, trimmed)
-    setCategories(updated)
-    setCategory(trimmed)
-    setCategoryManuallySet(true)
-    setNewCategory('')
     setAddingCategory(false)
+    try {
+      const updated = await addCustomCategory(type, trimmed)
+      setCategories(updated)
+      setCategory(trimmed)
+      setCategoryManuallySet(true)
+      setNewCategory('')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '분류를 추가하지 못했습니다', 'error')
+    }
   }
 
   async function handleDeleteCategory(name: string) {
     if (!(await confirm(`"${name}" 분류를 삭제할까요? 이미 이 분류로 저장된 거래는 그대로 남습니다.`))) return
-    const updated = removeCategory(type, name)
-    setCategories(updated)
-    if (category === name) setCategory(updated[0] ?? '')
+    try {
+      const updated = await removeCategory(type, name)
+      setCategories(updated)
+      if (category === name) setCategory(updated[0] ?? '')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '분류를 삭제하지 못했습니다', 'error')
+    }
   }
 
   // 구매처 입력값과 겹치는 최근 구매처 제안 (최대 5개)

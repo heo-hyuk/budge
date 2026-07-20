@@ -54,6 +54,25 @@
   `src/components/CardManager.tsx`, `src/components/BudgetManager.tsx`,
   `src/components/SearchView.tsx`
 
+### 완료
+- [x] 계획대로 전 파일 작업 완료(예상 변경 파일과 동일), 추가로 `README.md`
+  마이그레이션 범위(001~017→001~018)와 DB 스키마 목록에 `categories` 테이블
+  설명 반영
+- [x] `BudgetManager.tsx`/`SearchView.tsx`의 모듈 최상단(import 시점) 1회성
+  `getCategories()` 호출(`EXPENSE_CATEGORIES`/`EXPENSE_CATS`/`INCOME_CATS`)을
+  컴포넌트 함수 내부로 이동 — 그대로 두면 서버 로드가 끝나기 전 시점(캐시가
+  비어있을 때) 값이 고정돼버려서 이번 변경과 함께 반드시 고쳐야 했음
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과. `functions/`는 이 프로젝트에
+  애초에 tsconfig 커버리지가 없어(기존부터 그랬음, 이번에 새로 생긴 문제 아님)
+  `wrangler pages dev`의 "Compiled Worker successfully"로 대체 확인
+- [x] `wrangler pages dev` + 로컬 D1(스키마 재초기화)로 실제 시나리오 검증:
+  브라우저 컨텍스트 A(회원가입)에서 수입 분류 관리 모드로 기본 분류 "급여" 삭제 +
+  커스텀 분류 "영업수익" 추가 → 완전히 새로운 브라우저 컨텍스트 B(= 별도
+  localStorage, 다른 기기 시뮬레이션)로 같은 계정 로그인만 하고 "내역 추가"
+  폼을 열어보니 A와 동일하게 급여 없음·영업수익 있음으로 정확히 동기화됨(스크린샷
+  확인, 콘솔 에러 없음) — 사용자가 제보한 버그 재현 후 해결 확인
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-19 (57차) — GitHub Actions로 push 자동배포 설정

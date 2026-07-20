@@ -1,4 +1,4 @@
-import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, UpdateTransaction, WeeklySettlement } from '../types'
+import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, TransactionType, UpdateTransaction, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -338,4 +338,32 @@ export async function subscribePush(payload: PushSubscriptionPayload): Promise<v
 
 export async function unsubscribePush(endpoint: string): Promise<void> {
   await apiRequest('/api/push/unsubscribe', jsonInit('POST', { endpoint }), '알림 구독 해제에 실패했습니다')
+}
+
+// ── 거래 분류(카테고리) API ───────────────────────────────
+// 계정 단위로 저장돼 기기 간 동기화됨(이전엔 localStorage에만 저장돼 기기마다 달랐음)
+
+export interface CategoryOverrides {
+  custom: string[]
+  removedDefaults: string[]
+}
+export interface CategoriesResponse {
+  expense: CategoryOverrides
+  income: CategoryOverrides
+}
+
+export async function fetchCategoryOverrides(): Promise<CategoriesResponse> {
+  return apiRequest<CategoriesResponse>('/api/categories', undefined, '분류를 불러오지 못했습니다')
+}
+
+export async function addCategoryApi(type: TransactionType, name: string): Promise<void> {
+  await apiRequest('/api/categories', jsonInit('POST', { type, name }), '분류를 추가하지 못했습니다')
+}
+
+export async function removeCategoryApi(type: TransactionType, name: string): Promise<void> {
+  await apiRequest(
+    `/api/categories?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`,
+    { method: 'DELETE' },
+    '분류를 삭제하지 못했습니다'
+  )
 }
