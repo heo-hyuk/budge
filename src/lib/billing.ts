@@ -42,8 +42,13 @@ export function getCardBillingPeriod(
   const endDay = Math.min(card.closing_day, daysInMonth(closingYear, closingMonth))
   const end = toDateStr(closingYear, closingMonth, endDay)
 
-  // 마감월 전월의 (closing_day + 1)일이 시작일
-  const start = toDateStr(closingYear, closingMonth - 1, card.closing_day + 1)
+  // 마감월 전월의 (closing_day + 1)일이 시작일 — closing_day를 먼저 전월 일수로
+  // 클램핑한 뒤 +1일 해야 함. 그냥 (closing_day + 1)을 날짜 오버플로에 맡기면,
+  // closing_day=31이고 전월이 31일보다 짧은 달(4·6·9·11월, 2월)일 때 시작일이
+  // "1일"이 아니라 "2~3일"로 밀리는 오류가 생김(예: 전월이 30일인데 32일을
+  // 넘기면 정규화 시 다음달 2일이 됨 — 1일이어야 정확함)
+  const startMonthDays = daysInMonth(closingYear, closingMonth - 1)
+  const start = toDateStr(closingYear, closingMonth - 1, Math.min(card.closing_day, startMonthDays) + 1)
 
   // 결제일 — 결제월 말일을 초과하지 않도록 클램핑
   const billingDay = Math.min(card.billing_day, daysInMonth(y, m))

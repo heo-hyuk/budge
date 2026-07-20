@@ -81,6 +81,8 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   const [showForm, setShowForm]   = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm]           = useState<CardFormState>(defaultForm)
+  // "말일 마감·결제" 토글을 껐을 때 되돌아갈 직전 수동 입력값 — 켜기 직전 값을 기억해둠
+  const [lastManualDays, setLastManualDays] = useState({ billing_day: defaultForm().billing_day, closing_day: defaultForm().closing_day })
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null)
@@ -164,7 +166,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
 
   function startAdd() {
     setEditingId(null)
-    setForm(defaultForm())
+    const initial = defaultForm()
+    setForm(initial)
+    setLastManualDays({ billing_day: initial.billing_day, closing_day: initial.closing_day })
     setPresetId('')
     setError('')
     setShowForm(true)
@@ -173,16 +177,36 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
   function startEdit(card: Card) {
     setEditingId(card.id)
     const legacyBenefits = JSON.parse(card.benefits || '[]') as string[]
+    const billing_day = String(card.billing_day)
+    const closing_day = String(card.closing_day)
     setForm({
       name: card.name,
       color: card.color,
-      billing_day: String(card.billing_day),
-      closing_day: String(card.closing_day),
+      billing_day,
+      closing_day,
       benefits: legacyBenefits.join('\n'),
     })
+    // 이미 "말일 모드"(31/31)인 카드는 되돌아갈 수동값을 알 수 없어 기본 제안값으로 채워둠
+    const isLastDay = card.billing_day === 31 && card.closing_day === 31
+    setLastManualDays(isLastDay
+      ? { billing_day: defaultForm().billing_day, closing_day: defaultForm().closing_day }
+      : { billing_day, closing_day })
     setPresetId('')  // 카드 자체엔 저장된 프리셋 값이 없어 매번 "직접 입력"부터 시작 — 선택해야만 적용됨
     setError('')
     setShowForm(true)
+  }
+
+  // "말일 모드" 여부는 별도 필드가 아니라 결제일·마감일이 둘 다 31인지로 판단(파생 상태) —
+  // billing.ts가 31을 항상 그 달 말일로 클램핑하므로 이 값만으로 완전히 표현 가능
+  const isLastDayMode = form.billing_day === '31' && form.closing_day === '31'
+
+  function toggleLastDayMode() {
+    if (isLastDayMode) {
+      setForm((f) => ({ ...f, billing_day: lastManualDays.billing_day, closing_day: lastManualDays.closing_day }))
+    } else {
+      setLastManualDays({ billing_day: form.billing_day, closing_day: form.closing_day })
+      setForm((f) => ({ ...f, billing_day: '31', closing_day: '31' }))
+    }
   }
 
   function cancelForm() {
@@ -540,14 +564,36 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             </p>
           </div>
 
+          {/* "말일 마감·결제" 토글 — 새 필드 없이 결제일/마감일을 둘 다 31로 저장하는 것으로 표현.
+              billing.ts가 31을 항상 그 달의 실제 말일로 클램핑해서 계산해줌 */}
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-3">
+            <div>
+              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">매달 1일~말일 마감·말일 결제</p>
+              <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
+                당월 1일부터 말일까지 사용한 금액을 그 달 말일에 결제하는 카드에 사용하세요
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isLastDayMode}
+              aria-label="매달 1일~말일 마감·말일 결제"
+              onClick={toggleLastDayMode}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${isLastDayMode ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isLastDayMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-1.5">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">결제일</label>
               <div className="relative">
                 <input
-                  type="number"
+                  type={isLastDayMode ? 'text' : 'number'}
                   min={1} max={31}
-                  value={form.billing_day}
+                  disabled={isLastDayMode}
+                  value={isLastDayMode ? '말일' : form.billing_day}
                   onChange={(e) => {
                     const raw = e.target.value
                     const parsed = parseInt(raw, 10)
@@ -558,22 +604,35 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
                     }))
                   }}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
+                    isLastDayMode
+                      ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                      : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
+                  }`}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                {!isLastDayMode && (
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                )}
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">청구 마감일</label>
               <div className="relative">
                 <input
-                  type="number"
+                  type={isLastDayMode ? 'text' : 'number'}
                   min={1} max={31}
-                  value={form.closing_day}
+                  disabled={isLastDayMode}
+                  value={isLastDayMode ? '말일' : form.closing_day}
                   onChange={(e) => setForm((f) => ({ ...f, closing_day: e.target.value }))}
-                  className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 pr-8 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
+                    isLastDayMode
+                      ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                      : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
+                  }`}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                {!isLastDayMode && (
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                )}
               </div>
             </div>
           </div>
@@ -581,7 +640,13 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             마감일은 결제일 기준 자동 제안값이에요. 카드사 안내와 다르면 직접 수정하세요
           </p>
 
-          {form.closing_day && form.billing_day && (() => {
+          {isLastDayMode ? (
+            <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
+              매달 <span className="font-bold text-neutral-900 dark:text-neutral-100">1일</span>부터{' '}
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>까지 사용분이{' '}
+              그 달 <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>에 청구됩니다
+            </div>
+          ) : form.closing_day && form.billing_day && (() => {
             const closingDay = parseInt(form.closing_day)
             const billingDay = parseInt(form.billing_day)
             if (isNaN(closingDay) || isNaN(billingDay)) return null
@@ -671,7 +736,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{card.name}</p>
                       <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
-                        마감 {card.closing_day}일 · 결제 {card.billing_day}일
+                        {card.billing_day === 31 && card.closing_day === 31
+                          ? '매달 1일~말일 마감 · 말일 결제'
+                          : `마감 ${card.closing_day}일 · 결제 ${card.billing_day}일`}
                       </p>
                     </div>
                   </div>
