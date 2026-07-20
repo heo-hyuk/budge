@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { resetCategories } from '../lib/categories'
 import { resetMerchants } from '../lib/merchants'
 import { resetNoteCategories } from '../lib/noteCategories'
+import { resetPaymentMethods } from '../lib/paymentMethods'
 import { resetSettings } from '../lib/settings'
 
 interface User {
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetNoteCategories()
     resetSettings()
     resetMerchants()
+    resetPaymentMethods()
   }
 
   async function updateNickname(nickname: string) {

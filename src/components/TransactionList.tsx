@@ -4,6 +4,7 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatNumberInput, formatWon, parseAmountInput } from '../lib/format'
+import { getPaymentMethods } from '../lib/paymentMethods'
 import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
 interface Props {
@@ -122,8 +123,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                         <button key={t} type="button"
                           onClick={() => {
                             const cats = getCategories(t)
+                            const pms = getPaymentMethods(t)
                             setEditState((s) => s && {
                               ...s, type: t, category: cats[0],
+                              // 결제 방법도 지출/수입 독립 관리라 타입 전환 시 재동기화(카드가 선택된
+                              // 채로 수입으로 넘어가지 않도록 — TransactionForm과 동일 원칙)
+                              paymentMethod: pms[0],
                               // 지출로 바꾸면 음수 입력이 불가하므로 남아있던 '-' 부호 제거
                               amount: t === 'expense' ? s.amount.replace(/^-/, '') : s.amount,
                             })
@@ -164,7 +169,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                   />
                   {/* 결제방법 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
-                    {['현금', '계좌이체', ...cards.map((c) => c.id)].map((pm) => {
+                    {/* 카드는 지출일 때만 이어붙임 — 수입엔 카드 개념이 없음(TransactionForm과 동일 원칙) */}
+                    {[...getPaymentMethods(editState.type), ...(editState.type === 'expense' ? cards.map((c) => c.id) : [])].map((pm) => {
                       const card = cardMap.get(pm)
                       return (
                         <button key={pm} type="button"

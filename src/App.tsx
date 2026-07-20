@@ -24,6 +24,7 @@ import { migrateLegacyLocalStorage } from './lib/legacyMigration'
 import { loadMerchants } from './lib/merchants'
 import { validateNicknameClient } from './lib/nickname'
 import { loadNoteCategories } from './lib/noteCategories'
+import { loadPaymentMethods } from './lib/paymentMethods'
 import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
@@ -104,6 +105,7 @@ function App() {
       loadSettings()
     })
     loadMerchants()
+    loadPaymentMethods()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 

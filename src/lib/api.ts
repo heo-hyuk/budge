@@ -433,3 +433,27 @@ export async function removeMerchantApi(name: string): Promise<void> {
 export async function reorderMerchantsApi(order: string[]): Promise<void> {
   await apiRequest('/api/merchants', jsonInit('PATCH', { order }), '구매처 순서를 저장하지 못했습니다')
 }
+
+// ── 결제 방법(현금/계좌이체 + 커스텀) API ─────────────────
+// 분류와 동일한 이유로 계정 단위 저장(지출/수입 타입별로 독립 관리). 등록된
+// 카드는 이 API와 무관(카드 관리 API 별도)
+
+export async function fetchPaymentMethods(): Promise<CategoriesResponse> {
+  return apiRequest<CategoriesResponse>('/api/payment-methods', undefined, '결제 방법을 불러오지 못했습니다')
+}
+
+export async function addPaymentMethodApi(type: TransactionType, name: string): Promise<void> {
+  await apiRequest('/api/payment-methods', jsonInit('POST', { type, name }), '결제 방법을 추가하지 못했습니다')
+}
+
+export async function removePaymentMethodApi(type: TransactionType, name: string): Promise<void> {
+  await apiRequest(
+    `/api/payment-methods?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`,
+    { method: 'DELETE' },
+    '결제 방법을 삭제하지 못했습니다'
+  )
+}
+
+export async function reorderPaymentMethodsApi(type: TransactionType, order: string[]): Promise<void> {
+  await apiRequest('/api/payment-methods', jsonInit('PATCH', { type, order }), '결제 방법 순서를 저장하지 못했습니다')
+}

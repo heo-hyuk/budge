@@ -51,6 +51,38 @@
   카드 미노출(수입), 기기 간 동기화 검증
 - 검증 후 원격 D1에 마이그레이션 적용, GitHub Actions 배포 확인
 
+### 완료
+- [x] `migrations/023_add_payment_methods.sql`, `schema.sql` — `payment_methods`
+  테이블 신설(구조는 `categories`와 동일, `type` CHECK로 지출/수입 분리)
+- [x] `functions/lib/paymentMethods.ts` — `DEFAULT_PAYMENT_METHODS` 서버 사본
+  (현금/계좌이체, 지출·수입 동일)
+- [x] `functions/api/payment-methods/index.ts` — GET(병합·정렬 최종 배열)/
+  POST/PATCH(드래그 재배치, 기본 항목 물질화)/DELETE(ON CONFLICT DO UPDATE로
+  물질화된 기본 항목 삭제도 정상 반영) — `categories`용으로 67차에 이미
+  검증한 로직을 그대로 재사용
+- [x] `src/lib/api.ts` — `fetchPaymentMethods`/`addPaymentMethodApi`/
+  `removePaymentMethodApi`/`reorderPaymentMethodsApi` 추가
+- [x] `src/lib/paymentMethods.ts` 신규 — `categories.ts`와 동일 패턴의
+  지출/수입 독립 캐시(load/reset/get/add/remove/reorder)
+- [x] `src/contexts/AuthContext.tsx` 로그아웃 시 `resetPaymentMethods()`,
+  `src/App.tsx` 로그인 시 `loadPaymentMethods()` 연결
+- [x] `src/components/TransactionForm.tsx` — 결제 방법 섹션에 톱니바퀴
+  관리 모드 + `ReorderableChipList` 드래그 재정렬 + "+ 직접입력" 추가.
+  등록된 카드는 지출일 때만 관리 목록 뒤에 이어붙여 표시(관리 모드 중엔
+  숨김), 수입엔 카드 자체를 노출하지 않음. 타입(지출/수입) 전환 시
+  결제 방법 목록·선택값을 그 타입 것으로 재동기화
+- [x] `src/components/TransactionList.tsx` — 인라인 수정의 결제 방법
+  선택도 하드코딩 배열 대신 `getPaymentMethods(editState.type)` 기반으로
+  변경(분류 선택과 동일 패턴), 카드는 지출일 때만 이어붙임, 타입 전환 시
+  재동기화. 여기는 분류처럼 선택만 가능(관리 모드는 TransactionForm에만)
+- [x] `wrangler pages dev` + Playwright로 검증: 지출 초기값(현금/계좌이체
+  + 카드 안내), 수입 초기값(카드 안내 없음), 수입에서 커스텀 추가, 기본
+  항목 포함 드래그 재정렬, 물질화된 기본 항목("현금") 삭제, 수입 쪽
+  변경이 지출 목록에 영향 없음(분리 관리 확인), 새 기기 컨텍스트 동기화,
+  커스텀 결제 방법으로 실제 거래 저장 + 인라인 수정 화면에 반영까지 확인.
+  `tsc -b`/`oxlint`/`npm run build` 모두 통과
+- [x] 원격 D1에 `023_add_payment_methods.sql` 적용 완료(17개 테이블)
+
 ## 2026-07-20 (67차) — 칩 순서 변경을 드래그 앤 드롭 + 기본 분류도 이동 가능하게 재설계
 
 사용자 요청(66차 결과물에 대한 수정 지시): "드래그 방식으로 움직여야하고
