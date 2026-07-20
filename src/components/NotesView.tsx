@@ -4,6 +4,7 @@ import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
+import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import { addCustomNoteCategory, getNoteCategories, loadNoteCategories, removeNoteCategory } from '../lib/noteCategories'
 import type { Note } from '../types'
 
@@ -99,7 +100,7 @@ function NotesView({ month }: Props) {
   // 마운트 시점엔 서버 분류 오버라이드가 아직 로드되기 전이라 categories 초기값이
   // 기본 분류뿐일 수 있음 — 로드가 끝나면 최신 목록으로 재동기화
   useEffect(() => {
-    loadNoteCategories().then(() => {
+    migrateLegacyLocalStorage().then(loadNoteCategories).then(() => {
       const next = getNoteCategories()
       setCategories(next)
       setCategory((c) => (next.includes(c) ? c : next[0]))

@@ -19,6 +19,7 @@ import { useTheme } from './contexts/ThemeContext'
 import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { loadCategories } from './lib/categories'
+import { migrateLegacyLocalStorage } from './lib/legacyMigration'
 import { validateNicknameClient } from './lib/nickname'
 import { loadNoteCategories } from './lib/noteCategories'
 import { loadSettings } from './lib/settings'
@@ -92,9 +93,13 @@ function App() {
     fetchRecurring().then(setRecurringItems).catch((err) => {
       showToast(err instanceof Error ? err.message : '고정지출 목록을 불러오지 못했습니다', 'error')
     })
-    loadCategories()
-    loadNoteCategories()
-    loadSettings()
+    // 이 기기에 예전(58~59차 이전) 로컬 분류/설정이 남아있으면 먼저 서버로 올린 뒤
+    // 최신 상태를 불러옴 — 기존 고객이 이미 만들어둔 분류를 잃지 않기 위함
+    migrateLegacyLocalStorage().finally(() => {
+      loadCategories()
+      loadNoteCategories()
+      loadSettings()
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 

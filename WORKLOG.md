@@ -29,6 +29,28 @@
 ### 예상 변경 파일
 - `src/lib/legacyMigration.ts`(신규), `src/App.tsx`
 
+### 완료
+- [x] `src/lib/legacyMigration.ts` 계획대로 작성
+- [x] 구현 중 실제로 발견한 레이스 컨디션 하나 수정: `TransactionForm`/`NotesView`/
+  `MonthlyReport`도 각자 마운트 시점에 `loadCategories()`/`loadNoteCategories()`/
+  `loadSettings()`를 직접 불렀는데(58~59차), 이게 App.tsx의 마이그레이션보다
+  먼저 실행되면 마이그레이션 완료 *전* 상태로 캐시가 채워져버려 방금 올린
+  데이터가 화면에 안 보일 수 있었음. `migrateLegacyLocalStorage()`를 모듈
+  레벨 Promise로 공유(메모이즈)하고, 저 세 컴포넌트의 마운트 effect도
+  `migrateLegacyLocalStorage().then(loadXxx)` 순서로 바꿔 어느 컴포넌트가
+  먼저 마운트되든 항상 마이그레이션 완료 후 값을 받도록 정리
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과
+- [x] `wrangler pages dev` + 로컬 D1로 실제 상희님 상황 재현해 검증: 회원가입 →
+  예전 방식 localStorage 키를 실제 스크린샷과 비슷하게 주입(지출 커스텀 11개
+  + 기본 3개 삭제, 수입 커스텀 4개 + 기본 1개 삭제, 메모 분류, 정산 기준) →
+  새로고침 시 자동 마이그레이션 확인(주입한 분류가 그대로 화면에 나타남,
+  마이그레이션 플래그 세팅 + 예전 키 정리 확인) → 완전히 새로운 브라우저
+  컨텍스트(레거시 데이터 없음)로 같은 계정 로그인만 했더니 마이그레이션된
+  분류가 동일하게 동기화됨. 콘솔 에러 없음
+- [x] 스키마 변경 없음(기존 58~59차 테이블·API 재사용) — DB 마이그레이션
+  파일/원격 적용 불필요, 코드 배포만 진행
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-20 (59차) — 메모 분류 + 카드 정산 집계 기준도 서버 동기화(58차 후속)

@@ -3,6 +3,7 @@ import { useToast } from '../contexts/ToastContext'
 import { getCardBillingPeriod } from '../lib/billing'
 import { fetchTransactions } from '../lib/api'
 import { formatWon } from '../lib/format'
+import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import { getMonthlyBasis, loadSettings, setMonthlyBasis } from '../lib/settings'
 import type { Card, Transaction } from '../types'
 
@@ -41,7 +42,7 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
   // 마운트 시점엔 서버 설정이 아직 로드되기 전이라 기본값(billing)일 수 있음 —
   // 로드가 끝나면 실제 값으로 재동기화
   useEffect(() => {
-    loadSettings().then(() => setBasis(getMonthlyBasis()))
+    migrateLegacyLocalStorage().then(loadSettings).then(() => setBasis(getMonthlyBasis()))
   }, [])
 
   async function changeBasis(next: DateBasis) {

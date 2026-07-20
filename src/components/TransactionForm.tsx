@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
 import { addCustomCategory, getCategories, loadCategories, removeCategory } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
+import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import type { BenefitMatch, BudgetStatus, Card, NewTransaction, QuickTemplate, RecentMerchant, TransactionType, UpdateTransaction } from '../types'
 
 export interface TransactionPrefill {
@@ -81,7 +82,7 @@ function TransactionForm({
   // 마운트 시점엔 서버 분류 오버라이드가 아직 로드되기 전이라 categories 초기값이
   // 기본 분류뿐일 수 있음 — 로드가 끝나면 최신 목록으로 재동기화
   useEffect(() => {
-    loadCategories().then(() => {
+    migrateLegacyLocalStorage().then(loadCategories).then(() => {
       const next = getCategories(typeRef.current)
       setCategories(next)
       setCategory((c) => (next.includes(c) ? c : next[0]))
