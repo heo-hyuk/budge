@@ -1,5 +1,78 @@
 # WORKLOG
 
+## 2026-07-20 (64차) — 결제 방법 "계좌이체" 추가 + "비정산" 거래 분리 기능
+
+사용자 요청 2건:
+1. 결제 방법에 "계좌이체" 칩 추가(기존 "현금" + 등록된 카드 목록에 이어)
+2. "지출/수입" 버튼 오른쪽에 "비정산" 토글 버튼 추가 — 비정산으로 표시한
+   거래는 일/주/월/연 정산과 예산 계산, 홈 화면 잔액/합계(=결제금액)에서
+   완전히 제외되고, 새로 만드는 "비정산" 탭에서만 보이며 거기서 비정산
+   거래만 따로 합계가 나옴("가족들 비용 확인용"). 홈 화면 "정산 보기" 버튼
+   바로 아래에 "비정산 보기" 버튼을 추가해 탭으로 연결
+
+### 설계 결정(요청 문구 기반, 명확한 부분은 재질문 없이 진행)
+- 비정산은 지출/수입을 대체하는 새 타입이 아니라 기존 타입 위에 얹는 별도
+  플래그(토글) — "지출 수입 버튼 오른쪽에 추가"라는 표현과 일치하고, 타입을
+  대체하면 정산/예산 코드 전반의 `type==='income'|'expense'` 전제가 깨짐
+- "결제금액에도 포함되지않고"를 넓게 해석해 정산(일/주/월/연) + 예산 + 엑셀
+  내보내기까지 기본적으로 비정산 거래를 제외. 카드 혜택 월한도 사용량 집계는
+  요청 범위 밖이라 건드리지 않음(카드사 실제 청구와는 무관한 내부 확인용
+  플래그이므로 손대면 오히려 실제 혜택 계산을 왜곡할 수 있음)
+- 계좌이체는 카드가 아닌 "현금"과 동급의 결제수단 문자열 — 기존에
+  `payment_method`가 "카드 있으면 card.id, 없으면 무조건 '현금'"으로
+  하드코딩돼 있던 곳들을 "카드 있으면 card.id, 없으면 선택한 값 그대로"로
+  일반화해야 계좌이체가 다른 곳에서 "현금"으로 잘못 표시되지 않음. 영향 범위:
+  TransactionForm(추가/수정), TransactionList(인라인 수정+뱃지 표시),
+  SearchView(필터+결과 뱃지). RecurringManager(고정 수입/지출)는 이번
+  요청 범위 밖이라 제외
+
+### 계획
+- `schema.sql`, `migrations/021_add_unsettled.sql` — `transactions`에
+  `unsettled INTEGER NOT NULL DEFAULT 0` 컬럼 추가
+- `functions/api/transactions/index.ts` — GET 기본 동작을 `unsettled = 0`으로
+  필터(기존 모든 호출부가 코드 변경 없이 자동으로 비정산 제외), `?unsettled=1`
+  쿼리로 비정산 탭 전용 조회 지원. POST에 `unsettled` 저장 추가
+- `functions/api/transactions/[id].ts` — PATCH에 `unsettled` 필드 추가
+- `functions/lib/settlement.ts` — 일/주/월/연 정산의 5개 쿼리 전부에
+  `AND unsettled = 0` 추가
+- `functions/lib/budget.ts` — 예산 지출 집계 쿼리에 `AND unsettled = 0` 추가
+- `functions/api/export/index.ts` — 엑셀 내보내기 쿼리에 `AND t.unsettled = 0` 추가
+- `src/types.ts` — `Transaction.unsettled: number`, `NewTransaction`/
+  `UpdateTransaction`/`TransactionPrefill`에 `unsettled?: boolean` 추가
+- `src/lib/api.ts` — `fetchTransactions`에 `unsettled?: boolean` 파라미터 추가
+  (true일 때만 `?unsettled=1` 전송)
+- `src/components/TransactionForm.tsx` — 지출/수입 버튼 옆에 "비정산" 토글 칩
+  추가(상태 `unsettled`), 결제 방법에 "계좌이체" 칩 추가,
+  `selectedCard ? selectedCard.id : '현금'` 패턴을
+  `selectedCard ? selectedCard.id : paymentMethod`로 일반화(계좌이체 보존),
+  생성/수정 payload에 `unsettled` 포함, 저장 후 초기화
+- `src/components/TransactionList.tsx` — 인라인 수정에도 "계좌이체" 칩 +
+  "비정산" 토글 추가(비정산 해제/설정 가능하도록), 결제방법 뱃지 표시를
+  카드 없으면 `payment_method` 값을 그대로 보여주도록 일반화(하드코딩된
+  "현금" 대신)
+- `src/components/SearchView.tsx` — 결제 방법 필터에 "계좌이체" 추가, 결과
+  뱃지도 동일하게 일반화
+- `src/components/UnsettledView.tsx`(신규) — `fetchTransactions({month,
+  unsettled:true})`로 조회, 수입/지출 합계 카드 + `TransactionList` 재사용(단,
+  App.tsx의 Undo-delete 로직과 분리된 자체 삭제/수정 핸들러 — 3초 되돌리기 없이
+  즉시 삭제, 수정은 API 직접 호출 후 재조회), "복제"는 App.tsx의
+  `handleDuplicate`를 그대로 전달받아 재사용(홈으로 이동해 폼에 채움)
+- `src/App.tsx` — `Tab`에 `'unsettled'` 추가, TABS에 "비정산"(Users 아이콘)
+  추가, 헤더 월 네비게이션 표시 조건에 `unsettled` 추가, 홈 화면 "정산 보기"
+  버튼 바로 아래 "비정산 보기 →" 버튼 추가, `activeTab === 'unsettled'`
+  렌더링 분기 추가
+
+### 예상 변경 파일
+- `schema.sql`, `migrations/021_add_unsettled.sql`(신규),
+  `functions/api/transactions/index.ts`, `functions/api/transactions/[id].ts`,
+  `functions/lib/settlement.ts`, `functions/lib/budget.ts`,
+  `functions/api/export/index.ts`, `src/types.ts`, `src/lib/api.ts`,
+  `src/components/TransactionForm.tsx`, `src/components/TransactionList.tsx`,
+  `src/components/SearchView.tsx`, `src/components/UnsettledView.tsx`(신규),
+  `src/App.tsx`
+
+---
+
 ## 2026-07-20 (63차) — 구매처/판매처에도 분류처럼 추가·삭제 관리 기능 + 검색 필터 추가
 
 사용자 요청: "구매처 판매처도 분류처럼 추가 삭제 관리 기능이 필요해, 검색옵션에도
