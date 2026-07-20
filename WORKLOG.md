@@ -33,6 +33,51 @@
   세로처럼 강제 회전시키는 미디어 쿼리 추가
 - 이 환경엔 iOS 실기기가 없어 육안 검증 불가 — 배포 후 사용자 확인 필요
 
+### 완료
+- [x] `src/index.css` — `@media (orientation: landscape) and (max-width:
+  950px)`에서 body를 `rotate(-90deg)`로 강제 회전시키는 규칙 추가
+- [x] `tsc -b`/`oxlint`/`npm run build` 통과 확인. iOS 실기기 육안 검증은
+  이 환경에서 불가능해 사용자 확인 필요
+
+## 2026-07-21 (77차) — iOS 핀치 줌아웃 시 화면 깨짐 — 뷰포트 확대/축소 비활성화
+
+사용자가 76차 가설(회전)을 명확히 반려: "이건 회전이랑은 상관없는
+문제같은데 왜 자꾸 회전을 찾는거야". 재문의 결과 정확한 재현 조건 확인:
+"웹앱에 처음들어가서 최대로 축소를 시키면 넓게 나오자나 그러면 오른쪽이
+문제가 있는거야" — 앱 첫 진입 후 핀치 줌아웃을 최대로 하면 화면이
+넓어지면서 오른쪽 영역이 깨져 보인다는 것.
+
+### 조사
+- Chromium(Playwright)으로 아이폰 13프로와 동일한 뷰포트(390×844,
+  3x)에서 홈/계산기(분류 선택 포함)/정산(일간·월간 표) 전부
+  `document.documentElement.scrollWidth`가 `window.innerWidth`를
+  넘지 않는 것을 확인 — 구조적인 CSS 가로 오버플로 버그는 Chromium
+  기준으론 재현되지 않음(크로스 브라우저 공통 버그는 아닌 것으로 보임)
+- 이 환경엔 실제 WebKit 엔진 실행이 어려워(Playwright webkit 브라우저
+  다운로드가 네트워크 환경상 과도하게 오래 걸림) iOS Safari 자체의
+  렌더링 재현은 불가
+- 사용자가 명시적으로 "핀치 줌아웃"을 원인으로 지목했고, 현재
+  viewport meta가 확대/축소를 막지 않고 있음(`user-scalable` 관련
+  제한 없음) — 근본 원인을 100% 특정하지 못했더라도, 이 PWA는
+  네이티브 앱처럼 쓰도록 설계됐고(`apple-mobile-web-app-capable`,
+  standalone) 확대/축소가 기능적으로 필요하지 않으므로, 아예 확대/축소
+  자체를 막아 이 문제 유형 전체를 원천 차단하는 쪽으로 결정
+
+### 계획
+- `index.html` — viewport meta에 `maximum-scale=1.0, minimum-scale=1.0,
+  user-scalable=no` 추가해 핀치 줌 자체를 비활성화
+- 이 환경엔 iOS 실기기가 없어 육안 검증 불가 — 배포 후 사용자 확인 필요
+
+### 완료
+- [x] `index.html` — viewport meta에 `maximum-scale=1.0, minimum-scale=1.0,
+  user-scalable=no` 추가
+- [x] `tsc -b`/`oxlint`/`npm run build` 통과, 빌드 산출물(`dist/index.html`)에
+  변경된 meta 태그 정상 반영 확인
+- [x] iOS 실기기 육안 검증은 이 환경에서 불가능 — 사용자 확인 필요.
+  76차(가로 회전 CSS)와 함께 배포하며, 여전히 문제가 재현되면 근본
+  원인이 확대/축소나 회전이 아닌 다른 곳(예: 특정 iOS 버전의 WebKit
+  버그, Safari 확장프로그램/설정 등)일 가능성을 열어두고 재조사 필요
+
 ## 2026-07-20 (75차) — iOS PWA 화면 깨짐 — manifest 화면 방향 고정 제거
 
 사용자 제보: 홈 화면에 추가해 쓰는 아이폰(PWA)에서 앱 전체 화면이 찌그러져

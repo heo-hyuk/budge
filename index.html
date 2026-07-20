@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 네이티브 앱처럼 쓰는 PWA라 핀치 확대/축소가 기능적으로 필요 없고, iOS에서
+         줌아웃 시 레이아웃이 깨지는 문제가 보고돼 아예 확대/축소 자체를 막음 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
     <title>텅~ 장</title>
 
     <!-- PWA: 홈 화면 설치 -->

@@ -39,3 +39,23 @@ body {
 .toast-enter {
   animation: toast-in 0.2s ease-out;
 }
+
+/* 세로 전용 모바일 UI라, 폰을 스와이프하다 손목이 기울어 실제로 가로 모드로
+   회전돼버리면(특히 iOS) 레이아웃이 예쁘지 않음. iOS Safari는
+   screen.orientation.lock()도 지원 안 하고 manifest의 orientation 고정도
+   PWA에서 오히려 렌더링이 깨지는 부작용이 있어(75차) 둘 다 못 씀 — 대신 뷰포트가
+   실제 가로가 되면 CSS로 다시 세로처럼 보이게 강제로 회전시킴. 태블릿/데스크탑의
+   정상적인 가로 사용은 건드리지 않도록 폰 너비(아이폰 최대 가로 폭 932pt 기준
+   여유를 둔 950px)에서만 적용 */
+@media screen and (orientation: landscape) and (max-width: 950px) {
+  body {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
