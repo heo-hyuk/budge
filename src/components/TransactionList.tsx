@@ -230,10 +230,10 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                           현금
                         </span>
                       )}
-                      {tx.memo && (
-                        <span className="truncate text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</span>
-                      )}
                     </div>
+                    {tx.memo && (
+                      <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>

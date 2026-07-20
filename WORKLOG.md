@@ -16,6 +16,15 @@
 ### 예상 변경 파일
 - `src/components/TransactionList.tsx`
 
+### 완료
+- [x] 메모를 뱃지 줄에서 분리해 별도 `<p>`로, `truncate` → `whitespace-pre-wrap
+  break-words`로 교체
+- [x] `npx tsc -b`, `npm run lint`(oxlint) 통과
+- [x] `wrangler pages dev` + 로컬 D1로 브라우저 확인 — 긴 메모(80자+)가 잘리지
+  않고 여러 줄로 완전히 표시되며 행 높이가 늘어남, 짧은 메모는 기존처럼 한 줄로
+  표시. 콘솔 에러 없음
+- [x] 미완료 항목 없음
+
 ---
 
 ## 2026-07-20 (60차) — 기존 로컬 분류/설정을 서버로 끌어올리는 1회성 마이그레이션(58~59차 후속)
