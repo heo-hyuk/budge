@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import SummaryCard from './SummaryCard'
 import TransactionList from './TransactionList'
-import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteTransaction, fetchTransactions, updateTransaction } from '../lib/api'
 import type { Card, Transaction, UpdateTransaction } from '../types'
@@ -19,7 +18,6 @@ interface Props {
  */
 function UnsettledView({ month, cards, onDuplicate }: Props) {
   const { showToast } = useToast()
-  const confirm = useConfirm()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -40,8 +38,10 @@ function UnsettledView({ month, cards, onDuplicate }: Props) {
     load()  // 비정산 해제 시 목록에서 빠져야 하므로 재조회
   }
 
+  // TransactionList가 onDelete 호출 전에 이미 자체적으로 확인 모달을 띄우므로
+  // 여기서 또 confirm()을 부르면 확인을 두 번 눌러야 하는 버그가 생김(모달이 똑같은
+  // 문구로 다시 뜨는 것처럼 보임) — 여기서는 바로 삭제만 수행
   async function handleDelete(id: string) {
-    if (!(await confirm('이 내역을 삭제할까요?'))) return
     try {
       await deleteTransaction(id)
       load()

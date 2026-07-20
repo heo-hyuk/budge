@@ -27,6 +27,35 @@
 - `wrangler pages dev` + Playwright로 선택 시 내역 표시, 선택 해제 시
   목록도 같이 사라지는지, 삭제/수정 후 합계·목록 동기화 검증
 
+### 완료
+- [x] `src/components/IncomeCalculator.tsx` — `cards`, `onDuplicate` props
+  추가, `fetchTransactions({ month })`로 월 거래를 따로 조회해 선택된
+  수입 분류로 필터링, 선택이 1개 이상일 때만 "선택 분류 내역" 섹션에
+  `TransactionList` 렌더링(없으면 안내 문구). 삭제/수정 후 `load()`로
+  합계·목록 동시 재조회
+- [x] `src/App.tsx` — `<IncomeCalculator>`에 `cards`, `onDuplicate={handleDuplicate}` 전달
+- [x] **버그 발견 및 수정(2건)**:
+  1. 테스트 중 발견 — `TransactionForm`의 분류 칩은 67차에서 드래그 지원을
+     위해 Pointer Events 기반으로 바뀌어 순수 DOM `.click()`으로는 선택이
+     안 되는데, 검증 스크립트가 이 방식을 써서 처음엔 거래가 엉뚱한
+     분류로 저장되는 것처럼 보였음 — 앱 버그 아님, Playwright 마우스
+     클릭(좌표 기반)으로 스크립트를 고쳐서 해결
+  2. **실제 앱 버그**: `TransactionList`가 삭제 버튼 클릭 시 이미 자체
+     확인 모달(`confirm('이 내역을 삭제할까요?')`)을 띄운 뒤 `onDelete`를
+     호출하는데, `IncomeCalculator`(신규)와 `UnsettledView`(기존, 73차
+     이전부터 있던 버그)의 `handleDelete`가 그 안에서 또 `confirm()`을
+     불러 확인을 두 번 눌러야만 실제로 삭제되는 문제 발견 — 같은 문구의
+     모달이 다시 뜨는 것처럼 보여 "삭제가 안 된다"는 착각을 일으킴.
+     두 파일 모두 중복 `confirm()` 호출 제거로 수정(비정산 탭도 이번에
+     같이 고쳐짐)
+- [x] `wrangler pages dev` + Playwright로 검증: 미선택 시 내역 섹션 없음,
+  분류 선택 시 해당 분류만 내역에 노출(다른 분류 제외), 복수 선택 시
+  합계·내역 둘 다 정확히 합산, 삭제 시 확인 모달 한 번으로 정상 삭제되고
+  합계·내역 동시 갱신, 선택 전부 해제 시 내역 섹션 사라짐, 비정산 탭
+  삭제도 회귀 없이 정상 동작. `tsc -b`/`oxlint`/`npm run build` 모두 통과
+
+## 2026-07-20 (72차) — 카드 "매달 1일~말일 마감·말일 결제" 토글 추가
+
 사용자 요청: "카드탭에서 카드의 결제 마감을 1일부터 자동으로 해당달의
 말일로 정하고 결제일도 말일로 하는 기능이 추가되어야할거같다 이거는
 토글식으로 따로 만들어줘". 일부 카드(특히 법인카드 등)는 "당월 1일~말일
