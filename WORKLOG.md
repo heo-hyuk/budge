@@ -1,5 +1,54 @@
 # WORKLOG
 
+## 2026-07-20 (59차) — 메모 분류 + 카드 정산 집계 기준도 서버 동기화(58차 후속)
+
+58차에서 거래 분류를 D1로 옮겨 기기 간 동기화한 뒤, 사용자가 "모든 작업은
+어디서도 같은 결과를 내야한다"는 원칙을 명시. `localStorage`만 쓰는 나머지
+코드를 훑어본 결과 두 곳이 같은 문제였음(순수 기기별 편의 기능인 로그인
+이메일 저장/다크모드/PWA 설치배너 닫기는 제외):
+- `src/lib/noteCategories.ts` — 메모장 분류. 58차 이전 `categories.ts`와 완전히
+  같은 구조(커스텀 추가/기본 삭제를 localStorage에만 저장)
+- `src/components/MonthlyReport.tsx`의 "카드 지출 집계 기준"(출금일 기준/거래일
+  기준) 토글 — `localStorage`의 `budget:monthlyBasis` 단일 값
+
+사용자 확인 후 둘 다 진행하기로 함.
+
+### 계획
+- 메모 분류는 58차 거래 분류와 동일 패턴으로 복제(단, 타입 구분 없이 단일
+  목록이라 더 단순): `schema.sql`/`migrations/019_add_note_categories.sql`에
+  `note_categories` 테이블(`id, user_id, name, removed_default, created_at`,
+  `UNIQUE(user_id, name)`) 추가, `functions/lib/noteCategories.ts`(신규,
+  DEFAULT_NOTE_CATEGORIES 복제) + `functions/api/note-categories/index.ts`(신규,
+  GET/POST/DELETE), `src/lib/api.ts`에 fetch/add/remove 함수 추가,
+  `src/lib/noteCategories.ts`를 모듈 캐시 + `loadNoteCategories()`/
+  `resetNoteCategories()`로 재작성, `src/components/NotesView.tsx` 호출부(
+  `handleAddCategory`/`handleDeleteCategory`)를 async로 변경 + 마운트 시
+  재동기화 effect 추가
+- 카드 정산 집계 기준은 계정당 값 하나뿐이라 향후 비슷한 단일값 설정이 늘어날 걸
+  감안해 범용 key-value 테이블로: `schema.sql`/같은 마이그레이션에
+  `user_settings`(`user_id, key, value, updated_at`, `PRIMARY KEY(user_id, key)`)
+  추가, `functions/api/settings/index.ts`(신규, GET 전체 조회/PATCH `{key,value}`
+  upsert, 허용된 key 화이트리스트로 검증), `src/lib/settings.ts`(신규, 모듈
+  캐시 + `loadSettings()`/`resetSettings()`/`getMonthlyBasis()`/
+  `setMonthlyBasis()`), `MonthlyReport.tsx`의 `loadBasis`/`changeBasis`를
+  이걸로 교체
+- `src/contexts/AuthContext.tsx` — `logout()`에 `resetNoteCategories()`,
+  `resetSettings()` 추가
+- `src/App.tsx` — 로그인 effect에 `loadNoteCategories()`, `loadSettings()` 추가
+- 마이그레이션 적용 후 `npx wrangler d1 execute budget-db --remote --file=...`로
+  프로덕션 D1에도 반영, GitHub Actions 자동배포 확인
+
+### 예상 변경 파일
+- `schema.sql`, `migrations/019_add_note_categories.sql`(신규),
+  `functions/lib/noteCategories.ts`(신규),
+  `functions/api/note-categories/index.ts`(신규),
+  `functions/api/settings/index.ts`(신규), `src/lib/api.ts`,
+  `src/lib/noteCategories.ts`, `src/lib/settings.ts`(신규),
+  `src/contexts/AuthContext.tsx`, `src/App.tsx`, `src/components/NotesView.tsx`,
+  `src/components/MonthlyReport.tsx`
+
+---
+
 ## 2026-07-20 (58차) — 거래 분류(카테고리)를 서버(D1)로 이전해 기기 간 동기화
 
 사용자가 두 폰 스크린샷을 첨부 — 같은 계정으로 로그인했는데 "내역 추가" 폼의
