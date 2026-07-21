@@ -1,5 +1,42 @@
 # WORKLOG
 
+## 2026-07-21 (83차) — "계산기" 탭을 "수입계산기"로 개명 + "지출계산기" 탭 신설
+
+사용자 요청: "지금 카테고리에 개인화수입계산기가 계산기로되어 있자나 이거
+이름을 수입계산기로 바꾸고 지출계산기탭도 하나 만들어줘 이거는 비정산에
+연결할 필요는 없고 그냥 지출정보 받아오면되는데 조회방식은 수입이랑
+똑같이 해주면된다".
+
+### 설계
+- 74차까지 만든 `IncomeCalculator.tsx`(수입 분류만 다룸, 일별 표)를
+  `type: 'income' | 'expense'`를 받는 범용 컴포넌트 `CategoryCalculator.tsx`
+  로 일반화 — 사용자가 "조회방식은 수입이랑 똑같이"라고 명시했으니
+  로직을 복붙하지 않고 하나로 공유. `IncomeCalculator.tsx`는 제거
+- `calc_selections`는 애초에 `type` 컬럼이 있어 지출/수입을 이미
+  구분해서 저장할 수 있었음(70차 설계) — 71차에서 프론트만 수입으로
+  제한했던 것을 되돌려 `src/lib/calcSelections.ts`의 함수들이 전부
+  `type` 인자를 받도록 일반화
+- 지출은 금액이 항상 양수라(TransactionForm이 지출 음수 입력을 애초에
+  막음) 수입 계산기의 "차감 항목은 '-'를 붙이면" 안내 문구는 지출
+  쪽엔 해당 없음 — 타입에 따라 안내 문구·칩 강조색(수입=파랑,
+  지출=코랄, 정산 화면과 동일한 배색)만 다르게
+- "비정산에 연결할 필요 없다"는 요청은 이미 기존 구현이 만족함 —
+  `/api/settlement/monthly`가 애초에 `unsettled=0` 거래만 집계하므로
+  비정산 거래는 자동으로 빠짐(추가 작업 불필요)
+
+### 계획
+- `src/lib/calcSelections.ts` — `getCalcSelections`/`isCalcSelected`/
+  `toggleCalcSelection`에 `type` 인자 추가해 지출/수입 겸용으로 일반화
+- `src/components/CategoryCalculator.tsx` 신규(`IncomeCalculator.tsx`
+  대체) — `type` prop에 따라 제목/안내문구/강조색만 다르게, 나머지
+  로직은 공유
+- `src/App.tsx` — `Tab`에 `'expenseCalculator'` 추가, `calculator`
+  탭 라벨을 "계산기"→"수입계산기"로 변경(탭 id는 유지 또는 명확히
+  개명), "지출계산기" 탭 추가, 월 네비게이션 표시 탭 목록에도 추가
+- `wrangler pages dev` + Playwright로 지출 계산기 선택/표/합계 정확성,
+  수입 계산기 기존 동작 회귀 없는지, 두 계산기의 선택 상태가 서로
+  안 섞이는지(지출 선택이 수입 쪽에 영향 없음) 검증
+
 ## 2026-07-21 (82차) — 맨 위로/맨 아래로 스크롤 이동 버튼 추가
 
 사용자 요청: "맨위로 맨아래로 화살표 기능 있어야 할거 같아 스크롤하기
