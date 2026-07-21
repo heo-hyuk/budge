@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { fetchMonthlySettlement } from '../lib/api'
-import { getCalcSelections, isCalcSelected, loadCalcSelections, toggleCalcSelection } from '../lib/calcSelections'
+import { getCalcSelections, loadCalcSelections, toggleCalcSelection } from '../lib/calcSelections'
 import { getCategories, loadCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
-import { filterSelectedCategories } from '../lib/settlementFilter'
 import type { MonthlySettlement, TransactionType } from '../types'
 
 interface Props {
@@ -15,6 +14,10 @@ interface Props {
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
+// mode: 'include' = 기본 전부 미선택, 칩을 탭하면 합계에 포함(수입계산기)
+//       'exclude' = 기본 전부 포함, 칩을 탭하면 그 분류만 합계에서 제외(지출계산기)
+//       calc_selections엔 두 경우 모두 "칩을 탭해서 생긴 행"만 저장되고
+//       (include=포함된 분류, exclude=제외된 분류) 화면에서 의미만 다르게 해석한다.
 const THEME = {
   income: {
     title: '개인화 수입 계산기',
@@ -23,22 +26,26 @@ const THEME = {
       "차감할 항목은 수입 등록 시 금액 앞에 '-'를 붙이면 자동으로 반영돼요.",
     chipLabel: '수입 분류',
     emptyChipMessage: '등록된 수입 분류가 없습니다',
+    emptyBreakdownMessage: '아래에서 계산에 포함할 수입 분류 칩을 선택하세요.',
     selectedChip: 'bg-blue-600 text-white',
     headerText: 'text-blue-700 dark:text-blue-300',
     headerTextStrong: 'text-blue-800 dark:text-blue-300',
     cellText: 'text-blue-700 dark:text-blue-300',
     cellTextStrong: 'text-blue-800 dark:text-blue-300',
+    mode: 'include',
   },
   expense: {
     title: '개인화 지출 계산기',
-    description: '합산에 포함할 지출 분류 칩을 선택하세요. 다시 탭하면 선택이 해제됩니다.',
+    description: '기본적으로 모든 지출 분류가 합계에 포함되어 있어요. 제외하고 싶은 분류만 탭해서 꺼주세요. 다시 탭하면 다시 포함됩니다.',
     chipLabel: '지출 분류',
     emptyChipMessage: '등록된 지출 분류가 없습니다',
+    emptyBreakdownMessage: '모든 지출 분류가 제외되어 있습니다. 아래에서 포함할 분류를 다시 켜주세요.',
     selectedChip: 'bg-coral-400 text-white',
     headerText: 'text-coral-600 dark:text-coral-200',
     headerTextStrong: 'text-coral-700 dark:text-coral-200',
     cellText: 'text-coral-600 dark:text-coral-200',
     cellTextStrong: 'text-coral-700 dark:text-coral-200',
+    mode: 'exclude',
   },
 } as const
 
@@ -92,12 +99,16 @@ function CategoryCalculator({ month, type }: Props) {
   }
 
   const bucket = (type === 'income' ? settlement?.month_total.income : settlement?.month_total.expense) ?? {}
-  const selections = getCalcSelections(type)
-  const selectedCategoryNames = selections.map((s) => s.category)
-  const breakdown = selections.map((s) => ({ ...s, amount: bucket[s.category] ?? 0 }))
-  const total = breakdown.reduce((sum, s) => sum + s.amount, 0)
   const categories = getCategories(type)
-  const activeCategories = filterSelectedCategories(selectedCategoryNames, categories)
+  // calc_selections엔 "탭해서 생긴 행"만 저장됨 — include 모드는 그 행이 포함된 분류,
+  // exclude 모드는 그 행이 제외된 분류라 isIncluded 판정을 모드에 따라 뒤집는다.
+  const tappedCategories = new Set(getCalcSelections(type).map((s) => s.category))
+  function isIncluded(category: string): boolean {
+    return theme.mode === 'exclude' ? !tappedCategories.has(category) : tappedCategories.has(category)
+  }
+  const activeCategories = categories.filter(isIncluded)
+  const breakdown = activeCategories.map((c) => ({ category: c, amount: bucket[c] ?? 0 }))
+  const total = breakdown.reduce((sum, s) => sum + s.amount, 0)
 
   function rowSum(bucketOfDay: Record<string, number>): number {
     return activeCategories.reduce((s, c) => s + (bucketOfDay[c] ?? 0), 0)
@@ -133,7 +144,7 @@ function CategoryCalculator({ month, type }: Props) {
               {formatWon(total)}
             </p>
             {breakdown.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-400 dark:text-neutral-500">아래에서 계산에 포함할 {theme.chipLabel} 칩을 선택하세요.</p>
+              <p className="mt-3 text-sm text-neutral-400 dark:text-neutral-500">{theme.emptyBreakdownMessage}</p>
             ) : (
               <ul className="mt-3 space-y-1.5">
                 {breakdown.map((s) => (
@@ -150,7 +161,7 @@ function CategoryCalculator({ month, type }: Props) {
             <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">{theme.chipLabel}</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {categories.map((c) => {
-                const selected = isCalcSelected(type, c)
+                const selected = isIncluded(c)
                 return (
                   <button
                     key={c}
