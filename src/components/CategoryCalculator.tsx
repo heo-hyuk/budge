@@ -6,13 +6,41 @@ import { getCalcSelections, isCalcSelected, loadCalcSelections, toggleCalcSelect
 import { getCategories, loadCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
 import { filterSelectedCategories } from '../lib/settlementFilter'
-import type { MonthlySettlement } from '../types'
+import type { MonthlySettlement, TransactionType } from '../types'
 
 interface Props {
   month: string  // 'YYYY-MM'
+  type: TransactionType
 }
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+const THEME = {
+  income: {
+    title: '개인화 수입 계산기',
+    description:
+      "합산에 포함할 수입 분류 칩을 선택하세요. 다시 탭하면 선택이 해제됩니다. " +
+      "차감할 항목은 수입 등록 시 금액 앞에 '-'를 붙이면 자동으로 반영돼요.",
+    chipLabel: '수입 분류',
+    emptyChipMessage: '등록된 수입 분류가 없습니다',
+    selectedChip: 'bg-blue-600 text-white',
+    headerText: 'text-blue-700 dark:text-blue-300',
+    headerTextStrong: 'text-blue-800 dark:text-blue-300',
+    cellText: 'text-blue-700 dark:text-blue-300',
+    cellTextStrong: 'text-blue-800 dark:text-blue-300',
+  },
+  expense: {
+    title: '개인화 지출 계산기',
+    description: '합산에 포함할 지출 분류 칩을 선택하세요. 다시 탭하면 선택이 해제됩니다.',
+    chipLabel: '지출 분류',
+    emptyChipMessage: '등록된 지출 분류가 없습니다',
+    selectedChip: 'bg-coral-400 text-white',
+    headerText: 'text-coral-600 dark:text-coral-200',
+    headerTextStrong: 'text-coral-700 dark:text-coral-200',
+    cellText: 'text-coral-600 dark:text-coral-200',
+    cellTextStrong: 'text-coral-700 dark:text-coral-200',
+  },
+} as const
 
 function compactDateLabel(dateStr: string): string {
   const d = new Date(dateStr)
@@ -24,15 +52,16 @@ function cell(amount: number): string {
 }
 
 /**
- * "계산기" 탭 — 원하는 수입 분류 칩만 골라 합산한 "개인화 수익"을 보는 화면.
- * 예: 영업수익 + 급여 선택 → 두 분류의 월 합계를 더함. 차감할 항목(식대/담배/LPG 등)은
- * 지출이 아니라 수입 등록 시 금액 앞에 '-'를 붙여 이미 표현 가능하므로, 계산기는
- * 수입 분류만 대상으로 하고 선택된 값을 그대로 더하기만 한다(부호 선택 없음).
+ * "수입계산기"/"지출계산기" 탭 — 원하는 분류 칩만 골라 합산한 "개인화" 금액을 보는 화면.
+ * 예: 영업수익 + 급여 선택 → 두 분류의 월 합계를 더함.
  * 분류별 합계(일별/월계)는 이미 계산되는 /api/settlement/monthly를 그대로 재사용하고,
  * 선택된 분류만 열로 골라 MonthlySettlementTable과 같은 일별 표로 보여준다(매일
  * 반복 등록되는 항목 특성상 개별 거래 목록보다 표가 한눈에 보기 좋음).
+ * 비정산(unsettled) 거래는 /api/settlement/monthly 자체가 이미 제외하고 집계하므로
+ * 이 화면에서 별도로 신경쓸 필요가 없다.
  */
-function IncomeCalculator({ month }: Props) {
+function CategoryCalculator({ month, type }: Props) {
+  const theme = THEME[type]
   const [settlement, setSettlement] = useState<MonthlySettlement | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,30 +87,27 @@ function IncomeCalculator({ month }: Props) {
   }, [])
 
   async function handleTapChip(category: string) {
-    await toggleCalcSelection(category)
+    await toggleCalcSelection(type, category)
     forceRerender((n) => n + 1)
   }
 
-  const incomeBucket = settlement?.month_total.income ?? {}
-  const selections = getCalcSelections()
+  const bucket = (type === 'income' ? settlement?.month_total.income : settlement?.month_total.expense) ?? {}
+  const selections = getCalcSelections(type)
   const selectedCategoryNames = selections.map((s) => s.category)
-  const breakdown = selections.map((s) => ({ ...s, amount: incomeBucket[s.category] ?? 0 }))
+  const breakdown = selections.map((s) => ({ ...s, amount: bucket[s.category] ?? 0 }))
   const total = breakdown.reduce((sum, s) => sum + s.amount, 0)
-  const categories = getCategories('income')
-  const activeIncomeCategories = filterSelectedCategories(selectedCategoryNames, categories)
+  const categories = getCategories(type)
+  const activeCategories = filterSelectedCategories(selectedCategoryNames, categories)
 
-  function rowSum(income: Record<string, number>): number {
-    return activeIncomeCategories.reduce((s, c) => s + (income[c] ?? 0), 0)
+  function rowSum(bucketOfDay: Record<string, number>): number {
+    return activeCategories.reduce((s, c) => s + (bucketOfDay[c] ?? 0), 0)
   }
 
   return (
     <div className="space-y-4">
       <UiCard>
-        <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200">개인화 수익 계산기</h2>
-        <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
-          합산에 포함할 수입 분류 칩을 선택하세요. 다시 탭하면 선택이 해제됩니다.
-          차감할 항목은 수입 등록 시 금액 앞에 '-'를 붙이면 자동으로 반영돼요.
-        </p>
+        <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200">{theme.title}</h2>
+        <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">{theme.description}</p>
       </UiCard>
 
       {loading ? (
@@ -107,7 +133,7 @@ function IncomeCalculator({ month }: Props) {
               {formatWon(total)}
             </p>
             {breakdown.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-400 dark:text-neutral-500">아래에서 계산에 포함할 수입 분류 칩을 선택하세요.</p>
+              <p className="mt-3 text-sm text-neutral-400 dark:text-neutral-500">아래에서 계산에 포함할 {theme.chipLabel} 칩을 선택하세요.</p>
             ) : (
               <ul className="mt-3 space-y-1.5">
                 {breakdown.map((s) => (
@@ -121,10 +147,10 @@ function IncomeCalculator({ month }: Props) {
           </UiCard>
 
           <UiCard>
-            <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">수입 분류</span>
+            <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">{theme.chipLabel}</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {categories.map((c) => {
-                const selected = isCalcSelected(c)
+                const selected = isCalcSelected(type, c)
                 return (
                   <button
                     key={c}
@@ -132,7 +158,7 @@ function IncomeCalculator({ month }: Props) {
                     onClick={() => handleTapChip(c)}
                     className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
                       selected
-                        ? 'bg-blue-600 text-white'
+                        ? theme.selectedChip
                         : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
                   >
@@ -141,14 +167,14 @@ function IncomeCalculator({ month }: Props) {
                 )
               })}
               {categories.length === 0 && (
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">등록된 수입 분류가 없습니다</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">{theme.emptyChipMessage}</p>
               )}
             </div>
           </UiCard>
 
           {/* 선택된 분류의 일별 내역 — 매일 반복 등록되는 항목 특성상 월정산과 같은
-              날짜별 표로 표시(MonthlySettlementTable과 동일한 구조, 수입만) */}
-          {activeIncomeCategories.length > 0 && (
+              날짜별 표로 표시(MonthlySettlementTable과 동일한 구조) */}
+          {activeCategories.length > 0 && (
             <div>
               <p className="mb-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">선택 분류 일별 내역</p>
               <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
@@ -156,35 +182,38 @@ function IncomeCalculator({ month }: Props) {
                   <thead>
                     <tr className="bg-neutral-100 dark:bg-neutral-800">
                       <th className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">날짜</th>
-                      {activeIncomeCategories.map((c) => (
-                        <th key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-700 dark:text-blue-300">{c}</th>
+                      {activeCategories.map((c) => (
+                        <th key={c} className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold ${theme.headerText}`}>{c}</th>
                       ))}
-                      <th className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">합계</th>
+                      <th className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold ${theme.headerTextStrong}`}>합계</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {settlement.days.map((day) => (
-                      <tr key={day.date}>
-                        <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">{compactDateLabel(day.date)}</td>
-                        {activeIncomeCategories.map((c) => (
-                          <td key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
-                            {cell(day.income[c] ?? 0)}
+                    {settlement.days.map((day) => {
+                      const dayBucket = type === 'income' ? day.income : day.expense
+                      return (
+                        <tr key={day.date}>
+                          <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">{compactDateLabel(day.date)}</td>
+                          {activeCategories.map((c) => (
+                            <td key={c} className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right ${theme.cellText}`}>
+                              {cell(dayBucket[c] ?? 0)}
+                            </td>
+                          ))}
+                          <td className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold ${theme.cellTextStrong}`}>
+                            {cell(rowSum(dayBucket))}
                           </td>
-                        ))}
-                        <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">
-                          {cell(rowSum(day.income))}
-                        </td>
-                      </tr>
-                    ))}
+                        </tr>
+                      )
+                    })}
                     <tr className="bg-neutral-50 dark:bg-neutral-950 font-bold">
                       <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left">월계</td>
-                      {activeIncomeCategories.map((c) => (
-                        <td key={c} className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right text-blue-700 dark:text-blue-300">
-                          {cell(incomeBucket[c] ?? 0)}
+                      {activeCategories.map((c) => (
+                        <td key={c} className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right ${theme.cellText}`}>
+                          {cell(bucket[c] ?? 0)}
                         </td>
                       ))}
-                      <td className="whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold text-blue-800 dark:text-blue-300">
-                        {cell(rowSum(incomeBucket))}
+                      <td className={`whitespace-nowrap border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-right font-semibold ${theme.cellTextStrong}`}>
+                        {cell(rowSum(bucket))}
                       </td>
                     </tr>
                   </tbody>
@@ -198,4 +227,4 @@ function IncomeCalculator({ month }: Props) {
   )
 }
 
-export default IncomeCalculator
+export default CategoryCalculator

@@ -37,6 +37,23 @@
   수입 계산기 기존 동작 회귀 없는지, 두 계산기의 선택 상태가 서로
   안 섞이는지(지출 선택이 수입 쪽에 영향 없음) 검증
 
+### 완료
+- [x] `src/lib/calcSelections.ts` — 캐시 조회/토글 함수 전부 `type: TransactionType`
+  인자를 받도록 일반화(내부 하드코딩된 `'income'` 리터럴 제거)
+- [x] `src/components/CategoryCalculator.tsx` 신규 작성, `IncomeCalculator.tsx`
+  삭제 — `type` prop 하나로 제목/안내문구/칩·표 강조색(수입=파랑, 지출=코랄)만
+  갈아끼우고 조회 로직(`fetchMonthlySettlement` 재사용, 일별 표 렌더링)은 완전히 공유
+- [x] `src/App.tsx` — `Tab` 유니언에서 `'calculator'`→`'incomeCalculator'` +
+  `'expenseCalculator'` 신규 추가, `TABS` 라벨 "계산기"→"수입계산기" +
+  "지출계산기"(Receipt 아이콘), 월 네비게이션 표시 조건과 본문 렌더링에도 반영
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright로 실제 서버 붙여 검증: 메뉴에
+  "수입계산기"/"지출계산기" 정상 노출, 수입 분류 칩 선택 시 "선택 합계"·일별
+  표(파랑) 정상 반영, 지출 탭 전환 시 수입 선택과 완전히 분리(칩 선택 상태
+  안 섞임, 기대값 0건 확인), 지출 분류 칩 선택 시 코랄 배색으로 표/합계
+  정상 반영, 새로고침 후에도 수입계산기 선택이 유지됨(D1 동기화 확인)
+- 미완료 항목 없음
+
 ## 2026-07-21 (82차) — 맨 위로/맨 아래로 스크롤 이동 버튼 추가
 
 사용자 요청: "맨위로 맨아래로 화살표 기능 있어야 할거 같아 스크롤하기

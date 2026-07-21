@@ -1,10 +1,10 @@
-import { Calculator, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Repeat, RotateCw, Search, Sun, TriangleAlert, Users, X } from 'lucide-react'
+import { Calculator, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Receipt, Repeat, RotateCw, Search, Sun, TriangleAlert, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
 import CategoryBreakdown from './components/CategoryBreakdown'
-import IncomeCalculator from './components/IncomeCalculator'
+import CategoryCalculator from './components/CategoryCalculator'
 import LoadingSpinner from './components/LoadingSpinner'
 import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
@@ -32,14 +32,15 @@ import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'overview' | 'unsettled' | 'calculator' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'unsettled' | 'incomeCalculator' | 'expenseCalculator' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
-  { id: 'home',       label: '홈',       icon: Home },
-  { id: 'overview',   label: '정산',     icon: CalendarDays },
-  { id: 'unsettled',  label: '비정산',   icon: Users },
-  { id: 'calculator', label: '계산기',   icon: Calculator },
-  { id: 'cards',      label: '카드',     icon: CreditCard },
+  { id: 'home',              label: '홈',         icon: Home },
+  { id: 'overview',          label: '정산',       icon: CalendarDays },
+  { id: 'unsettled',         label: '비정산',     icon: Users },
+  { id: 'incomeCalculator',  label: '수입계산기', icon: Calculator },
+  { id: 'expenseCalculator', label: '지출계산기', icon: Receipt },
+  { id: 'cards',             label: '카드',       icon: CreditCard },
   { id: 'recurring',  label: '고정',     icon: Repeat },
   { id: 'budget',     label: '예산',     icon: ClipboardList },
   { id: 'notes',      label: '메모',     icon: NotebookPen },
@@ -358,8 +359,8 @@ function App() {
             </button>
           </div>
 
-          {/* 월 네비게이션 (홈·예산·메모·비정산·계산기 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled' || activeTab === 'calculator') && (
+          {/* 월 네비게이션 (홈·예산·메모·비정산·수입계산기·지출계산기 탭에서 표시) */}
+          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled' || activeTab === 'incomeCalculator' || activeTab === 'expenseCalculator') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -530,9 +531,12 @@ function App() {
           <UnsettledView month={selectedMonth} cards={cards} onDuplicate={handleDuplicate} />
         )}
 
-        {/* 개인화 수익 계산기 탭 — 원하는 분류 칩만 +/- 선택해 순수익을 자유롭게 계산 */}
-        {activeTab === 'calculator' && (
-          <IncomeCalculator month={selectedMonth} />
+        {/* 개인화 수입/지출 계산기 탭 — 원하는 분류 칩만 선택해 합계를 자유롭게 계산 */}
+        {activeTab === 'incomeCalculator' && (
+          <CategoryCalculator month={selectedMonth} type="income" />
+        )}
+        {activeTab === 'expenseCalculator' && (
+          <CategoryCalculator month={selectedMonth} type="expense" />
         )}
 
         {/* 카드 관리 탭 */}
