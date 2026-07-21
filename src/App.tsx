@@ -10,6 +10,7 @@ import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
 import OverviewView from './components/OverviewView'
 import RecurringManager from './components/RecurringManager'
+import ScrollButtons from './components/ScrollButtons'
 import SearchView from './components/SearchView'
 import SummaryCard from './components/SummaryCard'
 import TransactionForm from './components/TransactionForm'
@@ -568,6 +569,8 @@ function App() {
         )}
       </main>
       </div>
+
+      <ScrollButtons />
 
       {/* 사이드 메뉴 오버레이 — 모바일 전용 (데스크탑은 좌측 상시 사이드바 사용) */}
       {menuOpen && (
