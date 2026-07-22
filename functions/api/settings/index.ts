@@ -4,8 +4,10 @@ interface Env { DB: D1Database }
 interface SettingRow { key: string; value: string }
 
 // 허용된 설정 key와 기본값/유효값 — 새 설정을 추가할 땐 여기에만 등록하면 됨(스키마 변경 불필요)
-const SETTINGS: Record<string, { default: string; values: string[] }> = {
+// values: null이면 고정 enum이 아니라 자유 문자열(예: 분류명)을 저장 — 빈 문자열이 아니면 통과
+const SETTINGS: Record<string, { default: string; values: string[] | null }> = {
   monthlyBasis: { default: 'billing', values: ['billing', 'transaction'] },
+  cardSettlementTargetCategory: { default: '', values: null },  // 카드 정산기 체크 시 바뀔 목표 분류(migration 026)
 }
 
 const cors = {
@@ -44,7 +46,9 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data })
   const value = body.value
 
   if (!key || !(key in SETTINGS)) return json({ error: 'Invalid key' }, 400)
-  if (!value || !SETTINGS[key].values.includes(value)) return json({ error: 'Invalid value' }, 400)
+  const allowedValues = SETTINGS[key].values
+  if (!value) return json({ error: 'Invalid value' }, 400)
+  if (allowedValues && !allowedValues.includes(value)) return json({ error: 'Invalid value' }, 400)
 
   await env.DB.prepare(
     `INSERT INTO user_settings (user_id, key, value, updated_at)

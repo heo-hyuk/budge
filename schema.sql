@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~025 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~026 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -291,3 +291,17 @@ CREATE TABLE IF NOT EXISTS delivery_excluded_categories (
 );
 
 CREATE INDEX IF NOT EXISTS idx_delivery_excluded_categories_user ON delivery_excluded_categories(user_id);
+
+-- ── 카드 정산기 전용 소스 분류 선택 (migration 026) ────────────────
+-- 카드매출(정산 대기)로 추적할 수입 분류(옵트인, 기본 전체 미선택).
+-- 배송 탭(delivery_excluded_categories)과 완전히 독립된 상태. 체크 시
+-- 바뀔 목표 분류는 계정당 값 하나뿐이라 user_settings 테이블 재사용(스키마 변경 불필요)
+CREATE TABLE IF NOT EXISTS card_settlement_source_categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_settlement_source_categories_user ON card_settlement_source_categories(user_id);

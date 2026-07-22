@@ -1,8 +1,9 @@
-import { Calculator, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Receipt, Repeat, RotateCw, Search, Sun, TriangleAlert, Truck, Users, X } from 'lucide-react'
+import { Banknote, Calculator, CalendarDays, ClipboardList, CreditCard, Home, Menu, Moon, NotebookPen, Receipt, Repeat, RotateCw, Search, Sun, TriangleAlert, Truck, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AuthPage from './components/AuthPage'
 import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
+import CardSettlementView from './components/CardSettlementView'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import CategoryCalculator from './components/CategoryCalculator'
 import DeliveryView from './components/DeliveryView'
@@ -23,6 +24,7 @@ import { useTheme } from './contexts/ThemeContext'
 import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { loadCalcSelections } from './lib/calcSelections'
+import { loadCardSettlementSourceCategories } from './lib/cardSettlementCategories'
 import { loadCategories } from './lib/categories'
 import { loadDeliveryExcludedCategories } from './lib/deliveryCategories'
 import { migrateLegacyLocalStorage } from './lib/legacyMigration'
@@ -34,7 +36,7 @@ import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'overview' | 'unsettled' | 'incomeCalculator' | 'expenseCalculator' | 'delivery' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'unsettled' | 'incomeCalculator' | 'expenseCalculator' | 'delivery' | 'cardSettlement' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'home',              label: '홈',         icon: Home },
@@ -43,6 +45,7 @@ const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'incomeCalculator',  label: '수입계산기', icon: Calculator },
   { id: 'expenseCalculator', label: '지출계산기', icon: Receipt },
   { id: 'delivery',          label: '배송',       icon: Truck },
+  { id: 'cardSettlement',    label: '카드 정산기', icon: Banknote },
   { id: 'cards',             label: '카드',       icon: CreditCard },
   { id: 'recurring',  label: '고정',     icon: Repeat },
   { id: 'budget',     label: '예산',     icon: ClipboardList },
@@ -116,6 +119,7 @@ function App() {
     loadPaymentMethods()
     loadCalcSelections()
     loadDeliveryExcludedCategories()
+    loadCardSettlementSourceCategories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
@@ -363,8 +367,8 @@ function App() {
             </button>
           </div>
 
-          {/* 월 네비게이션 (홈·예산·메모·비정산·수입계산기·지출계산기·배송 탭에서 표시) */}
-          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled' || activeTab === 'incomeCalculator' || activeTab === 'expenseCalculator' || activeTab === 'delivery') && (
+          {/* 월 네비게이션 (홈·예산·메모·비정산·수입계산기·지출계산기·배송·카드정산기 탭에서 표시) */}
+          {(activeTab === 'home' || activeTab === 'budget' || activeTab === 'notes' || activeTab === 'unsettled' || activeTab === 'incomeCalculator' || activeTab === 'expenseCalculator' || activeTab === 'delivery' || activeTab === 'cardSettlement') && (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, -1))}
                 className="min-h-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -546,6 +550,11 @@ function App() {
         {/* 배송 탭 — 지출 분류 exclude 필터 + 날짜별 거래 목록 + 배송완료 체크 */}
         {activeTab === 'delivery' && (
           <DeliveryView month={selectedMonth} />
+        )}
+
+        {/* 카드 정산기 탭 — 카드매출(정산 대기) 수입 분류 필터 + 체크 시 목표 분류로 변경 */}
+        {activeTab === 'cardSettlement' && (
+          <CardSettlementView month={selectedMonth} />
         )}
 
         {/* 카드 관리 탭 */}

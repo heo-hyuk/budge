@@ -68,6 +68,37 @@
 - 원격(production) D1 마이그레이션은 로컬 검증 완료 후 사용자에게
   별도로 확인받고 진행
 
+### 완료
+- [x] `migrations/026_add_card_settlement.sql` 작성 + `schema.sql`
+  동기화(`card_settlement_source_categories` 테이블)
+- [x] `functions/api/card-settlement-categories/index.ts` 신규
+  (GET/POST/DELETE)
+- [x] `functions/api/settings/index.ts` — `cardSettlementTargetCategory`
+  (자유 문자열) 추가, `values: null` 케이스 검증 로직 추가
+- [x] `src/lib/api.ts`(UserSettings 필드 + 소스분류 API 3종),
+  `src/lib/cardSettlementCategories.ts`(include 전용 캐시),
+  `src/lib/settings.ts`(getter/setter), `src/components/CardSettlementView.tsx`
+  신규 작성
+- [x] `src/App.tsx` — `cardSettlement` 탭 추가(Banknote 아이콘), 월
+  네비게이션 조건 포함, 로그인 시 `loadCardSettlementSourceCategories()` 호출
+- [x] `src/contexts/AuthContext.tsx` 로그아웃 시
+  `resetCardSettlementSourceCategories()` 호출 추가
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] 로컬 D1에 `migrations/026_add_card_settlement.sql` 적용
+- [x] `wrangler pages dev` + Playwright로 검증: 소스 분류(급여) 선택
+  시 해당 분류 거래만 날짜별 목록에 표시되고 다른 분류(용돈)는 안
+  섞임, 입금 예정일(등록일+2일) 표시 확인, 목표 분류 미설정 상태에서
+  체크 시 에러 안내와 함께 목록 유지, 목표 분류(기타수입) 설정 후
+  체크하면 실제로 거래의 category가 즉시 바뀌며 목록에서 사라짐,
+  홈 탭에서 해당 거래가 바뀐 분류로 정확히 반영됨을 확인, 새로고침
+  후에도 소스/목표 설정이 모두 유지됨(D1 동기화)
+  - 검증 중 테스트 스크립트가 `header.closest('div').parentElement`로
+    카드 범위를 잘못 잡아 "확인 시 변경할 분류" 섹션의 칩을 누른다는
+    게 그 앞에 있는 "카드매출 분류" 섹션의 같은 이름 칩을 잘못 누르는
+    문제를 발견 — `header.nextElementSibling`으로 정확히 스코프를
+    좁혀 재검증 완료(앱 코드 문제 아님, 테스트 스크립트만 수정)
+- [ ] 원격(production) D1 마이그레이션 적용은 사용자 확인 후 진행 예정
+
 ## 2026-07-22 (87차) — "배송" 탭 신규 추가 (배송완료 체크 기능)
 
 사용자 요청: "지출계산기와 같은 형태로 배송탭을 하나 만들어줘 기술형태는

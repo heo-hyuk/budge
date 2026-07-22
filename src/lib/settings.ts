@@ -3,7 +3,7 @@ import type { UserSettings } from './api'
 
 // 계정당 값 하나뿐인 설정(카드 지출 집계 기준 등)의 서버 동기화 캐시.
 // src/lib/categories.ts와 동일한 이유·패턴 — 자세한 설명은 그쪽 주석 참고
-let cache: UserSettings = { monthlyBasis: 'billing' }
+let cache: UserSettings = { monthlyBasis: 'billing', cardSettlementTargetCategory: '' }
 let loadPromise: Promise<void> | null = null
 
 /** 로그인 직후 호출 — 서버의 설정 값을 캐시에 채운다(App.tsx) */
@@ -18,7 +18,7 @@ export function loadSettings(): Promise<void> {
 
 /** 로그아웃 시 호출 — 다음 로그인(다른 계정일 수도 있음)에 이전 계정 설정이 새지 않게 캐시 비움 */
 export function resetSettings() {
-  cache = { monthlyBasis: 'billing' }
+  cache = { monthlyBasis: 'billing', cardSettlementTargetCategory: '' }
   loadPromise = null
 }
 
@@ -29,4 +29,14 @@ export function getMonthlyBasis(): UserSettings['monthlyBasis'] {
 export async function setMonthlyBasis(value: UserSettings['monthlyBasis']): Promise<void> {
   await updateUserSetting('monthlyBasis', value)
   cache.monthlyBasis = value
+}
+
+/** 카드 정산기에서 체크 시 바뀔 목표 분류, '' = 아직 미설정 */
+export function getCardSettlementTargetCategory(): string {
+  return cache.cardSettlementTargetCategory
+}
+
+export async function setCardSettlementTargetCategory(value: string): Promise<void> {
+  await updateUserSetting('cardSettlementTargetCategory', value)
+  cache.cardSettlementTargetCategory = value
 }
