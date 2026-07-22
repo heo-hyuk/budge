@@ -1,5 +1,49 @@
 # WORKLOG
 
+## 2026-07-22 (90차) — 카드정산기 소스 결제방법 거래를 모든 합산에서 제외 + 확인 시 메모 자동 기록
+
+사용자 요청(89차 원격 마이그레이션 확인 중 추가된 요청): "예정 에 들어간
+수입은 모든곳에서 합산이 안되야해 기록은 나오지만 그러다 카드정산기에서
+확인을해서 계좌로 변경이 되면 이때 합산되도록 이렇게 확인이되면
+메모에 입금완료라고 추가할수 있나?"
+
+사용자 확인 사항(진행 전 질문):
+- "예정" 결제방법으로 등록된 수입은 홈 탭의 기본 거래 목록(일반
+  내역)에도 그대로 보임(기존 '비정산'처럼 목록 자체를 숨기지 않음) —
+  단 잔액/수입 합계·정산(일간·주간·월간·연간)·예산·계산기·내보내기 등
+  "합산"에서만 제외
+
+### 설계
+- 이미 검증된 `card_settlement_source_payment_methods` 테이블(카드
+  정산기에서 소스로 선택한 결제방법 목록)을 그대로 판정 기준으로
+  재사용 — 새 컬럼/테이블 불필요, 코드 변경만으로 해결
+- 서버 집계(정산 일/주/월/연, 내보내기)는 `unsettled = 0` 조건 옆에
+  `AND payment_method NOT IN (SELECT payment_method FROM
+  card_settlement_source_payment_methods WHERE user_id = ?)` 추가 —
+  예산(budget.ts)은 지출만 집계하는데 카드매출은 항상 수입이라 원천적으로
+  해당 없어 수정 불필요
+- 클라이언트 집계(SummaryCard 잔액/수입/지출, CategoryBreakdown 분류별
+  합계)는 이미 로그인 시 로드해둔 `isCardSettlementSourcePaymentMethod`
+  캐시로 해당 결제방법 거래를 필터링 후 합산 — 홈 탭 거래 목록
+  자체(TransactionList)는 그대로 두어 "기록은 나온다"를 만족
+- 확인(체크) 시 memo 필드에 "입금완료"를 이어붙이도록 handleConfirmSettlement
+  수정(기존 메모가 있으면 뒤에 이어붙임, 없으면 그대로 "입금완료")
+
+### 계획
+- `functions/lib/settlement.ts` — daily/weekly/monthly/annual 4개 함수의
+  5개 쿼리에 제외 조건 + userId 바인드 추가
+- `functions/api/export/index.ts` — 내보내기 쿼리에도 동일 제외 조건 추가
+- `src/components/SummaryCard.tsx`, `src/components/CategoryBreakdown.tsx`
+  — `isCardSettlementSourcePaymentMethod`로 클라이언트 집계 전 필터링
+- `src/components/CardSettlementView.tsx` — `handleConfirmSettlement`에서
+  `updateTransaction`에 `memo` 필드도 함께 전달(입금완료 이어붙이기)
+- 스키마/마이그레이션 변경 없음(기존 테이블만 재사용)
+- `wrangler pages dev` + Playwright로 "예정" 거래가 홈 목록엔 보이지만
+  잔액/수입 합계·월간정산·분류별 합계에서는 빠지는지, 카드정산기에서
+  확인 후엔 합계에 포함되고 메모에 "입금완료"가 추가되는지 검증
+- 89차에서 보류된 원격 D1 마이그레이션(027, 테이블/컬럼 rename)은
+  이번 작업과 무관하므로 이 작업 완료 후 별도로 다시 확인받고 진행
+
 ## 2026-07-22 (89차) — 카드 정산기 기준을 분류 → 결제방법으로 변경
 
 사용자 요청: "이제 카드정산기 수정좀할게 지금은 분류에서 분류로
