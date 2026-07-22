@@ -1,5 +1,36 @@
 # WORKLOG
 
+## 2026-07-23 (92차) — README 최신 기능/구조 반영 갱신
+
+사용자 요청: "지금 최신형황 기반으로 리드미 수정해줘"
+
+### 배경
+직전 README 전면 갱신(3658650) 이후 origin에 60개 이상 커밋이 쌓여 있었고
+(git pull로 로컬을 fast-forward), 그중 배송 탭, 카드 정산기 탭, 수입/지출
+계산기, 결제 방법 관리, 카드 말일 마감·결제 토글, GitHub Actions 자동배포 등
+다수 기능이 README에 전혀 반영되어 있지 않음을 확인.
+
+### 계획
+- `README.md` — 신규 기능 섹션 추가(수입/지출계산기, 배송, 카드 정산기),
+  기존 섹션 보강(결제 방법 관리, 카드 말일 토글, 스크롤 버튼, ConfirmDialog),
+  프로젝트 구조 트리 및 DB 스키마 섹션을 신규 API/lib/컴포넌트/테이블 반영,
+  배포 섹션에 GitHub Actions 자동배포 반영
+
+### 완료
+- [x] `README.md` 상단 소개 문구에 신규 기능 요약 추가
+- [x] "수입계산기 / 지출계산기", "배송", "카드 정산기" 기능 섹션 신규 작성
+- [x] "카드 관리" 절에 말일 마감·결제 토글 추가, "홈" 절에 결제 방법 관리
+  기능 추가, "다크모드 / 화면" 절에 스크롤 버튼·ConfirmDialog 추가
+- [x] 프로젝트 구조 트리에 categories/note-categories/merchants/
+  payment-methods/calc-selections/delivery-excluded-categories/
+  card-settlement-payment-methods/settings API, 신규 lib/컴포넌트/context 반영
+- [x] DB 스키마 섹션에 payment_methods, calc_selections,
+  delivery_excluded_categories, card_settlement_source_payment_methods 테이블 +
+  transactions.delivery_done 컬럼 추가
+- [x] 배포 섹션에 GitHub Actions(`deploy.yml`) main push 자동배포 안내 추가,
+  migrations 번호를 001~027로 갱신
+- 미완료 항목 없음
+
 ## 2026-07-22 (91차) — 배송 탭 목록에 메모 내용 표시 추가
 
 사용자 요청: "배송에 리스트나오잖아 여기 메모내용이 같이 나와야

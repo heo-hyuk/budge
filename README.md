@@ -1,7 +1,8 @@
 # 텅~ 장
 
 개인 웹 가계부 서비스(PWA). 카드 청구 기간 기반 정산, 고정지출 자동화, 카드 혜택 매칭,
-예산 관리, 메모장, 홈 화면 설치, 카드 정산 push 알림까지 지원합니다.
+예산 관리, 메모장, 홈 화면 설치, 카드 정산 push 알림에 더해 배송 조회·수입/지출
+개인화 계산기·자영업자용 카드매출 정산기까지 지원합니다.
 
 **배포 URL:** https://budget-3wb.pages.dev
 
@@ -37,6 +38,9 @@
 - 라이트/다크 테마 토글(헤더), `localStorage` 저장 + 시스템 설정 폴백
 - 데스크탑은 상시 사이드바, 모바일은 햄버거+드로어 메뉴 — 로고 클릭 시 홈으로 이동
 - 로고 파비콘 기반 PWA 아이콘, 홈 화면에 추가 유도 배너(iOS는 공유 버튼 안내로 대체)
+- 목록이 긴 화면에서 맨 위로/맨 아래로 스크롤 이동 버튼
+- 홈 화면 설치 PWA(standalone)에서는 `window.confirm()`이 무시되는 환경이 있어
+  앱 내 렌더링 확인 다이얼로그(`ConfirmDialog`)로 대체
 
 ### 홈 (거래 입력 / 목록)
 - 수입 / 지출 구분, 금액·분류·날짜·메모·구매처 입력
@@ -47,6 +51,8 @@
   방식, 순서 변경 포함) — 자유 입력 텍스트 필드 및 최근 사용 구매처
   자동완성과 별개로 공존
 - 결제 방법 선택 (현금 / 계좌이체 / 등록된 카드) + 카드 혜택 자동 매칭 제안
+- 결제 방법(현금·계좌이체 등) 직접 추가("+ 직접입력") 및 삭제 관리(톱니 아이콘,
+  분류와 동일 방식) — 지출/수입 각자 독립적으로 관리, 순서 변경 포함
 - 최근 사용한 구매처 자동완성(선택 시 대표 분류 자동 채움)
 - 빠른 입력 템플릿(즐겨찾기 칩으로 폼 한번에 채우기, 관리/재정렬)
 - 직전 거래 복제(날짜만 오늘로 재설정)
@@ -70,8 +76,41 @@
 - 카드별 청구 기간(마감일 기준) 실출금 집계, 출금일/거래일 기준 선택
 - 12개월 수입·지출 바 차트 및 월별 숫자 표
 
+### 수입계산기 / 지출계산기
+- 원하는 분류만 골라 합산한 "개인화" 월 합계를 보는 화면(분류별 합계와 별개로,
+  일부 분류만 뽑아 따로 보고 싶을 때 사용)
+- 수입계산기: 기본 전부 미선택 상태에서 포함할 수입 분류 칩만 골라 켬(예:
+  영업수익 + 급여). 차감할 항목은 수입 등록 시 금액 앞에 `-`를 붙이면 자동 반영
+- 지출계산기: 기본 전부 포함 상태에서 제외하고 싶은 지출 분류만 꺼서 뺌(전체
+  선택 후 제외 방식)
+- 선택된 분류의 합계 요약 + 월정산과 동일한 날짜별 표(분류별 열 + 일별 합계)
+- 비정산 거래는 이미 서버 집계에서 제외되므로 이 화면에서 별도 처리 불필요
+
+### 배송
+- 택배 등 배송 여부를 추적하고 싶은 지출 거래만 모아보는 목록(기본 전체 지출
+  분류 포함, 지출계산기와 같은 방식으로 원치 않는 분류는 칩으로 제외)
+- 홈 탭과 동일한 날짜별 개별 거래 목록 + 거래마다 "배송완료" 체크박스 — 체크해도
+  목록에서 사라지지 않고 흐리게/취소선으로만 표시되어 오는 중인 항목과 구분
+- 메모(구매처 아래)도 함께 표시해 어떤 주문인지 바로 확인 가능
+
+### 카드 정산기 (자영업자용)
+- 카드매출을 별도 결제 방법(예: "예정")으로 등록해두면, 등록일 + 2일 뒤 예상
+  입금일과 함께 정산 대기 목록에 날짜별로 표시
+- "카드매출 결제방법"(추적 대상, 복수 선택 가능)과 "확인 시 변경할 결제방법"
+  (예: 계좌이체)을 화면에서 직접 선택 — 결제 방법은 미리 결제 방법 관리에서
+  만들어둠
+- 통장 입금을 확인하고 체크하면 해당 거래의 결제 방법이 목표 결제방법으로 즉시
+  바뀌며(홈 탭 수입에도 반영) 메모에 "입금완료"가 자동으로 남고 정산 대기
+  목록에서는 빠짐
+- 카드매출 결제방법으로 등록된 수입은 정산 전엔 홈 탭 거래 목록엔 그대로
+  보이지만, 잔액/정산(일·주·월·연)/예산/계산기/엑셀 내보내기 등 모든 합산에서는
+  완전히 제외됨(체크 전까지는 "미확정 매출"로 취급)
+
 ### 카드 관리
 - 카드 등록·수정·삭제, 결제일 입력 시 마감일 자동 제안
+- "매달 1일~말일 마감·말일 결제" 토글 — 청구 기간이 달력월과 그대로 일치하는
+  카드(체크카드, 일부 후불 결제 등)는 마감일/결제일을 매번 31로 입력할 필요 없이
+  한 번에 설정. 끄면 직전에 입력했던 수동 값으로 복원
 - 카드 상품 프리셋 선택(삼성 taptap O / KB 쿠팡와우 / 롯데 LOCA LIKIT / NH zgm.the
   pay) — 혜택 규칙 자동 등록 + 카드사 공식 디자인 이미지(R2) 표시, 미선택 시 색상
   기반 비주얼로 폴백
@@ -125,16 +164,22 @@ budget/
 │   │   ├── auth/                     # register / login / logout / me / password
 │   │   ├── transactions/             # GET(검색·필터)/POST, PATCH/DELETE
 │   │   ├── cards/                    # 카드 CRUD
-│   │   ├── benefits/                 # 카드 혜택 CRUD + match(자동 매칭)
+│   │   ├── benefits/                 # 카드 혜택 CRUD([id].ts) + match.ts(자동 매칭)
 │   │   ├── benefit-groups/           # 혜택 통합 한도 그룹 CRUD
 │   │   ├── recurring/                # 고정 수입/지출 CRUD
 │   │   ├── budgets/                  # 예산 CRUD + 현황 계산
 │   │   ├── notes/                    # 메모장 CRUD(이미지 첨부는 multipart/form-data)
 │   │   │   └── image/[id].ts         # 첨부 이미지 조회 전용(R2 스트리밍, 본인 메모만)
 │   │   ├── templates/                # 빠른 입력 템플릿 CRUD
-│   │   ├── settlement/               # daily/weekly/monthly/annual 정산 조회
+│   │   ├── settlement/                          # daily/weekly/monthly/annual 정산 조회
+│   │   ├── categories/, note-categories/         # 거래/메모 분류 오버라이드 CRUD
+│   │   ├── merchants/                            # index.ts(구매처 관리 CRUD) + recent.ts(자동완성)
+│   │   ├── payment-methods/                      # 결제 방법 관리 CRUD
+│   │   ├── calc-selections/                      # 수입/지출 계산기 선택 칩 CRUD
+│   │   ├── delivery-excluded-categories/         # 배송 탭 제외 분류 CRUD
+│   │   ├── card-settlement-payment-methods/      # 카드 정산기 소스 결제방법 CRUD
+│   │   ├── settings/                             # 계정별 단일값 설정(정산 기준 등)
 │   │   ├── push/                     # subscribe / unsubscribe (알림 구독)
-│   │   ├── merchants/recent.ts       # 최근 구매처 자동완성
 │   │   └── export/                   # 엑셀 내보내기용 데이터
 │   └── lib/
 │       ├── auth.ts                   # PBKDF2 해싱, 쿠키 유틸, 닉네임 검증
@@ -142,6 +187,7 @@ budget/
 │       ├── benefitMatcher.ts         # 카드 혜택 매칭 로직
 │       ├── settlement.ts             # 일/주/월/연 정산 계산
 │       ├── recurring.ts              # 고정지출 자동 생성
+│       ├── categories.ts, noteCategories.ts, paymentMethods.ts  # 분류/결제방법 오버라이드 공통 로직
 │       └── noteImages.ts             # 메모 첨부 이미지 타입/용량 검증(5MB, JPEG/PNG/WEBP/GIF)
 ├── src/
 │   ├── components/
@@ -151,14 +197,19 @@ budget/
 │   │   ├── OverviewView.tsx, DailySettlement.tsx, WeeklySettlement.tsx,
 │   │   │   MonthlySettlementTable.tsx, AnnualSettlementTable.tsx
 │   │   ├── MonthlyReport.tsx, AnnualReport.tsx
+│   │   ├── UnsettledView.tsx, CategoryCalculator.tsx(수입/지출계산기 공용)
+│   │   ├── DeliveryView.tsx, CardSettlementView.tsx
 │   │   ├── CardManager.tsx, RecurringManager.tsx, BudgetManager.tsx
 │   │   ├── NotesView.tsx, SearchView.tsx, ExportButton.tsx
 │   │   ├── NotificationSettings.tsx, InstallPrompt.tsx
+│   │   ├── ReorderableChipList.tsx   # 분류/구매처/결제방법/메모분류 공용 칩 관리 UI(드래그 재정렬)
+│   │   ├── ScrollButtons.tsx, ConfirmDialog.tsx
 │   │   └── Toast.tsx, LoadingSpinner.tsx
 │   ├── contexts/
 │   │   ├── AuthContext.tsx           # 로그인 상태 전역 관리
 │   │   ├── ThemeContext.tsx          # 라이트/다크 테마
-│   │   └── ToastContext.tsx          # 토스트 알림(액션 버튼 지원, Undo 등)
+│   │   ├── ToastContext.tsx          # 토스트 알림(액션 버튼 지원, Undo 등)
+│   │   └── ConfirmContext.tsx        # PWA standalone용 커스텀 confirm 다이얼로그
 │   ├── lib/
 │   │   ├── api.ts                    # API 호출 함수 (ApiError 공통 처리)
 │   │   ├── billing.ts                # 카드 청구 기간 계산
@@ -166,14 +217,20 @@ budget/
 │   │   ├── cardBenefitPresets.ts     # 카드 상품 프리셋(혜택 규칙 + 이미지 URL)
 │   │   ├── push.ts, pushConfig.ts    # Push 구독 헬퍼 / VAPID 공개키
 │   │   ├── nickname.ts               # 닉네임 검증 규칙
-│   │   ├── categories.ts, noteCategories.ts
+│   │   ├── categories.ts, noteCategories.ts, merchants.ts, paymentMethods.ts  # 서버 동기화 분류/구매처/결제방법 캐시
+│   │   ├── calcSelections.ts         # 수입/지출계산기 선택 칩 캐시
+│   │   ├── deliveryCategories.ts     # 배송 탭 제외 분류 캐시
+│   │   ├── cardSettlementPaymentMethods.ts  # 카드 정산기 소스 결제방법 캐시
+│   │   ├── settings.ts               # 계정별 단일값 설정 캐시(정산 기준, 카드 정산기 목표 결제방법)
+│   │   ├── settlementFilter.ts       # 정산 표 분류 필터 헬퍼
+│   │   ├── legacyMigration.ts        # 구버전 localStorage 분류/설정 → 서버 1회성 이전
 │   │   ├── exportExcel.ts
 │   │   └── format.ts
 │   ├── sw.ts                         # 커스텀 Service Worker(프리캐시 + push 핸들러)
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~022, schema.sql과 항상 동기화
+├── migrations/                       # 001~027, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -191,7 +248,7 @@ cards                 -- id, name, color, billing_day, closing_day, benefits,
 transactions           -- id, type, category, amount, memo, date, merchant,
                        --   payment_method, card_id, recurring_id,
                        --   original_amount, discount_amount, benefit_id,
-                       --   cashback_amount, unsettled, user_id
+                       --   cashback_amount, unsettled, delivery_done, user_id
 recurring_transactions -- id, user_id, name, type, category, amount, ...,
                        --   day_of_month, start_date, end_date, last_generated_date, active
 card_benefits          -- id, user_id, card_id, name, category, merchant_pattern,
@@ -212,6 +269,14 @@ note_categories        -- id, user_id, name, removed_default, sort_order (메모
 user_settings          -- user_id, key, value (계정별 단일값 설정 — 카드 지출 집계
                        --   기준 등, PRIMARY KEY(user_id, key))
 merchants              -- id, user_id, name, sort_order (구매처/판매처 관리 목록, 기본값 없는 단순 커스텀 목록)
+payment_methods        -- id, user_id, type, name, removed_default, sort_order
+                       --   (결제 방법 커스텀 추가/기본 삭제/순서, categories와 동일 구조, 지출/수입 독립)
+calc_selections        -- id, user_id, type, category, sign (수입/지출계산기에서 선택("탭")한
+                       --   분류 칩만 행으로 저장, 기본값 없음)
+delivery_excluded_categories        -- id, user_id, category (배송 탭에서 제외한 지출 분류,
+                       --   기본 전체 포함 · exclude 전용)
+card_settlement_source_payment_methods  -- id, user_id, payment_method (카드 정산기에서
+                       --   추적 대상으로 선택한 수입 결제방법, 기본 전체 미선택)
 ```
 
 전체 정의는 `schema.sql` 참고. 스키마 변경 시 `migrations/`에 새 파일을 추가하고
@@ -247,11 +312,15 @@ npm run lint
 
 ## 배포
 
+`main` 브랜치에 push하면 GitHub Actions(`.github/workflows/deploy.yml`)가
+자동으로 빌드 후 Cloudflare Pages에 배포합니다(`CLOUDFLARE_API_TOKEN` /
+`CLOUDFLARE_ACCOUNT_ID` 레포 시크릿 필요). 수동 배포도 가능:
+
 ```bash
-# 빌드 + Cloudflare Pages 배포 (메인 앱)
+# 빌드 + Cloudflare Pages 배포 (메인 앱, 수동)
 npm run deploy
 
-# 원격 D1 마이그레이션 실행
+# 원격 D1 마이그레이션 실행 (스키마 변경 시 push와 별개로 직접 실행 필요)
 npx wrangler d1 execute budget-db --remote --file=./migrations/파일명.sql
 ```
 
