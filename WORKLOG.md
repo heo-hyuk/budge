@@ -54,6 +54,32 @@
 - 원격(production) D1에 마이그레이션을 실제로 적용하는 것은 운영 DB를
   건드리는 작업이라 로컬 검증 완료 후 사용자에게 별도로 확인받고 진행
 
+### 완료
+- [x] `migrations/025_add_delivery.sql` 작성 + `schema.sql`에도 동일
+  내용 반영(transactions.delivery_done 컬럼, delivery_excluded_categories
+  테이블)
+- [x] `functions/api/delivery-excluded-categories/index.ts` 신규
+  (GET/POST/DELETE)
+- [x] `functions/api/transactions/[id].ts` PATCH에 `delivery_done` 필드 추가
+- [x] `src/types.ts`, `src/lib/api.ts`, `src/lib/deliveryCategories.ts`
+  (exclude 전용 캐시), `src/components/DeliveryView.tsx` 신규 작성
+- [x] `src/App.tsx` — `delivery` 탭 추가(Truck 아이콘), 월 네비게이션
+  조건 포함, 로그인 시 `loadDeliveryExcludedCategories()` 호출 추가
+- [x] `src/contexts/AuthContext.tsx` 로그아웃 시
+  `resetDeliveryExcludedCategories()` 호출 추가
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] 로컬 D1에 `migrations/025_add_delivery.sql` 직접 적용(스키마의
+  `CREATE TABLE IF NOT EXISTS`만으로는 이미 존재하는 로컬
+  transactions 테이블에 새 컬럼이 안 생기므로 마이그레이션 파일을
+  별도로 실행)
+- [x] `wrangler pages dev` + Playwright로 검증: 배송 탭 첫 진입 시
+  지출 분류 9개 전부 기본 포함 상태로 날짜별 거래 목록에 표시됨,
+  식비 칩을 꺼도 쇼핑 거래는 그대로 유지되고 식비 거래만 목록에서
+  빠짐, 배송완료 체크 시 흐리게+취소선 표시되며 목록에서 사라지지
+  않음, 새로고침 후에도 체크 상태 유지(D1 동기화), 지출계산기 탭의
+  분류 선택 상태는 배송 탭과 전혀 안 섞이고 독립적으로 유지됨을 확인
+- [ ] 원격(production) D1 마이그레이션 적용은 사용자 확인 후 진행 예정
+
 ## 2026-07-22 (86차) — 메모 첨부 사진 보기에 닫기 버튼/더블클릭 닫기 추가
 
 사용자 요청: "메모탭에 사진 첨부 기능이 있자나 근데 사진을 열고 닫으려면

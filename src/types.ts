@@ -16,6 +16,7 @@ export interface Transaction {
   benefit_id: string       // 적용된 혜택 규칙 ID
   cashback_amount: number  // 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, 정보 표시 전용)
   unsettled: number        // 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외)
+  delivery_done: number    // 1 = 배송완료 체크(배송 탭 전용)
   created_at: string
 }
 
@@ -45,6 +46,7 @@ export interface UpdateTransaction {
   payment_method?: string
   card_id?: string
   unsettled?: boolean
+  delivery_done?: boolean
 }
 
 export interface Card {

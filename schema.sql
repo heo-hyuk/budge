@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~024 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~025 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   benefit_id TEXT DEFAULT '',            -- 적용된 카드 혜택 규칙 ID
   cashback_amount INTEGER DEFAULT 0,     -- 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, migration 011)
   unsettled INTEGER NOT NULL DEFAULT 0,  -- 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외, migration 021)
+  delivery_done INTEGER NOT NULL DEFAULT 0,  -- 1 = 배송완료 체크(배송 탭 전용, migration 025)
   created_at TEXT NOT NULL
 );
 
@@ -277,3 +278,16 @@ CREATE TABLE IF NOT EXISTS calc_selections (
 );
 
 CREATE INDEX IF NOT EXISTS idx_calc_selections_user ON calc_selections(user_id);
+
+-- ── 배송 탭 전용 분류 제외 선택 (migration 025) ───────────────────
+-- 지출계산기(calc_selections)와는 완전히 독립된 상태. exclude 전용이라
+-- sign/type 개념 없이 "제외된 분류명"만 저장(기본은 전체 포함)
+CREATE TABLE IF NOT EXISTS delivery_excluded_categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_delivery_excluded_categories_user ON delivery_excluded_categories(user_id);

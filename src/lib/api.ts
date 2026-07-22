@@ -483,3 +483,24 @@ export async function removeCalcSelectionApi(type: TransactionType, category: st
     '선택을 해제하지 못했습니다'
   )
 }
+
+// ── 배송 탭 분류 제외 목록 API ────────────────────────────
+// 지출계산기(calc-selections)와는 완전히 독립된 상태. exclude 전용이라
+// 기본은 전체 포함, 여기 저장된 분류만 배송 탭 목록에서 제외됨
+
+export async function fetchDeliveryExcludedCategories(): Promise<string[]> {
+  const body = await apiRequest<{ data: string[] }>('/api/delivery-excluded-categories', undefined, '배송 분류 설정을 불러오지 못했습니다')
+  return body.data
+}
+
+export async function addDeliveryExcludedCategory(category: string): Promise<void> {
+  await apiRequest('/api/delivery-excluded-categories', jsonInit('POST', { category }), '분류를 제외하지 못했습니다')
+}
+
+export async function removeDeliveryExcludedCategory(category: string): Promise<void> {
+  await apiRequest(
+    `/api/delivery-excluded-categories?category=${encodeURIComponent(category)}`,
+    { method: 'DELETE' },
+    '분류를 다시 포함하지 못했습니다'
+  )
+}
