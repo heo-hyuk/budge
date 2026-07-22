@@ -44,6 +44,7 @@ function NotesView({ month }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const [editTarget, setEditTarget]   = useState<EditTarget | null>(null)
+  const [viewingNote, setViewingNote] = useState<Note | null>(null) // 첨부 사진 확대 보기(모달) 대상
   const [categories, setCategories]   = useState(() => getNoteCategories())
   const [category, setCategory]       = useState(categories[0])
   const [content, setContent]         = useState('')
@@ -421,13 +422,13 @@ function NotesView({ month }: Props) {
           </span>
           <p className={`mt-1 whitespace-pre-wrap break-words text-neutral-800 dark:text-neutral-200 ${card ? 'text-base leading-relaxed' : 'text-sm'}`}>{note.content}</p>
           {note.image_key && (
-            <a href={noteImageUrl(note.id)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block">
+            <button type="button" onClick={() => setViewingNote(note)} className="mt-2 block">
               <img
                 src={noteImageUrl(note.id)}
                 alt="첨부 이미지"
                 className={`rounded-lg border border-neutral-200 dark:border-neutral-800 object-cover ${card ? 'max-h-40' : 'max-h-24'}`}
               />
-            </a>
+            </button>
           )}
         </div>
         <div className="flex shrink-0 gap-1">
@@ -578,6 +579,31 @@ function NotesView({ month }: Props) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 첨부 사진 확대 보기 — 배경 클릭/X 버튼/더블클릭 모두 닫힘 */}
+      {viewingNote && (
+        <div
+          role="presentation"
+          onClick={() => setViewingNote(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+        >
+          <button
+            type="button"
+            onClick={() => setViewingNote(null)}
+            aria-label="이미지 닫기"
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+          >
+            <X size={22} />
+          </button>
+          <img
+            src={noteImageUrl(viewingNote.id)}
+            alt="첨부 이미지 원본"
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={() => setViewingNote(null)}
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
         </div>
       )}
     </div>

@@ -27,6 +27,24 @@
   탭→확대 뷰 진입, X 버튼 클릭 시 닫힘, 배경 클릭 시 닫힘, 더블클릭
   시 닫힘 모두 검증
 
+### 완료
+- [x] `src/components/NotesView.tsx` — `viewingNote` 상태 추가, 첨부
+  이미지 썸네일을 `<a target="_blank">`에서 `<button
+  onClick={() => setViewingNote(note)}>`로 교체
+- [x] 전체화면 모달 뷰어 추가: 배경(`role="presentation"` +
+  `onClick`)·우상단 X 버튼·이미지 더블클릭 세 가지 모두 닫기 동작,
+  이미지 단일 클릭은 `stopPropagation`으로 오작동(실수로 안 닫힘)
+  방지
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright(데스크톱 Chromium)로 검증:
+  썸네일 클릭→모달 오픈, X 버튼/배경 클릭/더블클릭 각각 닫힘 확인,
+  모달 안 이미지를 한 번만 클릭했을 때는 안 닫히는 것도 확인(오작동
+  방지 정상 동작)
+- [x] Playwright `devices['iPhone 13']`(터치 기기 에뮬레이션)로도
+  탭으로 모달 열기·X 버튼 탭으로 닫기 정상 동작 확인(85차에서 터치
+  전용 버그가 있었던 만큼 이번에도 별도 검증)
+- 미완료 항목 없음
+
 ## 2026-07-22 (85차) — 메모 목록 보기에서 수정 버튼이 터치 기기에서 안 보이는 문제 수정
 
 사용자 요청: "메모 탭에서 메모를 등록하면 추가는 되는데 기존 메모 수정이
