@@ -1,5 +1,73 @@
 # WORKLOG
 
+## 2026-07-22 (88차) — "카드 정산기" 탭 신규 추가 (자영업자용 카드매출 정산 확인)
+
+사용자 요청: "자영업자들을 위한 기능추가 할건데 탭이름은 카드 정산기
+수입 칩중에서 내가 선택할 칩을 추가하고 이칩을 선택한 항목들은
+카드정산기 탭에 보여줘야해 여기에 보여줄 칩은 카드정산기 탭에서
+선택하도록 그리고 여기서 등록한 날기준으로 +2일 뒤에 카드정산금이
+통장에 들어오거든? 그럼 내가 그 금액을 맞는지 확인하고 체크를 하면
+홈에 수입에 내가 원하는 칩으로 변경되도록 해주면 되는거야 근데 이거는
+내가 원하는 칩을 선택하도록 기능을 만들어 줘"
+
+사용자 확인 사항(진행 전 질문):
+- 카드매출(정산 대기)로 추적할 수입 분류는 여러 개 동시 선택 가능
+- 체크 시 바뀔 "목표 분류"는 탭 설정에서 하나로 고정(거래마다 따로
+  지정하지 않음)
+
+### 설계
+- 소스 분류 선택(카드매출로 추적할 수입 분류, 여러 개, 기본 전체
+  미선택·옵트인)은 배송 탭의 exclude 방식과 반대되는 "include" 방식
+  — 완전히 새로운 테이블 `card_settlement_source_categories`로 분리
+  (다른 탭 선택 상태와 절대 안 섞이게)
+- 목표 분류(체크 시 바뀔 분류, 계정당 하나)는 이미 있는 범용
+  `user_settings` 키-값 테이블을 재사용(schema.sql에 "카드 지출 집계
+  기준 등 계정당 값 하나뿐인 설정을 위한 범용 key-value"라고 명시된
+  용도에 정확히 부합) — 새 테이블 불필요, `functions/api/settings`의
+  허용 key 목록에 `cardSettlementTargetCategory` 추가만 하면 됨.
+  단, 기존 SETTINGS 레지스트리는 고정 enum(values 배열)만 검증하므로
+  자유 분류명을 받을 수 있게 "values: null = 자유 문자열" 케이스를
+  하나 추가해야 함
+- 체크 시 실제로는 별도의 "확인 완료" 플래그를 추가하지 않고, 해당
+  거래의 category를 목표 분류로 즉시 변경(기존 PATCH
+  /api/transactions/:id 재사용) — 그러면 다음 렌더에서 소스 분류
+  필터에 더 이상 안 걸려 자연히 목록에서 사라짐(요청한 "체크하면
+  ...변경" 동작과 "홈 수입에 반영"을 정확히 동시에 만족)
+- 예상 입금일은 등록일 + 2일을 화면에 표시만(별도 알림/자동 처리 없음)
+- 화면 구조는 배송 탭과 동일하게 자체적으로 fetchTransactions 호출하는
+  독립 컴포넌트, 날짜별 개별 거래 목록 스타일 유지(수입이라 파란색 계열)
+
+### 계획
+- `migrations/026_add_card_settlement.sql` + `schema.sql` 동기화:
+  `card_settlement_source_categories` 테이블 신설(user_settings는
+  스키마 변경 불필요)
+- `functions/api/card-settlement-categories/index.ts` 신규
+  (GET/POST/DELETE, delivery-excluded-categories와 동일 패턴)
+- `functions/api/settings/index.ts` — SETTINGS 레지스트리에
+  `cardSettlementTargetCategory`(자유 문자열) 추가, 검증 로직에
+  "values: null = 비어있지 않은 문자열이면 통과" 케이스 추가
+- `src/lib/api.ts` — card-settlement-categories 조회/추가/삭제 함수,
+  `UserSettings`에 `cardSettlementTargetCategory` 필드 추가
+- `src/lib/cardSettlementCategories.ts` 신규 — deliveryCategories.ts와
+  비슷한 캐시 패턴이나 include 전용(반대 의미)
+- `src/lib/settings.ts` — `getCardSettlementTargetCategory`/
+  `setCardSettlementTargetCategory` 추가
+- `src/components/CardSettlementView.tsx` 신규 — 소스 분류 칩(여러 개
+  선택) + 목표 분류 칩(하나만 선택) + 날짜별 거래 목록(체크 시 즉시
+  category 변경 + 목록에서 사라짐)
+- `src/App.tsx` — `Tab`에 `'cardSettlement'` 추가, TABS에 "카드
+  정산기" 탭 항목, 월 네비게이션 표시 조건에도 포함, 로그인 시
+  `loadCardSettlementSourceCategories()` 호출 추가
+- `src/contexts/AuthContext.tsx` — 로그아웃 시
+  `resetCardSettlementSourceCategories()` 호출 추가
+- 로컬 `wrangler d1 execute --local`로 마이그레이션 반영 후
+  `wrangler pages dev` + Playwright로 소스 분류 선택→목록 표시,
+  목표 분류 설정, 체크 시 실제 category 변경 및 목록에서 사라짐,
+  홈 탭에서 바뀐 분류로 보이는지, 새로고침 후 소스/목표 설정 유지
+  검증
+- 원격(production) D1 마이그레이션은 로컬 검증 완료 후 사용자에게
+  별도로 확인받고 진행
+
 ## 2026-07-22 (87차) — "배송" 탭 신규 추가 (배송완료 체크 기능)
 
 사용자 요청: "지출계산기와 같은 형태로 배송탭을 하나 만들어줘 기술형태는
