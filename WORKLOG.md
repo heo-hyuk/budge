@@ -97,7 +97,10 @@
     게 그 앞에 있는 "카드매출 분류" 섹션의 같은 이름 칩을 잘못 누르는
     문제를 발견 — `header.nextElementSibling`으로 정확히 스코프를
     좁혀 재검증 완료(앱 코드 문제 아님, 테스트 스크립트만 수정)
-- [ ] 원격(production) D1 마이그레이션 적용은 사용자 확인 후 진행 예정
+- [x] 사용자 확인 후 원격(production) D1에
+  `wrangler d1 execute budget-db --remote --file=./migrations/026_add_card_settlement.sql`
+  실행 완료(2개 쿼리 정상 처리, 새 테이블만 추가되고 기존 데이터 변경 없음)
+- 미완료 항목 없음
 
 ## 2026-07-22 (87차) — "배송" 탭 신규 추가 (배송완료 체크 기능)
 
