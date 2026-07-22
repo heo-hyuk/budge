@@ -44,6 +44,28 @@
 - 89차에서 보류된 원격 D1 마이그레이션(027, 테이블/컬럼 rename)은
   이번 작업과 무관하므로 이 작업 완료 후 별도로 다시 확인받고 진행
 
+### 완료
+- [x] `functions/lib/settlement.ts` — `EXCLUDE_PENDING_SETTLEMENT_SQL`
+  상수 정의 후 daily/weekly/monthly/annual 4개 함수의 5개 쿼리 전부에
+  적용(+userId 바인드 추가)
+- [x] `functions/api/export/index.ts` — 내보내기 쿼리에도 동일 제외
+  조건 추가
+- [x] `src/components/SummaryCard.tsx`, `src/components/CategoryBreakdown.tsx`
+  — `isCardSettlementSourcePaymentMethod`로 합산 전 필터링(목록
+  표시용 원본 transactions는 그대로 유지)
+- [x] `src/components/CardSettlementView.tsx` — 확인 시 `memo`에
+  "입금완료" 자동 추가(기존 메모 있으면 뒤에 이어붙임), 안내 문구도
+  업데이트
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과(스키마 변경 없어
+  마이그레이션 불필요)
+- [x] `wrangler pages dev` + Playwright로 검증: "예정" 결제방법으로
+  등록한 50,000원 수입이 홈 탭 거래 목록엔 정상 표시되지만 잔액/수입
+  요약(200,000원만 반영)과 분류별 합계(200,000원만)에서는 정확히
+  제외됨을 확인. 카드정산기에서 목표를 "계좌이체"로 설정하고 확인
+  체크 시 결제방법이 바뀌며 메모에 "입금완료"가 추가되고, 홈 탭
+  요약이 즉시 250,000원(두 거래 합산)으로 갱신됨을 확인
+- 미완료 항목 없음(원격 마이그레이션은 89차 항목으로 별도 진행)
+
 ## 2026-07-22 (89차) — 카드 정산기 기준을 분류 → 결제방법으로 변경
 
 사용자 요청: "이제 카드정산기 수정좀할게 지금은 분류에서 분류로

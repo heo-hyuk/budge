@@ -27,7 +27,10 @@ const SETTLEMENT_DELAY_DAYS = 2
  * 자연히 빠지게 한다(별도의 "확인 완료" 플래그 없이 결제방법 자체를 소스/목표
  * 필터로 씀). 소스 결제방법(추적 대상)/목표 결제방법(체크 시 바뀔 값) 둘 다 이
  * 탭 안에서 직접 선택한다("예정"/"계좌이체" 등은 결제 방법 관리(+ 직접입력)로
- * 미리 만들어두면 됨).
+ * 미리 만들어두면 됨). 소스 결제방법으로 등록된 수입은 정산 전엔 홈 탭 거래
+ * 목록엔 그대로 보이되 잔액/정산/예산/계산기/내보내기 등 모든 합산에선 제외된다
+ * (functions/lib/settlement.ts, SummaryCard, CategoryBreakdown 참고). 확인
+ * 시엔 결제방법 변경과 함께 메모에 "입금완료"도 자동으로 남긴다.
  */
 function CardSettlementView({ month }: Props) {
   const { showToast } = useToast()
@@ -78,7 +81,10 @@ function CardSettlementView({ month }: Props) {
     if (!target) { showToast('먼저 확인 시 변경할 결제방법을 설정해주세요', 'error'); return }
     setConfirmingId(tx.id)
     try {
-      await updateTransaction(tx.id, { payment_method: target })
+      await updateTransaction(tx.id, {
+        payment_method: target,
+        memo: tx.memo ? `${tx.memo} 입금완료` : '입금완료',
+      })
       setTransactions((prev) => prev.filter((t) => t.id !== tx.id))
       showToast(`'${target}'(으)로 변경했습니다`)
     } catch (err) {
@@ -106,8 +112,9 @@ function CardSettlementView({ month }: Props) {
         <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200">카드 정산기</h2>
         <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
           카드매출(정산 대기) 결제방법을 선택하면 그 결제방법으로 등록된 수입이 날짜별로
-          아래 표시돼요. 등록일 기준 {SETTLEMENT_DELAY_DAYS}일 뒤 입금 예정 금액을
-          확인하고 체크하면 미리 정해둔 결제방법으로 바뀌어요.
+          아래 표시돼요(정산 전엔 홈 화면 목록엔 보여도 합계에선 제외돼요). 등록일 기준
+          {SETTLEMENT_DELAY_DAYS}일 뒤 입금 예정 금액을 확인하고 체크하면 미리 정해둔
+          결제방법으로 바뀌고 메모에 "입금완료"가 남아요.
         </p>
       </UiCard>
 

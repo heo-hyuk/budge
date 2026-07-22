@@ -30,8 +30,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     FROM transactions t
     LEFT JOIN cards c ON t.card_id = c.id AND c.user_id = t.user_id
     WHERE t.user_id = ? AND t.unsettled = 0
+      AND t.payment_method NOT IN (SELECT payment_method FROM card_settlement_source_payment_methods WHERE user_id = ?)
   `
-  const binds: unknown[] = [userId]
+  const binds: unknown[] = [userId, userId]
 
   if (startDate) { sql += ' AND t.date >= ?'; binds.push(startDate) }
   if (endDate)   { sql += ' AND t.date <= ?'; binds.push(endDate) }

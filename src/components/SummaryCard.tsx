@@ -1,4 +1,5 @@
 import Card from './ui/Card'
+import { isCardSettlementSourcePaymentMethod } from '../lib/cardSettlementPaymentMethods'
 import { formatWon } from '../lib/format'
 import type { Transaction } from '../types'
 
@@ -8,9 +9,13 @@ interface Props {
 }
 
 function SummaryCard({ transactions, month }: Props) {
+  // 카드정산기에서 소스로 선택한 결제방법(예: "예정")으로 등록된 수입은 아직 실제
+  // 입금 확인 전이라 잔액/수입/지출 합산에서 제외(목록 자체엔 그대로 보임)
+  const settled = transactions.filter((t) => !isCardSettlementSourcePaymentMethod(t.payment_method || '현금'))
+
   // 선택된 월의 수입/지출/잔액 계산
-  const income  = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const income  = settled.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expense = settled.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const balance = income - expense
 
   const [year, mon] = month.split('-')

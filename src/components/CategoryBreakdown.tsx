@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isCardSettlementSourcePaymentMethod } from '../lib/cardSettlementPaymentMethods'
 import { formatWon } from '../lib/format'
 import type { Transaction, TransactionType } from '../types'
 
@@ -10,10 +11,12 @@ interface Props {
 function CategoryBreakdown({ transactions, month }: Props) {
   const [type, setType] = useState<TransactionType>('expense')
 
-  // 분류별 합계 집계 (이미 월 필터된 transactions 사용)
+  // 분류별 합계 집계 (이미 월 필터된 transactions 사용) — 카드정산기 소스 결제방법(예:
+  // "예정")으로 등록된 수입은 아직 입금 확인 전이라 합계에서 제외(목록엔 그대로 보임)
   const totals = new Map<string, number>()
   for (const tx of transactions) {
     if (tx.type !== type) continue
+    if (isCardSettlementSourcePaymentMethod(tx.payment_method || '현금')) continue
     totals.set(tx.category, (totals.get(tx.category) ?? 0) + tx.amount)
   }
 

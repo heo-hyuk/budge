@@ -1,5 +1,12 @@
 /// <reference types="@cloudflare/workers-types" />
 
+// 카드 정산기에서 소스로 선택한 결제방법(예: "예정")으로 등록된 수입은 아직 실제
+// 입금이 확인되지 않은 상태라 정산·예산·잔액·계산기 등 모든 합산에서 제외한다
+// (거래 목록 자체에는 그대로 보임 — 그건 /api/transactions가 처리, 여기 정산
+// 집계만 제외). 카드정산기에서 확인하면 payment_method가 바뀌어 자연히 합산에 포함됨
+const EXCLUDE_PENDING_SETTLEMENT_SQL =
+  'AND payment_method NOT IN (SELECT payment_method FROM card_settlement_source_payment_methods WHERE user_id = ?)'
+
 export interface SettlementTransaction {
   id: string
   type: 'income' | 'expense'
@@ -37,16 +44,16 @@ export async function calculateDailySettlement(
   date: string,  // 'YYYY-MM-DD'
 ): Promise<DailySettlementResult> {
   const { results: priorResults } = await db
-    .prepare('SELECT type, amount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0')
-    .bind(userId, date)
+    .prepare(`SELECT type, amount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL}`)
+    .bind(userId, date, userId)
     .all<{ type: 'income' | 'expense'; amount: number }>()
 
   const prev_balance = (priorResults ?? [])
     .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
 
   const { results: todayResults } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date = ? AND unsettled = 0 ORDER BY created_at ASC')
-    .bind(userId, date)
+    .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date = ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY created_at ASC`)
+    .bind(userId, date, userId)
     .all<SettlementTransaction>()
 
   const todayRows = todayResults ?? []
@@ -110,8 +117,8 @@ export async function calculateWeeklySettlement(
   const monthStart = `${weekStart.slice(0, 7)}-01`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
-    .bind(userId, monthStart, weekEnd)
+    .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+    .bind(userId, monthStart, weekEnd, userId)
     .all<SettlementTransaction>()
 
   const rows = results ?? []
@@ -171,8 +178,8 @@ export async function calculateMonthlySettlement(
   const monthEnd = `${month}-${String(totalDays).padStart(2, '0')}`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
-    .bind(userId, monthStart, monthEnd)
+    .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+    .bind(userId, monthStart, monthEnd, userId)
     .all<SettlementTransaction>()
 
   const rows = results ?? []
@@ -225,8 +232,8 @@ export async function calculateAnnualSettlement(
   const yearEnd = `${year}-12-31`
 
   const { results } = await db
-    .prepare('SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ORDER BY date ASC')
-    .bind(userId, yearStart, yearEnd)
+    .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+    .bind(userId, yearStart, yearEnd, userId)
     .all<SettlementTransaction>()
 
   const rows = results ?? []
