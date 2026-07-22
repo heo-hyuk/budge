@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { useToast } from '../contexts/ToastContext'
+import {
+  isCardSettlementSourcePaymentMethod,
+  loadCardSettlementSourcePaymentMethods,
+  toggleCardSettlementSourcePaymentMethod,
+} from '../lib/cardSettlementPaymentMethods'
 import { fetchTransactions, updateTransaction } from '../lib/api'
-import { isCardSettlementSourceCategory, loadCardSettlementSourceCategories, toggleCardSettlementSourceCategory } from '../lib/cardSettlementCategories'
-import { getCategories, loadCategories } from '../lib/categories'
 import { formatDateLabel, formatWon, shiftDate } from '../lib/format'
-import { getCardSettlementTargetCategory, loadSettings, setCardSettlementTargetCategory } from '../lib/settings'
+import { getPaymentMethods, loadPaymentMethods } from '../lib/paymentMethods'
+import { getCardSettlementTargetPaymentMethod, loadSettings, setCardSettlementTargetPaymentMethod } from '../lib/settings'
 import type { Transaction } from '../types'
 
 interface Props {
@@ -16,19 +20,21 @@ interface Props {
 const SETTLEMENT_DELAY_DAYS = 2
 
 /**
- * "카드 정산기" 탭 — 자영업자용. 카드매출로 등록한 수입 중 정산 대기중인 항목을
- * 날짜별로 보여준다(등록일 + 2일 = 예상 입금일 표시). 통장에 들어온 금액을
- * 확인하고 체크하면 거래의 분류를 미리 정해둔 "목표 분류"로 즉시 바꿔서(홈 탭
- * 수입에도 그대로 반영) 정산 대기 목록에서 자연히 빠지게 한다(별도의 "확인 완료"
- * 플래그 없이 분류 자체를 소스/목표 필터로 씀).
- * 소스 분류(추적 대상)/목표 분류(체크 시 바뀔 분류) 둘 다 이 탭 안에서 직접 선택한다.
+ * "카드 정산기" 탭 — 자영업자용. 카드매출을 결제방법 "예정" 같은 항목으로 등록해두고
+ * 정산 대기중인 항목을 날짜별로 보여준다(등록일 + 2일 = 예상 입금일 표시). 통장에
+ * 들어온 금액을 확인하고 체크하면 거래의 결제방법을 미리 정해둔 "목표 결제방법"
+ * (예: 계좌이체)으로 즉시 바꿔서(홈 탭 수입에도 그대로 반영) 정산 대기 목록에서
+ * 자연히 빠지게 한다(별도의 "확인 완료" 플래그 없이 결제방법 자체를 소스/목표
+ * 필터로 씀). 소스 결제방법(추적 대상)/목표 결제방법(체크 시 바뀔 값) 둘 다 이
+ * 탭 안에서 직접 선택한다("예정"/"계좌이체" 등은 결제 방법 관리(+ 직접입력)로
+ * 미리 만들어두면 됨).
  */
 function CardSettlementView({ month }: Props) {
   const { showToast } = useToast()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
-  const [, forceRerender]     = useState(0) // 소스분류/목표분류 캐시(모듈 전역) 변경을 반영하기 위한 트리거
+  const [, forceRerender]     = useState(0) // 소스/목표 결제방법 캐시(모듈 전역) 변경을 반영하기 위한 트리거
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   function load() {
@@ -42,50 +48,50 @@ function CardSettlementView({ month }: Props) {
 
   useEffect(load, [month])
 
-  // 마운트 시점엔 서버 소스분류/목표분류/분류 목록이 아직 로드되기 전일 수 있어 로드 후 재렌더
+  // 마운트 시점엔 서버 소스/목표 결제방법·결제방법 목록이 아직 로드되기 전일 수 있어 로드 후 재렌더
   useEffect(() => {
-    loadCardSettlementSourceCategories().then(() => forceRerender((n) => n + 1))
+    loadCardSettlementSourcePaymentMethods().then(() => forceRerender((n) => n + 1))
   }, [])
   useEffect(() => {
-    loadCategories().then(() => forceRerender((n) => n + 1))
+    loadPaymentMethods().then(() => forceRerender((n) => n + 1))
   }, [])
   useEffect(() => {
     loadSettings().then(() => forceRerender((n) => n + 1))
   }, [])
 
-  async function handleTapSourceChip(category: string) {
-    await toggleCardSettlementSourceCategory(category)
+  async function handleTapSourceChip(paymentMethod: string) {
+    await toggleCardSettlementSourcePaymentMethod(paymentMethod)
     forceRerender((n) => n + 1)
   }
 
-  async function handleSelectTarget(category: string) {
+  async function handleSelectTarget(paymentMethod: string) {
     try {
-      await setCardSettlementTargetCategory(category)
+      await setCardSettlementTargetPaymentMethod(paymentMethod)
       forceRerender((n) => n + 1)
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '분류를 저장하지 못했습니다', 'error')
+      showToast(err instanceof Error ? err.message : '결제방법을 저장하지 못했습니다', 'error')
     }
   }
 
   async function handleConfirmSettlement(tx: Transaction) {
-    const target = getCardSettlementTargetCategory()
-    if (!target) { showToast('먼저 확인 시 변경할 분류를 설정해주세요', 'error'); return }
+    const target = getCardSettlementTargetPaymentMethod()
+    if (!target) { showToast('먼저 확인 시 변경할 결제방법을 설정해주세요', 'error'); return }
     setConfirmingId(tx.id)
     try {
-      await updateTransaction(tx.id, { category: target })
+      await updateTransaction(tx.id, { payment_method: target })
       setTransactions((prev) => prev.filter((t) => t.id !== tx.id))
-      showToast(`'${target}' 분류로 변경했습니다`)
+      showToast(`'${target}'(으)로 변경했습니다`)
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '분류를 변경하지 못했습니다', 'error')
+      showToast(err instanceof Error ? err.message : '결제방법을 변경하지 못했습니다', 'error')
     } finally {
       setConfirmingId(null)
     }
   }
 
-  const categories = getCategories('income')
-  const targetCategory = getCardSettlementTargetCategory()
-  const sourceCategories = categories.filter((c) => isCardSettlementSourceCategory(c))
-  const visibleTxs = transactions.filter((t) => t.type === 'income' && sourceCategories.includes(t.category))
+  const paymentMethods = getPaymentMethods('income')
+  const targetPaymentMethod = getCardSettlementTargetPaymentMethod()
+  const sourcePaymentMethods = paymentMethods.filter((p) => isCardSettlementSourcePaymentMethod(p))
+  const visibleTxs = transactions.filter((t) => t.type === 'income' && sourcePaymentMethods.includes(t.payment_method || '현금'))
 
   const groups = new Map<string, Transaction[]>()
   for (const tx of visibleTxs) {
@@ -99,60 +105,57 @@ function CardSettlementView({ month }: Props) {
       <UiCard>
         <h2 className="text-base font-bold text-neutral-800 dark:text-neutral-200">카드 정산기</h2>
         <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
-          카드매출(정산 대기) 분류를 선택하면 그 분류로 등록된 수입이 날짜별로 아래
-          표시돼요. 등록일 기준 {SETTLEMENT_DELAY_DAYS}일 뒤 입금 예정 금액을 확인하고
-          체크하면 미리 정해둔 분류로 바뀌어요.
+          카드매출(정산 대기) 결제방법을 선택하면 그 결제방법으로 등록된 수입이 날짜별로
+          아래 표시돼요. 등록일 기준 {SETTLEMENT_DELAY_DAYS}일 뒤 입금 예정 금액을
+          확인하고 체크하면 미리 정해둔 결제방법으로 바뀌어요.
         </p>
       </UiCard>
 
       <UiCard>
-        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">카드매출 분류 (여러 개 선택 가능)</span>
+        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">카드매출 결제방법 (여러 개 선택 가능)</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {categories.map((c) => {
-            const selected = isCardSettlementSourceCategory(c)
+          {paymentMethods.map((p) => {
+            const selected = isCardSettlementSourcePaymentMethod(p)
             return (
               <button
-                key={c}
+                key={p}
                 type="button"
-                onClick={() => handleTapSourceChip(c)}
+                onClick={() => handleTapSourceChip(p)}
                 className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
                   selected
                     ? 'bg-blue-600 text-white'
                     : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                 }`}
               >
-                {c}
+                {p}
               </button>
             )
           })}
-          {categories.length === 0 && (
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">등록된 수입 분류가 없습니다</p>
-          )}
         </div>
       </UiCard>
 
       <UiCard>
-        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">확인 시 변경할 분류</span>
+        <span className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">확인 시 변경할 결제방법</span>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {categories.map((c) => {
-            const selected = targetCategory === c
+          {paymentMethods.map((p) => {
+            const selected = targetPaymentMethod === p
             return (
               <button
-                key={c}
+                key={p}
                 type="button"
-                onClick={() => handleSelectTarget(c)}
+                onClick={() => handleSelectTarget(p)}
                 className={`min-h-9 rounded-full px-3 text-sm font-semibold transition-colors ${
                   selected
                     ? 'bg-coral-400 text-white'
                     : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                 }`}
               >
-                {c}
+                {p}
               </button>
             )
           })}
         </div>
-        {!targetCategory && (
+        {!targetPaymentMethod && (
           <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">아직 설정되지 않았습니다. 위에서 하나를 선택해주세요.</p>
         )}
       </UiCard>
@@ -172,9 +175,9 @@ function CardSettlementView({ month }: Props) {
             다시 시도
           </button>
         </div>
-      ) : sourceCategories.length === 0 ? (
+      ) : sourcePaymentMethods.length === 0 ? (
         <section className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 text-center shadow-sm">
-          <p className="text-base text-neutral-500 dark:text-neutral-400">위에서 카드매출 분류를 먼저 선택해주세요.</p>
+          <p className="text-base text-neutral-500 dark:text-neutral-400">위에서 카드매출 결제방법을 먼저 선택해주세요.</p>
         </section>
       ) : groups.size === 0 ? (
         <section className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 text-center shadow-sm">
@@ -204,6 +207,9 @@ function CardSettlementView({ month }: Props) {
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                           <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
+                            {tx.payment_method || '현금'}
+                          </span>
                           <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
                             입금 예정 {formatDateLabel(shiftDate(tx.date, SETTLEMENT_DELAY_DAYS))}
                           </span>

@@ -399,7 +399,7 @@ export async function reorderNoteCategoriesApi(order: string[]): Promise<void> {
 
 export interface UserSettings {
   monthlyBasis: 'billing' | 'transaction'
-  cardSettlementTargetCategory: string // 카드 정산기 체크 시 바뀔 목표 분류, '' = 미설정
+  cardSettlementTargetPaymentMethod: string // 카드 정산기 체크 시 바뀔 목표 결제방법, '' = 미설정
 }
 
 export async function fetchUserSettings(): Promise<UserSettings> {
@@ -506,23 +506,23 @@ export async function removeDeliveryExcludedCategory(category: string): Promise<
   )
 }
 
-// ── 카드 정산기 소스 분류 API ─────────────────────────────
-// 카드매출(정산 대기)로 추적할 수입 분류. 배송 탭과 완전히 독립된 상태.
-// 기본은 전체 미선택(옵트인)이라 여기 저장된 분류만 카드 정산기 목록에 표시됨
+// ── 카드 정산기 소스 결제방법 API ──────────────────────────
+// 카드매출(정산 대기)로 추적할 수입 결제방법(예: "예정"). 배송 탭과 완전히 독립된 상태.
+// 기본은 전체 미선택(옵트인)이라 여기 저장된 결제방법만 카드 정산기 목록에 표시됨
 
-export async function fetchCardSettlementSourceCategories(): Promise<string[]> {
-  const body = await apiRequest<{ data: string[] }>('/api/card-settlement-categories', undefined, '카드 정산기 분류 설정을 불러오지 못했습니다')
+export async function fetchCardSettlementSourcePaymentMethods(): Promise<string[]> {
+  const body = await apiRequest<{ data: string[] }>('/api/card-settlement-payment-methods', undefined, '카드 정산기 결제방법 설정을 불러오지 못했습니다')
   return body.data
 }
 
-export async function addCardSettlementSourceCategory(category: string): Promise<void> {
-  await apiRequest('/api/card-settlement-categories', jsonInit('POST', { category }), '분류를 추가하지 못했습니다')
+export async function addCardSettlementSourcePaymentMethod(paymentMethod: string): Promise<void> {
+  await apiRequest('/api/card-settlement-payment-methods', jsonInit('POST', { payment_method: paymentMethod }), '결제방법을 추가하지 못했습니다')
 }
 
-export async function removeCardSettlementSourceCategory(category: string): Promise<void> {
+export async function removeCardSettlementSourcePaymentMethod(paymentMethod: string): Promise<void> {
   await apiRequest(
-    `/api/card-settlement-categories?category=${encodeURIComponent(category)}`,
+    `/api/card-settlement-payment-methods?payment_method=${encodeURIComponent(paymentMethod)}`,
     { method: 'DELETE' },
-    '분류를 제거하지 못했습니다'
+    '결제방법을 제거하지 못했습니다'
   )
 }

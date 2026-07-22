@@ -24,7 +24,7 @@ import { useTheme } from './contexts/ThemeContext'
 import { useToast } from './contexts/ToastContext'
 import { createTransaction, deleteTransaction, fetchBudgetStatus, fetchCards, fetchRecurring, fetchTransactions, updateTransaction } from './lib/api'
 import { loadCalcSelections } from './lib/calcSelections'
-import { loadCardSettlementSourceCategories } from './lib/cardSettlementCategories'
+import { loadCardSettlementSourcePaymentMethods } from './lib/cardSettlementPaymentMethods'
 import { loadCategories } from './lib/categories'
 import { loadDeliveryExcludedCategories } from './lib/deliveryCategories'
 import { migrateLegacyLocalStorage } from './lib/legacyMigration'
@@ -119,7 +119,7 @@ function App() {
     loadPaymentMethods()
     loadCalcSelections()
     loadDeliveryExcludedCategories()
-    loadCardSettlementSourceCategories()
+    loadCardSettlementSourcePaymentMethods()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 

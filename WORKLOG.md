@@ -49,6 +49,32 @@
   목록에서 사라짐 → 홈 탭에서 결제방법이 "계좌이체"로 반영되는지 검증
 - 원격 D1 마이그레이션은 로컬 검증 완료 후 사용자에게 확인받고 진행
 
+### 완료
+- [x] `migrations/027_card_settlement_payment_method.sql` 작성(테이블/컬럼
+  rename + 인덱스 재생성) + `schema.sql` 동기화
+- [x] `functions/api/card-settlement-categories/` →
+  `functions/api/card-settlement-payment-methods/`로 폴더 rename,
+  SQL 쿼리도 새 테이블/컬럼명으로 교체
+- [x] `functions/api/settings/index.ts` SETTINGS 키를
+  `cardSettlementTargetPaymentMethod`로 교체
+- [x] `src/lib/api.ts`(UserSettings 필드 + API 함수 3종 rename + URL 변경),
+  `src/lib/cardSettlementCategories.ts` → `cardSettlementPaymentMethods.ts`
+  rename(함수명 포함), `src/lib/settings.ts` getter/setter rename
+- [x] `src/components/CardSettlementView.tsx` — `getCategories`
+  → `getPaymentMethods('income')`, 필터/변경 대상을 `payment_method`
+  필드로 교체, 라벨 문구를 "분류"→"결제방법"으로 전부 변경
+- [x] `src/App.tsx`, `src/contexts/AuthContext.tsx` import/호출명 교체
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] 로컬 D1에 `migrations/027_card_settlement_payment_method.sql` 적용
+- [x] `wrangler pages dev` + Playwright로 검증: 결제방법에 "예정" 커스텀
+  등록 → 카드정산기에서 소스로 선택 시 "예정"으로 등록된 수입만
+  날짜별 목록에 표시되고 현금 결제 수입은 안 섞임, 입금 예정일(등록일+2일)
+  표시 확인, 목표 결제방법 미설정 시 에러 안내, "계좌이체"로 목표
+  설정 후 체크하면 실제 payment_method가 즉시 바뀌며 목록에서
+  사라짐, 홈 탭에서 해당 거래가 "계좌이체" 결제방법으로 정확히
+  반영됨을 확인, 새로고침 후에도 소스/목표 설정 모두 유지(D1 동기화)
+- [ ] 원격(production) D1 마이그레이션 적용은 사용자 확인 후 진행 예정
+
 ## 2026-07-22 (88차) — "카드 정산기" 탭 신규 추가 (자영업자용 카드매출 정산 확인)
 
 사용자 요청: "자영업자들을 위한 기능추가 할건데 탭이름은 카드 정산기

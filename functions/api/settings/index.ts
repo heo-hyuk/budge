@@ -7,7 +7,7 @@ interface SettingRow { key: string; value: string }
 // values: null이면 고정 enum이 아니라 자유 문자열(예: 분류명)을 저장 — 빈 문자열이 아니면 통과
 const SETTINGS: Record<string, { default: string; values: string[] | null }> = {
   monthlyBasis: { default: 'billing', values: ['billing', 'transaction'] },
-  cardSettlementTargetCategory: { default: '', values: null },  // 카드 정산기 체크 시 바뀔 목표 분류(migration 026)
+  cardSettlementTargetPaymentMethod: { default: '', values: null },  // 카드 정산기 체크 시 바뀔 목표 결제방법(migration 026, 027에서 분류→결제방법으로 rename)
 }
 
 const cors = {

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { resetCalcSelections } from '../lib/calcSelections'
-import { resetCardSettlementSourceCategories } from '../lib/cardSettlementCategories'
+import { resetCardSettlementSourcePaymentMethods } from '../lib/cardSettlementPaymentMethods'
 import { resetCategories } from '../lib/categories'
 import { resetDeliveryExcludedCategories } from '../lib/deliveryCategories'
 import { resetMerchants } from '../lib/merchants'
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPaymentMethods()
     resetCalcSelections()
     resetDeliveryExcludedCategories()
-    resetCardSettlementSourceCategories()
+    resetCardSettlementSourcePaymentMethods()
   }
 
   async function updateNickname(nickname: string) {
