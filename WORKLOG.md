@@ -1,5 +1,59 @@
 # WORKLOG
 
+## 2026-07-22 (87차) — "배송" 탭 신규 추가 (배송완료 체크 기능)
+
+사용자 요청: "지출계산기와 같은 형태로 배송탭을 하나 만들어줘 기술형태는
+비슷해 기본적으로 지출에 있는칩이 전부다 나오면 되는데 선택해제하면
+안나오는 형태로하고 월정산 형태로 금액기준이아니라 홈탭에서 일자
+별로나오는 스타일 유지하고 여기에 배송완료 체크를 할수 있는
+체크박스를 만들고 싶어 내가 배송이 오면 체크 누를수 있게"
+
+사용자 확인 사항(진행 전 질문):
+- 배송 탭의 분류 칩 선택 상태는 지출계산기와 완전히 독립적으로 관리
+  (지출계산기에서 분류를 꺼도 배송 탭엔 영향 없음)
+- 배송완료 체크한 거래는 목록에서 사라지지 않고 완료 표시(흐리게+취소선)만
+  하고 그대로 남김
+
+### 설계
+- 화면 구조는 지출계산기(CategoryCalculator)의 "지출 분류 칩 exclude
+  방식"을 재사용하되(기본 전체 포함, 탭하면 제외), 아래 내용물은
+  월정산 표(카테고리별 합계 표)가 아니라 홈 탭의 TransactionList와
+  같은 "날짜별로 묶은 개별 거래 목록" 스타일 유지
+- 분류 선택 상태는 지출계산기(calc_selections, type='expense')와
+  절대 공유하면 안 되므로 완전히 새로운 테이블/API로 분리:
+  `delivery_excluded_categories` (제외된 분류명만 저장, exclude 전용이라
+  sign/type 개념 불필요 — merchants 테이블과 비슷한 단순 구조)
+- 배송완료 체크 상태는 거래 자체의 속성이므로 `transactions` 테이블에
+  `delivery_done` 컬럼 추가, 기존 `PATCH /api/transactions/:id`에
+  필드 하나만 추가해 재사용(새 엔드포인트 불필요)
+- 체크해도 목록에서 안 사라지게 하고(사용자 확인사항), 완료된 항목은
+  글자 흐리게+취소선으로만 구분
+- 배송 탭 자체는 CategoryCalculator처럼 자체적으로 fetchTransactions를
+  호출하는 독립 컴포넌트로 구현(App.tsx의 홈 탭 전용 transactions
+  상태는 activeTab==='home'일 때만 로드되므로 재사용 불가)
+
+### 계획
+- `migrations/025_add_delivery.sql` + `schema.sql` 동기화: transactions에
+  `delivery_done` 컬럼 추가, `delivery_excluded_categories` 테이블 신설
+- `functions/api/delivery-excluded-categories/index.ts` 신규
+  (GET/POST/DELETE, merchants API와 동일 패턴)
+- `functions/api/transactions/[id].ts` PATCH에 `delivery_done` 필드 추가
+- `src/types.ts` — `Transaction.delivery_done`, `UpdateTransaction.delivery_done` 추가
+- `src/lib/api.ts` — delivery-excluded-categories 조회/추가/삭제 함수 추가
+- `src/lib/deliveryCategories.ts` 신규 — calcSelections.ts와 비슷한
+  캐시 패턴이나 exclude 전용 단순 버전
+- `src/components/DeliveryView.tsx` 신규 — 분류 칩(exclude) + 날짜별
+  거래 목록 + 배송완료 체크박스
+- `src/App.tsx` — `Tab`에 `'delivery'` 추가, TABS에 "배송" 탭 항목,
+  월 네비게이션 표시 조건에도 포함
+- `src/contexts/AuthContext.tsx` — 로그아웃 시
+  `resetDeliveryExcludedCategories()` 호출 추가
+- 로컬 `npm run d1:init`으로 스키마 반영 후 `wrangler pages dev` +
+  Playwright로 칩 제외/포함, 체크박스 토글·새로고침 후 유지(D1 동기화),
+  지출계산기 선택 상태와 안 섞이는지 검증
+- 원격(production) D1에 마이그레이션을 실제로 적용하는 것은 운영 DB를
+  건드리는 작업이라 로컬 검증 완료 후 사용자에게 별도로 확인받고 진행
+
 ## 2026-07-22 (86차) — 메모 첨부 사진 보기에 닫기 버튼/더블클릭 닫기 추가
 
 사용자 요청: "메모탭에 사진 첨부 기능이 있자나 근데 사진을 열고 닫으려면
