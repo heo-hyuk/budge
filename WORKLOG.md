@@ -12,6 +12,15 @@
 - `wrangler pages dev` + Playwright로 메모가 있는/없는 거래 모두 정상
   표시되는지 검증
 
+### 완료
+- [x] `src/components/DeliveryView.tsx` — merchant/category 아래에
+  `tx.memo`가 있을 때만 표시(TransactionList.tsx와 동일한 스타일)
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright로 검증: 메모("11번가 주문번호
+  12345")를 넣은 거래는 배송 탭 목록에 메모 내용이 바로 아래 표시되고,
+  메모 없는 거래는 기존처럼 깔끔하게 표시됨을 확인
+- 미완료 항목 없음
+
 ## 2026-07-22 (90차) — 카드정산기 소스 결제방법 거래를 모든 합산에서 제외 + 확인 시 메모 자동 기록
 
 사용자 요청(89차 원격 마이그레이션 확인 중 추가된 요청): "예정 에 들어간

@@ -155,6 +155,9 @@ function DeliveryView({ month }: Props) {
                         {tx.merchant && (
                           <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
                         )}
+                        {tx.memo && (
+                          <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
+                        )}
                       </div>
                     </label>
                     <span className={`shrink-0 whitespace-nowrap text-base font-bold ${
