@@ -1,5 +1,42 @@
 # WORKLOG
 
+## 2026-07-22 (85차) — 메모 목록 보기에서 수정 버튼이 터치 기기에서 안 보이는 문제 수정
+
+사용자 요청: "메모 탭에서 메모를 등록하면 추가는 되는데 기존 메모 수정이
+안되네 이거 기능추가좀"
+
+### 원인 분석
+- 코드상으로는 메모 수정 기능(`startEdit`/`updateNote`/PATCH API)이
+  이미 전부 구현되어 있어 우선 실제 서버(wrangler pages dev) +
+  Playwright(데스크톱 Chromium)로 재현해봤는데 정상 동작함 — 그래서
+  터치 기기 에뮬레이션(iPhone 13, hasTouch/isMobile)으로 다시
+  재현해보니 문제 확인됨
+- `NotesView.tsx`의 목록 보기(`renderNoteItem`, card=false)에서 수정/
+  삭제 버튼을 감싼 div가 `opacity-0 group-hover:opacity-100
+  transition-opacity`로 되어 있어 "마우스 호버해야 보이는" 방식으로
+  구현되어 있었음
+- 이 프로젝트는 Tailwind CSS v4를 쓰는데, v4의 `hover:`(그리고
+  `group-hover:`) 변형은 기본적으로 `@media (hover: hover)`로
+  감싸져서 실제 호버가 가능한 기기(마우스)에서만 활성화됨 — 터치스크린
+  기기(휴대폰)는 `hover: hover` 자체가 거짓이라 `group-hover:opacity-100`이
+  절대 발동하지 않아 버튼이 영원히 투명 상태(opacity: 0)로 남음
+- Playwright 데스크톱 Chromium 컨텍스트는 기본적으로 마우스가 있는
+  것으로 에뮬레이션되어 `hover: hover`가 참이라 처음 재현에선 문제가
+  안 보였음 — `devices['iPhone 13']`으로 바꿔서 `matchMedia('(hover: hover)')`가
+  false임과 버튼 wrapper의 실제 computed opacity가 "0"임을 직접 확인해
+  근본 원인 확정
+- 즉 기능 자체가 없는 게 아니라, 목록 보기에서 버튼이 시각적으로
+  발견 불가능했던 것 — 사용자가 "수정이 안 된다"고 느낀 정확한 원인.
+  달력 보기(card=true)는 버튼이 항상 보이므로 이 문제가 없었음
+
+### 계획
+- `src/components/NotesView.tsx` — 목록 보기에서도 수정/삭제 버튼을
+  달력 보기와 동일하게 항상 보이도록 `opacity-0 group-hover:opacity-100`
+  숨김 처리를 제거
+- `wrangler pages dev` + Playwright 터치 기기 에뮬레이션으로 수정
+  버튼이 실제로 보이고 탭해서 수정 폼이 뜨는지, 데스크톱에서도 회귀
+  없는지 검증
+
 ## 2026-07-22 (84차) — 지출계산기를 "전체 선택 후 제외" 방식으로 변경
 
 사용자 요청: "지출계산기는 지출이 전체 선택되어있고 제외할항목만 칩에서
