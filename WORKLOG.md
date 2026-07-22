@@ -1,5 +1,54 @@
 # WORKLOG
 
+## 2026-07-22 (89차) — 카드 정산기 기준을 분류 → 결제방법으로 변경
+
+사용자 요청: "이제 카드정산기 수정좀할게 지금은 분류에서 분류로
+이동시키잖아 이거를 결제방법에서 지정을 해야될거같아 예를 들어
+결제방법에 예정을 만들거거든 카드정산금은 계좌에 입금이 되는거잖아
+그래서 예정에서 계좌로 변경되도록"
+
+### 설계
+- 88차에서는 "카드매출 분류(category)" 기준으로 소스/목표를 선택했는데,
+  실제 사용 방식은 결제방법(payment_method)에 "예정"이라는 커스텀
+  항목을 만들어 카드매출을 등록해두고, 정산 확인되면 결제방법을
+  "계좌이체"로 바꾸는 흐름이 더 자연스럽다는 피드백 — 소스/목표 선택
+  대상을 category에서 payment_method로 전면 교체
+  ("예정"/"계좌이체" 같은 커스텀·기본 결제방법은 이미 있는 결제방법
+  관리 기능(+ 직접입력)으로 사용자가 직접 만들 수 있어 별도 기능 불필요)
+- 88차에서 만든 테이블/설정 키를 새로 만들지 않고 이름만 결제방법
+  기준에 맞게 바꿔서 재사용: `card_settlement_source_categories` →
+  `card_settlement_source_payment_methods`(컬럼 category→payment_method도
+  함께 rename), `user_settings`의 `cardSettlementTargetCategory` 키 →
+  `cardSettlementTargetPaymentMethod`로 교체(이 키는 스키마가 없는
+  범용 테이블이라 코드에서 새 키 이름만 쓰면 됨, 예전 키 값은 그냥
+  안 쓰이게 남음)
+- 체크 시 실제 변경 대상도 `category` 필드가 아니라 `payment_method`
+  필드로 변경(기존 PATCH /api/transactions/:id는 이미 둘 다 지원)
+
+### 계획
+- `migrations/027_card_settlement_payment_method.sql` — 테이블/컬럼
+  rename(`ALTER TABLE ... RENAME TO/COLUMN`), 인덱스도 이름 맞춰 재생성
+- `schema.sql` 동기화
+- `functions/api/card-settlement-categories/` →
+  `functions/api/card-settlement-payment-methods/`로 폴더 rename,
+  SQL의 테이블/컬럼명도 변경
+- `functions/api/settings/index.ts` — SETTINGS 키를
+  `cardSettlementTargetPaymentMethod`로 교체
+- `src/lib/api.ts` — UserSettings 필드/API 함수 3종 rename, URL도
+  `/api/card-settlement-payment-methods`로 변경
+- `src/lib/cardSettlementCategories.ts` →
+  `src/lib/cardSettlementPaymentMethods.ts`로 rename, 함수명도 교체
+- `src/lib/settings.ts` — getter/setter rename
+- `src/components/CardSettlementView.tsx` — `getCategories('income')`
+  대신 `getPaymentMethods('income')` 사용, 필터·변경 대상을
+  `category`에서 `payment_method`로 교체, 라벨 문구도 "분류"→"결제방법"
+- `src/App.tsx`, `src/contexts/AuthContext.tsx` — import/호출명 교체
+- 로컬 D1에 마이그레이션 적용 후 `wrangler pages dev` + Playwright로
+  "예정" 결제방법 등록 → 카드정산기에서 소스로 선택 → 목록 표시 →
+  목표를 "계좌이체"로 설정 → 체크 시 실제 payment_method 변경 및
+  목록에서 사라짐 → 홈 탭에서 결제방법이 "계좌이체"로 반영되는지 검증
+- 원격 D1 마이그레이션은 로컬 검증 완료 후 사용자에게 확인받고 진행
+
 ## 2026-07-22 (88차) — "카드 정산기" 탭 신규 추가 (자영업자용 카드매출 정산 확인)
 
 사용자 요청: "자영업자들을 위한 기능추가 할건데 탭이름은 카드 정산기
