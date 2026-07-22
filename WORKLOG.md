@@ -37,6 +37,21 @@
   버튼이 실제로 보이고 탭해서 수정 폼이 뜨는지, 데스크톱에서도 회귀
   없는지 검증
 
+### 완료
+- [x] `src/components/NotesView.tsx` `renderNoteItem`의 수정/삭제
+  버튼 wrapper에서 `opacity-0 group-hover:opacity-100 transition-opacity`
+  제거(목록/달력 보기 모두 항상 노출), 더 이상 안 쓰는 `group` 클래스도
+  같이 정리
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright `devices['iPhone 13']`(터치
+  기기 에뮬레이션)로 검증: 목록 보기에서 수정 버튼 wrapper의 실제
+  computed opacity가 1로 나오고(수정 전엔 0이었음), 탭으로 눌러
+  수정 폼이 뜨고 내용을 바꿔 저장하면 정상 반영됨을 확인. 스크린샷으로
+  연필/휴지통 아이콘이 항상 노출되는 것도 시각적으로 확인
+- [x] 데스크톱 Chromium(호버 지원 컨텍스트)에서도 기존처럼 메모 추가
+  →수정→새로고침 후 유지까지 회귀 없이 정상 동작
+- 미완료 항목 없음
+
 ## 2026-07-22 (84차) — 지출계산기를 "전체 선택 후 제외" 방식으로 변경
 
 사용자 요청: "지출계산기는 지출이 전체 선택되어있고 제외할항목만 칩에서

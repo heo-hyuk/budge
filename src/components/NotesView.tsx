@@ -411,7 +411,7 @@ function NotesView({ month }: Props) {
     return (
       <div
         key={note.id}
-        className={`group flex items-start justify-between gap-2 ${
+        className={`flex items-start justify-between gap-2 ${
           card ? 'rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 p-3' : ''
         }`}
       >
@@ -430,7 +430,7 @@ function NotesView({ month }: Props) {
             </a>
           )}
         </div>
-        <div className={`flex shrink-0 gap-1 transition-opacity ${card ? '' : 'opacity-0 group-hover:opacity-100'}`}>
+        <div className="flex shrink-0 gap-1">
           <button
             type="button"
             onClick={() => startEdit(date, note)}
