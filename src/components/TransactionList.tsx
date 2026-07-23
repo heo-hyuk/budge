@@ -255,6 +255,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                             {tx.payment_method || '현금'}
                           </span>
                         )}
+                        {/* 비정산 뱃지 — 목록엔 기록으로 보이지만 정산/예산/잔액엔 안 잡히는 거래임을 표시 */}
+                        {tx.unsettled === 1 && (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-700 text-white dark:bg-neutral-200 dark:text-neutral-900">
+                            비정산
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">

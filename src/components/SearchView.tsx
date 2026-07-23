@@ -431,16 +431,17 @@ function SearchView({ cards }: Props) {
               <span className="font-bold text-neutral-800 dark:text-neutral-200">{results.length}건</span> 검색됨
               {filters.q && ` — "${filters.q}"`}
             </p>
-            {/* 결과 요약 */}
+            {/* 결과 요약 — 목록엔 비정산 거래도 그대로 매치되어 보이지만(기록은 보임 원칙)
+                요약 합계엔 회계상 실제 정산·잔액과 어긋나지 않도록 비정산은 제외 */}
             {results.length > 0 && (
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 수입{' '}
                 <span className="font-bold text-blue-700 dark:text-blue-300">
-                  {formatWon(results.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
+                  {formatWon(results.filter((t) => t.type === 'income' && t.unsettled !== 1).reduce((s, t) => s + t.amount, 0))}
                 </span>
                 {' / '}지출{' '}
                 <span className="font-bold text-red-700 dark:text-red-400">
-                  {formatWon(results.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
+                  {formatWon(results.filter((t) => t.type === 'expense' && t.unsettled !== 1).reduce((s, t) => s + t.amount, 0))}
                 </span>
               </p>
             )}

@@ -23,7 +23,10 @@ function AnnualReport({ year, categories = [] }: Props) {
   useEffect(() => {
     setLoading(true)
     fetchTransactions({ year }).then((allTxs: Transaction[]) => {
-      const txs = categories.length > 0 ? allTxs.filter((t) => categories.includes(t.category)) : allTxs
+      // 비정산 거래는 기록으로는 다른 화면에도 보이지만 이 연간 리포트는 실제
+      // 회계 합계라 항상 제외(fetchTransactions 기본 조회가 이제 비정산도 함께 반환함)
+      const settledTxs = allTxs.filter((t) => t.unsettled !== 1)
+      const txs = categories.length > 0 ? settledTxs.filter((t) => categories.includes(t.category)) : settledTxs
       // 12개월치 집계
       const monthMap = new Map<string, { income: number; expense: number }>()
       for (let m = 1; m <= 12; m++) {

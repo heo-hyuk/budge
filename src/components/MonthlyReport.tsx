@@ -57,6 +57,11 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
   useEffect(() => {
     setLoading(true)
 
+    // 비정산 거래는 "기록"으로는 다른 화면(홈 등)에도 보이지만 이 정산 리포트는
+    // 실제 회계 합계라 항상 제외해야 함(fetchTransactions 기본 조회가 이제 비정산도
+    // 함께 반환하므로 여기서 걸러냄)
+    const settledOnly = (txs: Transaction[]) => txs.filter((t) => t.unsettled !== 1)
+
     if (basis === 'billing') {
       // 출금일 기준 — 카드별로 실제 청구(출금)될 기간을 계산해 그 기간의 거래를 따로 조회
       Promise.all([
@@ -64,10 +69,10 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
         ...cards.map((card) => {
           const { start, end } = getCardBillingPeriod(month, card)
           return fetchTransactions({ card_id: card.id, date_start: start, date_end: end })
-            .then((txs) => ({ card, start, end, txs }))
+            .then((txs) => ({ card, start, end, txs: settledOnly(txs) }))
         }),
       ]).then(([txs, ...cardResults]) => {
-        setMonthlyTx(txs as Transaction[])
+        setMonthlyTx(settledOnly(txs as Transaction[]))
         setCardBills(
           (cardResults as { card: Card; start: string; end: string; txs: Transaction[] }[]).map(
             ({ card, start, end, txs }) => {
@@ -82,7 +87,8 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
       }).finally(() => setLoading(false))
     } else {
       // 거래일 기준 — 이미 조회한 이번 달 전체 거래를 카드별로 묶기만 하면 됨 (별도 조회 불필요)
-      fetchTransactions({ month }).then((txs) => {
+      fetchTransactions({ month }).then((raw) => {
+        const txs = settledOnly(raw)
         setMonthlyTx(txs)
         setCardBills(
           cards.map((card) => {

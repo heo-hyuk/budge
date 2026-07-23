@@ -443,12 +443,17 @@ function App() {
       {/* 메인 콘텐츠 */}
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
         {/* 홈 탭 */}
-        {activeTab === 'home' && (
+        {activeTab === 'home' && (() => {
+          // 비정산 거래는 홈 목록엔 기록으로 그대로 보이되(TransactionList는 transactions
+          // 원본을 그대로 씀) 잔액/수입/지출·분류별 합계에서는 제외해야 하므로 요약용
+          // 배열만 따로 만듦(정산·예산·잔액과 완전히 분리하는 기존 unsettled 원칙)
+          const settledTransactions = transactions.filter((t) => t.unsettled !== 1)
+          return (
           <div className="lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-6">
             <div className="space-y-4 lg:sticky lg:top-20">
               {/* 모바일 좌우 스와이프로 월 이동 (라이브러리 없이 순수 touch 이벤트) */}
               <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
-                <SummaryCard transactions={transactions} month={selectedMonth} />
+                <SummaryCard transactions={settledTransactions} month={selectedMonth} />
               </div>
               <button
                 type="button"
@@ -515,7 +520,7 @@ function App() {
                 </div>
               ) : (
                 <>
-                  <CategoryBreakdown transactions={transactions} month={selectedMonth} />
+                  <CategoryBreakdown transactions={settledTransactions} month={selectedMonth} />
                   <TransactionList
                     transactions={transactions}
                     cards={cards}
@@ -527,7 +532,8 @@ function App() {
               )}
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* 정산 탭 (일간/주간/월간/연간 통합) */}
         {activeTab === 'overview' && (

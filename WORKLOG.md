@@ -60,6 +60,36 @@
   합계에선 빠지는지, 비정산 탭 자체(UnsettledView) 동작은 회귀 없는지
   검증
 
+### 완료
+- [x] `functions/api/transactions/index.ts` — 기본 조회에서
+  `unsettled = 0` 하드 필터 제거(전체 반환), `?unsettled=1`(비정산
+  탭 전용 배타 모드)은 그대로 유지
+- [x] `src/App.tsx` — 홈 탭 렌더링을 IIFE로 감싸
+  `settledTransactions = transactions.filter(t => t.unsettled !== 1)`를
+  계산해 SummaryCard/CategoryBreakdown엔 이 배열을, TransactionList엔
+  원본 `transactions`를 그대로 전달
+- [x] `src/components/MonthlyReport.tsx` — `settledOnly()` 헬퍼로
+  billing/transaction 기준 두 경로 모두 fetch 직후 비정산 필터링
+- [x] `src/components/AnnualReport.tsx` — 집계 전 비정산 필터링
+- [x] `src/components/SearchView.tsx` — 결과 목록은 그대로 두고 상단
+  "수입/지출" 요약 계산에서만 비정산 제외
+- [x] `src/components/TransactionList.tsx` — 표시 모드에 "비정산" 배지
+  추가(결제방법 배지 옆, 편집 모드 토글 버튼과 동일 색상 톤)
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과(스키마 변경
+  없어 마이그레이션 불필요)
+- [x] `wrangler pages dev` + Playwright로 검증: 일반 지출(100,000원)과
+  비정산 지출(40,000원)을 등록 후 홈 목록엔 둘 다 "비정산" 배지와
+  함께 보이지만 잔액/지출 요약과 분류별 합계는 100,000원만 반영됨을
+  확인, 비정산 탭 자체는 회귀 없이 40,000원만 별도 요약(정상), 정산
+  탭의 월간 리포트에서도 100,000원만 집계, 검색 결과 목록엔 비정산
+  거래도 매치되어 보이지만 상단 요약 합계에선 제외됨을 확인
+  - 검증 중 테스트 스크립트가 "비정산"이라는 같은 텍스트를 가진
+    서로 다른 두 버튼(거래 입력 폼의 비정산 토글 vs 모바일 메뉴의
+    비정산 탭 버튼)을 혼동해 엉뚱한 버튼을 누르는 문제를 발견 —
+    각각 `form`/`nav`로 셀렉터 범위를 좁혀 재검증 완료(앱 코드
+    문제 아님, 테스트 스크립트만 수정)
+- 미완료 항목 없음
+
 ## 2026-07-23 (94차) — README에 WORKLOG.md 강조/링크 + 세션 통계 추가
 
 사용자 피드백(포트폴리오/강의 자료용으로 신뢰도를 높이고 싶다는 취지):

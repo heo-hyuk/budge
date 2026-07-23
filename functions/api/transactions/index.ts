@@ -33,12 +33,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   const dateEnd    = url.searchParams.get('date_end')
   const minAmount  = url.searchParams.get('min_amount')
   const maxAmount  = url.searchParams.get('max_amount')
-  // 비정산 거래는 기본적으로 모든 조회에서 제외(정산·예산·잔액과 완전히 분리) —
-  // 비정산 탭에서만 ?unsettled=1로 명시적으로 요청
-  const unsettled  = url.searchParams.get('unsettled') === '1'
+  // 기본 조회(파라미터 없음)는 정산/비정산 구분 없이 전체를 반환 — 비정산 거래도
+  // "기록"으로는 홈/검색 등 어디서든 보여야 하고, 합산(정산·예산·잔액·내보내기)에서
+  // 제외하는 건 그 값들을 실제로 계산하는 쪽(functions/lib/settlement.ts,
+  // functions/lib/budget.ts, functions/api/export)에서 각자 unsettled=0으로 처리함.
+  // ?unsettled=1은 비정산 탭 전용 — 비정산만 배타적으로 조회
+  const unsettledOnly = url.searchParams.get('unsettled') === '1'
 
-  let query = 'SELECT * FROM transactions WHERE user_id = ? AND unsettled = ?'
-  const binds: unknown[] = [userId, unsettled ? 1 : 0]
+  let query = 'SELECT * FROM transactions WHERE user_id = ?'
+  const binds: unknown[] = [userId]
+  if (unsettledOnly) { query += ' AND unsettled = 1' }
 
   if (month && /^\d{4}-\d{2}$/.test(month)) { query += ' AND date LIKE ?'; binds.push(`${month}-%`) }
   else if (year && /^\d{4}$/.test(year))      { query += ' AND date LIKE ?'; binds.push(`${year}-%`) }
