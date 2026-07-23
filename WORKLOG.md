@@ -1,5 +1,54 @@
 # WORKLOG
 
+## 2026-07-23 (96차) — 고정 탭 결제방법 칩 관리 추가 + 전체 유사 누락 점검
+
+사용자 요청: "고정 탭안에 결제방법에 칩 추가 수정 제거가 없어 이것도
+수정하는데 이런부분이 또 있을수 있으니까 전체적으로 살펴보고 수정해줘"
+
+### 조사
+- 분류/구매처/결제방법 칩을 관리(추가/삭제/드래그 재정렬,
+  ReorderableChipList + Settings2 관리모드 토글)하는 화면은
+  `TransactionForm.tsx`(거래 입력)와 `NotesView.tsx`(메모 분류)
+  단 둘뿐 — `grep -rl ReorderableChipList src/components`로 확인
+- `getCategories`/`getPaymentMethods`/구매처 목록을 쓰는 나머지 모든
+  컴포넌트를 전수 조사(`grep -rl`)해 분류:
+  - 리포트/표(AnnualSettlementTable, WeeklySettlement,
+    MonthlySettlementTable) — 읽기 전용 표시, 관리 개념 자체가 무의미
+  - 필터/선택 전용(SearchView, CategoryFilterBar, BudgetManager,
+    CardManager의 "적용 분류", CardSettlementView, DeliveryView,
+    CategoryCalculator) — 기존 목록에서 골라 필터링/스코프하는
+    용도라 새 항목을 "만드는" 맥락이 아니므로 관리 기능 불필요
+  - `RecurringManager.tsx`(고정 탭) — TransactionForm과 똑같이
+    거래 템플릿을 새로 등록/수정하는 화면인데 유일하게 관리 기능이
+    빠져 있었음(사용자가 지적한 지점)
+  - `TransactionList.tsx`(홈 인라인 수정) — getCategories/
+    getPaymentMethods를 동적으로 정상 참조하지만 이 안에서 추가/관리
+    기능은 없음. 다만 여기서 새 분류/결제방법이 필요하면 거래 입력
+    폼에서 추가하고 오면 바로 반영되는 구조라, 좁은 인라인 편집
+    공간에 전체 관리 UI를 또 넣는 건 과도하다고 판단해 이번 수정
+    범위에서 제외(의도적 결정, 버그 아님)
+- RecurringManager.tsx를 자세히 보다가 관리 기능 누락과 별개로
+  실제 버그 2건을 추가로 발견:
+  1. 결제 방법이 `getPaymentMethods()`를 아예 안 쓰고 '현금'과 등록된
+     카드만 하드코딩되어 있어 계좌이체·커스텀 결제방법 자체를
+     선택할 수 없었음
+  2. 저장 시 `payment_method: selectedCard ? selectedCard.id : '현금'`로
+     짜여 있어, 카드가 아닌 결제방법(계좌이체·커스텀)을 골라도 저장
+     순간 무조건 '현금'으로 되돌아가는 버그(TransactionForm은
+     `selectedCard ? selectedCard.id : paymentMethod`로 올바르게 처리)
+  3. (부수 발견) 수정 시작 시 `item.card_id || '현금'`만 보고
+     `item.payment_method`는 아예 확인하지 않아, 커스텀 결제방법으로
+     저장된 항목을 다시 열면 '현금'으로 잘못 표시되는 버그
+
+### 계획
+- `src/components/RecurringManager.tsx` — TransactionForm.tsx의 분류/
+  구매처/결제방법 관리 패턴(ReorderableChipList + 관리모드 + 직접입력)을
+  그대로 이식, 위 버그 3건 함께 수정
+- `wrangler pages dev` + Playwright로 고정 탭에서 결제방법 커스텀 추가
+  → 선택 → 저장 → 수정 화면 재진입 시 값 유지되는지, 분류/구매처
+  칩도 추가/삭제/선택이 정상 동작하는지, 지출→수입 전환 시 구매처
+  필드가 숨겨지고 목록이 올바르게 재동기화되는지 검증
+
 ## 2026-07-23 (95차) — 비정산 거래를 홈 등 일반 목록에도 표시(합산에서만 제외)
 
 사용자 요청: "비정산 내역이 비정산에서만 보이는데 비정산도 카드정산기처럼
