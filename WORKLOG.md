@@ -1,5 +1,65 @@
 # WORKLOG
 
+## 2026-07-23 (95차) — 비정산 거래를 홈 등 일반 목록에도 표시(합산에서만 제외)
+
+사용자 요청: "비정산 내역이 비정산에서만 보이는데 비정산도 카드정산기처럼
+홈 내역에서 보이는데 합산만 안되게 해야되는거야"
+
+### 설계
+- 90차에서 카드정산기 "예정" 결제방법에 적용한 원칙(기록은 어디서든
+  보이되 합산에서만 제외)을 비정산(unsettled)에도 동일하게 적용
+- `GET /api/transactions`의 기본 조회(파라미터 없음)가 지금까지
+  `unsettled = 0`으로 하드 필터링해왔는데, 이걸 제거해 기본 조회가
+  정산/비정산 구분 없이 전체를 반환하도록 변경. `?unsettled=1`(비정산
+  탭 전용, 비정산만 보여주는 배타적 모드)은 그대로 유지 — 이러면
+  홈/검색/카드정산기/배송 등 이 엔드포인트를 쓰는 모든 화면에
+  비정산 거래가 "기록"으로 자연히 섞여 보이게 됨
+- 서버 집계(정산 일/주/월/연 — functions/lib/settlement.ts, 예산 —
+  budget.ts, 내보내기 — export/index.ts)는 이미 전부
+  `unsettled = 0` 조건으로 비정산을 제외하고 있어 수정 불필요(애초에
+  기본 조회와 무관하게 독립적으로 짠 쿼리라 영향 없음)
+- 문제는 클라이언트에서 fetchTransactions 결과를 직접 reduce해서
+  합산하는 화면들 — 이런 곳은 기본 조회 결과에 비정산이 섞여 들어오는
+  순간 그대로 합계가 틀어짐. 전수 조사 결과 아래가 해당:
+  - `SummaryCard.tsx`(홈 잔액/수입/지출) — 단, 이 컴포넌트는
+    UnsettledView에서도 재사용되는데 거기선 반대로 비정산 "만" 골라
+    합산하는 게 목적이라 컴포넌트 내부에서 무조건 제외하면 안 됨 →
+    App.tsx가 홈 탭 렌더링에서만 비정산을 뺀 배열을 만들어 SummaryCard/
+    CategoryBreakdown에 넘기고, TransactionList(실제 목록)에는 원본
+    그대로 넘기는 방식으로 분리(UnsettledView.tsx는 손대지 않음 —
+    거긴 애초에 unsettled=true로만 조회해 정상 동작)
+  - `CategoryBreakdown.tsx`(홈 분류별 합계) — 홈 전용이라 위와 같은
+    분기 문제 없이 App.tsx에서 넘기는 배열만 바꾸면 됨
+  - `MonthlyReport.tsx`(정산 탭의 월간 리포트: 현금/카드 수입·지출,
+    카드별 청구 내역) — fetchTransactions 결과를 곧장 reduce하므로
+    수신 직후 비정산 필터링 추가
+  - `AnnualReport.tsx`(연간 리포트 월별 집계) — 동일하게 필터링 추가
+  - `SearchView.tsx`(검색 결과 상단 "수입/지출" 요약 숫자) — 검색
+    결과 목록 자체는 비정산도 그대로 매치되어 보여야 하므로(기록은
+    보임 원칙) 목록은 안 건드리고 요약 숫자 계산에서만 제외
+  - `CardManager.tsx`(카드별 할인/적립 합계)는 회계 합산이 아니라
+    카드 혜택 사용량 집계라 이번 요청 범위 밖으로 판단해 변경하지 않음
+- 목록에 비정산 거래가 정상 거래와 섞여 보이면 구분이 안 돼 헷갈릴
+  수 있어 `TransactionList.tsx` 표시 모드에 작은 "비정산" 배지 추가
+  (편집 모드의 기존 비정산 토글 버튼과 같은 색상 톤)
+
+### 계획
+- `functions/api/transactions/index.ts` — 기본 조회에서 `unsettled = 0`
+  하드 필터 제거, `?unsettled=1`은 그대로 유지
+- `src/App.tsx` — 홈 탭에서 `transactions.filter(t => t.unsettled !== 1)`로
+  만든 배열을 SummaryCard/CategoryBreakdown에 전달(TransactionList엔
+  원본 그대로)
+- `src/components/MonthlyReport.tsx`, `src/components/AnnualReport.tsx`
+  — fetch 직후 비정산 필터링
+- `src/components/SearchView.tsx` — 요약 합계 계산에서만 비정산 제외
+- `src/components/TransactionList.tsx` — 표시 모드에 "비정산" 배지 추가
+- 스키마/마이그레이션 변경 없음
+- `wrangler pages dev` + Playwright로 비정산 거래가 홈 목록엔 배지와
+  함께 보이지만 잔액/수입 요약·분류별 합계에서는 빠지는지, 정산탭의
+  월간·연간 리포트에서도 제외되는지, 검색 결과 목록엔 나오되 요약
+  합계에선 빠지는지, 비정산 탭 자체(UnsettledView) 동작은 회귀 없는지
+  검증
+
 ## 2026-07-23 (94차) — README에 WORKLOG.md 강조/링크 + 세션 통계 추가
 
 사용자 피드백(포트폴리오/강의 자료용으로 신뢰도를 높이고 싶다는 취지):
