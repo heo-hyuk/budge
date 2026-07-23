@@ -712,16 +712,18 @@ function RecurringManager({ items, cards, onRefresh }: Props) {
                       <span>매월 {item.day_of_month}일</span>
                       <span>·</span>
                       <span>{item.category}</span>
-                      {card && (
-                        <>
-                          <span>·</span>
-                          <span
-                            className="font-semibold px-1.5 py-0.5 rounded text-white text-xs"
-                            style={{ backgroundColor: card.color }}
-                          >
-                            {card.name}
-                          </span>
-                        </>
+                      <span>·</span>
+                      {card ? (
+                        <span
+                          className="font-semibold px-1.5 py-0.5 rounded text-white text-xs"
+                          style={{ backgroundColor: card.color }}
+                        >
+                          {card.name}
+                        </span>
+                      ) : (
+                        <span className="font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 text-xs">
+                          {item.payment_method || '현금'}
+                        </span>
                       )}
                       {item.end_date && (
                         <>
