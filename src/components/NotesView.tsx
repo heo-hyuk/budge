@@ -39,6 +39,9 @@ function NotesView({ month }: Props) {
   const [notes, setNotes]     = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
+  // 최초 로드가 한 번이라도 끝났는지 — 그 이후의 재조회(저장 후, 월 이동 등)는
+  // 목록이 비어 있었더라도 전체 화면을 로딩 문구로 덮지 않기 위한 기준
+  const hasLoadedOnceRef = useRef(false)
 
   const [view, setView]       = useState<ViewMode>('list')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -94,7 +97,10 @@ function NotesView({ month }: Props) {
     fetchNotes(month)
       .then(setNotes)
       .catch((err) => setError(err instanceof Error ? err.message : '메모를 불러오지 못했습니다'))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        hasLoadedOnceRef.current = true
+      })
   }
 
   useEffect(load, [month])
@@ -230,7 +236,12 @@ function NotesView({ month }: Props) {
     }
   }
 
-  if (loading) {
+  // 최초 로드가 끝나기 전에만 전체 화면을 로딩 문구로 덮음 — 그 이후의
+  // 재조회(메모 저장 후, 월 이동 등)는 그 달에 메모가 하나도 없었더라도
+  // 기존 화면을 그대로 유지한 채 백그라운드에서 갱신해 스크롤 위치가 안
+  // 튀게 함(저장 직후 다음 메모를 이어 쓰려는데 목록이 한 줄로 쪼그라들며
+  // 화면이 맨 위로 튀던 문제)
+  if (loading && !hasLoadedOnceRef.current) {
     return (
       <p className="flex items-center gap-2 text-base text-neutral-500 dark:text-neutral-400">
         <LoadingSpinner size={18} /> 불러오는 중...
