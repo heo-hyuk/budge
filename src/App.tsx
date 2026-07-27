@@ -450,7 +450,7 @@ function App() {
           const settledTransactions = transactions.filter((t) => t.unsettled !== 1)
           return (
           <div className="lg:grid lg:grid-cols-[420px_1fr] lg:items-start lg:gap-6">
-            <div className="space-y-4 lg:sticky lg:top-20">
+            <div className="space-y-4">
               {/* 모바일 좌우 스와이프로 월 이동 (라이브러리 없이 순수 touch 이벤트) */}
               <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
                 <SummaryCard transactions={settledTransactions} month={selectedMonth} />
