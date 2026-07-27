@@ -17,6 +17,7 @@ export interface Transaction {
   cashback_amount: number  // 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, 정보 표시 전용)
   unsettled: number        // 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외)
   delivery_done: number    // 1 = 배송완료 체크(배송 탭 전용)
+  pending_source_payment_method: string | null  // 카드정산기 확인 시 원래 결제방법(되돌리기용), null이면 미확인
   created_at: string
 }
 
@@ -47,6 +48,7 @@ export interface UpdateTransaction {
   card_id?: string
   unsettled?: boolean
   delivery_done?: boolean
+  pending_source_payment_method?: string | null
 }
 
 export interface Card {

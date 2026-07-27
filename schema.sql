@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   cashback_amount INTEGER DEFAULT 0,     -- 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, migration 011)
   unsettled INTEGER NOT NULL DEFAULT 0,  -- 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외, migration 021)
   delivery_done INTEGER NOT NULL DEFAULT 0,  -- 1 = 배송완료 체크(배송 탭 전용, migration 025)
+  pending_source_payment_method TEXT,    -- 카드정산기 확인 시 원래 결제방법을 기억(되돌리기용, migration 028), NULL이면 미확인
   created_at TEXT NOT NULL
 );
 

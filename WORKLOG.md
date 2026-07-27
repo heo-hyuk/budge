@@ -39,6 +39,39 @@
   `src/components/CardSettlementView.tsx`
 
 ### 완료
+- [x] `migrations/028_add_card_settlement_pending_source.sql` 작성
+  (`transactions.pending_source_payment_method TEXT`) + `schema.sql` 동기화
+- [x] `src/types.ts` — `Transaction`/`UpdateTransaction`에
+  `pending_source_payment_method` 추가
+- [x] `functions/api/transactions/[id].ts` — PATCH에 해당 필드 반영
+- [x] `CardSettlementView.tsx` — `handleConfirmSettlement`(단방향, 목록에서
+  제거)를 `handleToggleSettlement`(양방향)로 교체: 체크 시 원래
+  결제방법을 `pending_source_payment_method`에 저장 + 목표 결제방법으로
+  전환 + 메모에 "입금완료" append, 체크 해제 시 저장해둔 값으로 복원 +
+  메모의 "입금완료" 제거. 목록 필터에 확인된 항목도 포함시켜 계속
+  표시(취소선/흐림 처리), 메모는 `renderMemoWithHighlights`로 표시
+- [x] tsc 빌드 + oxlint 통과
+- [x] 로컬 D1이 마이그레이션 012~027이 누락된 채로 오래 정체돼 있던 것을
+  발견 — 순서대로 모두 적용해 최신 상태로 맞춤(로컬 전용, 데이터 유실
+  없음)
+- [x] `npm install`로 `vite-plugin-pwa`/`workbox-*` 등 미설치 의존성 설치
+  (기존에 `npm run build`가 막혀있던 원인) → 빌드 정상화
+- [x] `wrangler pages dev` 로컬 서버 기동 + curl로 실제 API 왕복 검증
+  (회원가입 → 수입 거래 생성(결제방법 "예정소스") → 소스 결제방법 등록
+  → 목표 결제방법 "계좌이체" 설정 → 체크 시뮬레이션(PATCH)으로
+  payment_method 전환·pending_source_payment_method 저장·메모
+  "입금완료" 추가 확인 → `/api/settlement/monthly` 집계에 포함되는 것
+  확인 → 체크 해제 시뮬레이션으로 payment_method/메모 원복 및
+  pending_source_payment_method NULL 확인 → 집계에서 다시 제외되는 것
+  확인) — 정산 집계 포함/제외 전환이 기대대로 동작함을 실제 서버로 검증
+- [x] 번들(dist)에 `pending_source_payment_method`, "입금완료" 문자열이
+  정상 포함된 것 확인, 테스트용 거래/서버 정리 완료
+- [ ] 브라우저 화면 자체(체크박스 취소선/초록 메모 강조 렌더링)는
+  이 세션에 Playwright/chromium-cli 도구가 없어 스크린샷 검증은
+  못 함 — API 레벨 왕복은 검증했으나 시각적 확인은 별도 필요
+- [ ] 원격(production) D1에는 아직 마이그레이션 미적용 — 사용자 확인
+  후 `wrangler d1 execute budget-db --remote --file=./migrations/028_add_card_settlement_pending_source.sql`
+  실행 필요
 
 ---
 

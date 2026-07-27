@@ -9,6 +9,7 @@ import {
 } from '../lib/cardSettlementPaymentMethods'
 import { fetchTransactions, updateTransaction } from '../lib/api'
 import { formatDateLabel, formatWon, shiftDate } from '../lib/format'
+import { renderMemoWithHighlights } from '../lib/memoHighlight'
 import { getPaymentMethods, loadPaymentMethods } from '../lib/paymentMethods'
 import { getCardSettlementTargetPaymentMethod, loadSettings, setCardSettlementTargetPaymentMethod } from '../lib/settings'
 import type { Transaction } from '../types'
@@ -18,19 +19,25 @@ interface Props {
 }
 
 const SETTLEMENT_DELAY_DAYS = 2
+const SETTLEMENT_DONE_MEMO = '입금완료'
 
 /**
  * "카드 정산기" 탭 — 자영업자용. 카드매출을 결제방법 "예정" 같은 항목으로 등록해두고
  * 정산 대기중인 항목을 날짜별로 보여준다(등록일 + 2일 = 예상 입금일 표시). 통장에
  * 들어온 금액을 확인하고 체크하면 거래의 결제방법을 미리 정해둔 "목표 결제방법"
  * (예: 계좌이체)으로 즉시 바꿔서(홈 탭 수입에도 그대로 반영) 정산 대기 목록에서
- * 자연히 빠지게 한다(별도의 "확인 완료" 플래그 없이 결제방법 자체를 소스/목표
- * 필터로 씀). 소스 결제방법(추적 대상)/목표 결제방법(체크 시 바뀔 값) 둘 다 이
- * 탭 안에서 직접 선택한다("예정"/"계좌이체" 등은 결제 방법 관리(+ 직접입력)로
- * 미리 만들어두면 됨). 소스 결제방법으로 등록된 수입은 정산 전엔 홈 탭 거래
- * 목록엔 그대로 보이되 잔액/정산/예산/계산기/내보내기 등 모든 합산에선 제외된다
- * (functions/lib/settlement.ts, SummaryCard, CategoryBreakdown 참고). 확인
- * 시엔 결제방법 변경과 함께 메모에 "입금완료"도 자동으로 남긴다.
+ * 빠진 것처럼 흐리게/취소선으로 표시한다(배송 탭과 동일한 방식 — 목록에서
+ * 완전히 사라지지 않고, 체크 해제하면 되돌릴 수 있음). 체크 시 원래
+ * 결제방법을 `pending_source_payment_method` 컬럼에 기억해뒀다가, 체크
+ * 해제(되돌리기) 시 그 값으로 payment_method를 복원하고 컬럼을 다시
+ * 비운다 — 잘못 체크했을 때 실수를 되돌릴 수 있게 하기 위함(migration 028).
+ * 소스 결제방법(추적 대상)/목표 결제방법(체크 시 바뀔 값) 둘 다 이 탭 안에서
+ * 직접 선택한다("예정"/"계좌이체" 등은 결제 방법 관리(+ 직접입력)로 미리
+ * 만들어두면 됨). 소스 결제방법으로 등록된 수입(및 확인 대기 중인 목표
+ * 결제방법 거래)은 홈 탭 거래 목록엔 그대로 보이되 잔액/정산/예산/계산기/
+ * 내보내기 등 모든 합산에선 확인 전까지 제외된다(functions/lib/settlement.ts,
+ * SummaryCard, CategoryBreakdown 참고). 확인 시엔 결제방법 변경과 함께
+ * 메모에 "입금완료"도 자동으로 남긴다(되돌리면 다시 제거).
  */
 function CardSettlementView({ month }: Props) {
   const { showToast } = useToast()
@@ -76,17 +83,45 @@ function CardSettlementView({ month }: Props) {
     }
   }
 
-  async function handleConfirmSettlement(tx: Transaction) {
-    const target = getCardSettlementTargetPaymentMethod()
-    if (!target) { showToast('먼저 확인 시 변경할 결제방법을 설정해주세요', 'error'); return }
+  async function handleToggleSettlement(tx: Transaction) {
+    const confirmed = !!tx.pending_source_payment_method
+    if (!confirmed && !getCardSettlementTargetPaymentMethod()) {
+      showToast('먼저 확인 시 변경할 결제방법을 설정해주세요', 'error')
+      return
+    }
     setConfirmingId(tx.id)
     try {
-      await updateTransaction(tx.id, {
-        payment_method: target,
-        memo: tx.memo ? `${tx.memo} 입금완료` : '입금완료',
-      })
-      setTransactions((prev) => prev.filter((t) => t.id !== tx.id))
-      showToast(`'${target}'(으)로 변경했습니다`)
+      if (confirmed) {
+        const original = tx.pending_source_payment_method as string
+        const memo = (tx.memo || '').trim()
+        const nextMemo = memo === SETTLEMENT_DONE_MEMO
+          ? ''
+          : memo.endsWith(` ${SETTLEMENT_DONE_MEMO}`)
+            ? memo.slice(0, -(SETTLEMENT_DONE_MEMO.length + 1))
+            : memo
+        await updateTransaction(tx.id, {
+          payment_method: original,
+          pending_source_payment_method: null,
+          memo: nextMemo,
+        })
+        setTransactions((prev) => prev.map((t) => (t.id === tx.id
+          ? { ...t, payment_method: original, pending_source_payment_method: null, memo: nextMemo }
+          : t)))
+        showToast(`'${original}'(으)로 되돌렸습니다`)
+      } else {
+        const target = getCardSettlementTargetPaymentMethod() as string
+        const memo = (tx.memo || '').trim()
+        const nextMemo = memo ? `${memo} ${SETTLEMENT_DONE_MEMO}` : SETTLEMENT_DONE_MEMO
+        await updateTransaction(tx.id, {
+          payment_method: target,
+          pending_source_payment_method: tx.payment_method,
+          memo: nextMemo,
+        })
+        setTransactions((prev) => prev.map((t) => (t.id === tx.id
+          ? { ...t, payment_method: target, pending_source_payment_method: tx.payment_method, memo: nextMemo }
+          : t)))
+        showToast(`'${target}'(으)로 변경했습니다`)
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : '결제방법을 변경하지 못했습니다', 'error')
     } finally {
@@ -97,7 +132,12 @@ function CardSettlementView({ month }: Props) {
   const paymentMethods = getPaymentMethods('income')
   const targetPaymentMethod = getCardSettlementTargetPaymentMethod()
   const sourcePaymentMethods = paymentMethods.filter((p) => isCardSettlementSourcePaymentMethod(p))
-  const visibleTxs = transactions.filter((t) => t.type === 'income' && sourcePaymentMethods.includes(t.payment_method || '현금'))
+  const visibleTxs = transactions.filter((t) =>
+    t.type === 'income' && (
+      sourcePaymentMethods.includes(t.payment_method || '현금') ||
+      (!!t.pending_source_payment_method && sourcePaymentMethods.includes(t.pending_source_payment_method))
+    )
+  )
 
   const groups = new Map<string, Transaction[]>()
   for (const tx of visibleTxs) {
@@ -114,7 +154,8 @@ function CardSettlementView({ month }: Props) {
           카드매출(정산 대기) 결제방법을 선택하면 그 결제방법으로 등록된 수입이 날짜별로
           아래 표시돼요(정산 전엔 홈 화면 목록엔 보여도 합계에선 제외돼요). 등록일 기준
           {SETTLEMENT_DELAY_DAYS}일 뒤 입금 예정 금액을 확인하고 체크하면 미리 정해둔
-          결제방법으로 바뀌고 메모에 "입금완료"가 남아요.
+          결제방법으로 바뀌고 메모에 "입금완료"가 남아요. 잘못 체크했다면 다시
+          체크 해제해서 원래 결제방법으로 되돌릴 수 있어요(배송 탭과 동일).
         </p>
       </UiCard>
 
@@ -198,36 +239,50 @@ function CardSettlementView({ month }: Props) {
                 {formatDateLabel(date)}
               </h3>
               <ul>
-                {items.map((tx) => (
-                  <li key={tx.id} className="flex items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0">
-                    <label className="flex min-w-0 flex-1 items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={false}
-                        disabled={confirmingId === tx.id}
-                        onChange={() => handleConfirmSettlement(tx)}
-                        className="h-5 w-5 shrink-0 rounded border-neutral-300 dark:border-neutral-700 text-blue-600 focus:ring-blue-600"
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                          {tx.merchant || tx.category}
-                        </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                          <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
-                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
-                            {tx.payment_method || '현금'}
-                          </span>
-                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
-                            입금 예정 {formatDateLabel(shiftDate(tx.date, SETTLEMENT_DELAY_DAYS))}
-                          </span>
+                {items.map((tx) => {
+                  const confirmed = !!tx.pending_source_payment_method
+                  return (
+                    <li key={tx.id} className="flex items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 last:border-b-0">
+                      <label className="flex min-w-0 flex-1 items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={confirmed}
+                          disabled={confirmingId === tx.id}
+                          onChange={() => handleToggleSettlement(tx)}
+                          className="h-5 w-5 shrink-0 rounded border-neutral-300 dark:border-neutral-700 text-blue-600 focus:ring-blue-600"
+                        />
+                        <div className="min-w-0">
+                          <p className={`truncate text-base font-semibold ${
+                            confirmed ? 'text-neutral-400 dark:text-neutral-600 line-through' : 'text-neutral-900 dark:text-neutral-100'
+                          }`}>
+                            {tx.merchant || tx.category}
+                          </p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400">
+                              {tx.payment_method || '현금'}
+                            </span>
+                            {!confirmed && (
+                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
+                                입금 예정 {formatDateLabel(shiftDate(tx.date, SETTLEMENT_DELAY_DAYS))}
+                              </span>
+                            )}
+                          </div>
+                          {tx.memo && (
+                            <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">
+                              {renderMemoWithHighlights(tx.memo)}
+                            </p>
+                          )}
                         </div>
-                      </div>
-                    </label>
-                    <span className="shrink-0 whitespace-nowrap text-base font-bold text-blue-700 dark:text-blue-300">
-                      +{formatWon(tx.amount)}
-                    </span>
-                  </li>
-                ))}
+                      </label>
+                      <span className={`shrink-0 whitespace-nowrap text-base font-bold ${
+                        confirmed ? 'text-neutral-400 dark:text-neutral-600' : 'text-blue-700 dark:text-blue-300'
+                      }`}>
+                        +{formatWon(tx.amount)}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}
