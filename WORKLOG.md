@@ -1,5 +1,31 @@
 # WORKLOG
 
+## 2026-07-27 (109차) — 메모 입력 필드를 한 줄 입력창에서 여러 줄 입력창으로 변경
+
+사용자 요청: "수입 지출 입력하고 내역에 나오는 메모가 한줄까지만
+탭영역에 보이고 수정하기도 어려워 줄바꿈이 되야할거 같은데 확인좀
+해봐봐"
+
+### 원인
+- 거래 목록(TransactionList.tsx)의 메모 "표시"는 이미
+  `whitespace-pre-wrap break-words`가 적용된 `<p>`라 줄바꿈/자동
+  줄바꿈이 정상 동작함
+- 문제는 "입력/수정" 쪽 — `TransactionForm.tsx`(거래 등록)와
+  `TransactionList.tsx`의 인라인 수정 폼 둘 다 메모 필드가
+  `<input type="text">`(한 줄짜리, 줄바꿈 입력 자체가 불가능하고
+  내용이 길면 가로로만 스크롤되어 잘 안 보임)로 되어 있었음. 메모장
+  (NotesView.tsx)은 애초에 `<textarea rows={3}>`를 쓰고 있어서 이
+  문제가 없었음
+
+### 계획
+- `src/components/TransactionForm.tsx` — 메모 `<input>`을
+  `<textarea rows={2}>`로 교체(NotesView.tsx와 동일한 스타일 톤)
+- `src/components/TransactionList.tsx` — 인라인 수정 폼의 메모
+  `<input>`도 동일하게 교체
+- `wrangler pages dev` + Playwright로 거래 등록 시 메모에 줄바꿈
+  입력이 되는지, 저장 후 목록에 줄바꿈이 그대로 보이는지, 인라인
+  수정에서도 여러 줄 메모를 수정할 수 있는지 검증
+
 ## 2026-07-27 (108차) — README 최신화 및 오늘 세션 마무리
 
 사용자 요청: "이제 리드미랑 워크로그 업데이트 하고 마무리해줘"
