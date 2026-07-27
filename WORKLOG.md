@@ -1,5 +1,19 @@
 # WORKLOG
 
+## 2026-07-27 (101차) — 배송완료 메모 텍스트 초록색 강조
+
+사용자 요청: "배송완료 글자 색을 초록새으로 표기 해줘"
+
+### 계획
+- `src/components/DeliveryView.tsx`의 메모 표시 부분(171번 줄 부근)에서
+  `tx.memo` 문자열 중 "배송완료" 부분만 초록색(`text-green-600 dark:text-green-400`)
+  span으로 감싸 렌더링. `DELIVERY_DONE_MEMO` 상수 기준으로 문자열 split
+- 예상 변경 파일: `src/components/DeliveryView.tsx`
+
+### 완료
+
+---
+
 ## 2026-07-27 (100차) — 배송 탭 체크 시 메모에 "배송완료" 자동 추가
 
 사용자 요청: "배송 탭에서 체크박스 체크를 하자나 그럼 카드 정산기 처럼 얘도
