@@ -69,9 +69,11 @@
 - [ ] 브라우저 화면 자체(체크박스 취소선/초록 메모 강조 렌더링)는
   이 세션에 Playwright/chromium-cli 도구가 없어 스크린샷 검증은
   못 함 — API 레벨 왕복은 검증했으나 시각적 확인은 별도 필요
-- [ ] 원격(production) D1에는 아직 마이그레이션 미적용 — 사용자 확인
-  후 `wrangler d1 execute budget-db --remote --file=./migrations/028_add_card_settlement_pending_source.sql`
-  실행 필요
+- [x] 사용자 확인 후 원격(production) D1에
+  `wrangler d1 execute budget-db --remote --file=./migrations/028_add_card_settlement_pending_source.sql`
+  실행 완료(1개 쿼리, 컬럼 추가만 되고 기존 데이터 변경 없음)
+- [x] main push 시 GitHub Actions 자동배포(57차 설정)로 이미 코드도
+  운영에 배포 완료 확인(`gh run list` — 최신 커밋 워크플로 success)
 
 ---
 
