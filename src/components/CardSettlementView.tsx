@@ -9,7 +9,7 @@ import {
 } from '../lib/cardSettlementPaymentMethods'
 import { fetchTransactions, updateTransaction } from '../lib/api'
 import { formatDateLabel, formatWon, shiftDate } from '../lib/format'
-import { renderMemoWithHighlights } from '../lib/memoHighlight'
+import { appendDoneTag, hasDoneTag, renderMemoWithHighlights, stripDoneTag } from '../lib/memoHighlight'
 import { getPaymentMethods, loadPaymentMethods } from '../lib/paymentMethods'
 import { getCardSettlementTargetPaymentMethod, loadSettings, setCardSettlementTargetPaymentMethod } from '../lib/settings'
 import type { Transaction } from '../types'
@@ -94,11 +94,7 @@ function CardSettlementView({ month }: Props) {
       if (confirmed) {
         const original = tx.pending_source_payment_method as string
         const memo = (tx.memo || '').trim()
-        const nextMemo = memo === SETTLEMENT_DONE_MEMO
-          ? ''
-          : memo.endsWith(` ${SETTLEMENT_DONE_MEMO}`)
-            ? memo.slice(0, -(SETTLEMENT_DONE_MEMO.length + 1))
-            : memo
+        const nextMemo = stripDoneTag(memo, SETTLEMENT_DONE_MEMO)
         await updateTransaction(tx.id, {
           payment_method: original,
           pending_source_payment_method: null,
@@ -114,8 +110,7 @@ function CardSettlementView({ month }: Props) {
         // 예전(단방향) 카드정산기로 이미 확인 처리됐던 거래는 pending_source_payment_method가
         // NULL이라 미확인으로 다시 보일 수 있는데, 그때 이미 메모에 완료 문구가 남아있으면
         // 또 붙이지 않고 그대로 둠(중복 방지)
-        const alreadyDone = memo === SETTLEMENT_DONE_MEMO || memo.endsWith(` ${SETTLEMENT_DONE_MEMO}`)
-        const nextMemo = alreadyDone ? memo : (memo ? `${memo} ${SETTLEMENT_DONE_MEMO}` : SETTLEMENT_DONE_MEMO)
+        const nextMemo = hasDoneTag(memo, SETTLEMENT_DONE_MEMO) ? memo : appendDoneTag(memo, SETTLEMENT_DONE_MEMO)
         await updateTransaction(tx.id, {
           payment_method: target,
           pending_source_payment_method: tx.payment_method,

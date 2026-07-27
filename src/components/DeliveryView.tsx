@@ -6,23 +6,23 @@ import { fetchTransactions, updateTransaction } from '../lib/api'
 import { getCategories, loadCategories } from '../lib/categories'
 import { isDeliveryCategoryIncluded, loadDeliveryExcludedCategories, toggleDeliveryCategory } from '../lib/deliveryCategories'
 import { formatDateLabel, formatWon } from '../lib/format'
-import { renderMemoWithHighlights } from '../lib/memoHighlight'
+import { appendDoneTag, renderMemoWithHighlights, stripDoneTag } from '../lib/memoHighlight'
 import type { Transaction } from '../types'
 
 interface Props {
   month: string // 'YYYY-MM'
 }
 
-const DELIVERY_DONE_MEMO = '배송완료'
+const DELIVERY_DONE_LABEL = '배송완료'
 
 /**
  * "배송" 탭 — 지출계산기와 같은 방식(기본 전체 포함, 탭하면 제외)으로
  * 지출 분류를 필터링하되, 월정산 표가 아니라 홈 탭(TransactionList)과
  * 같은 날짜별 개별 거래 목록으로 보여준다. 각 거래에 배송완료 체크박스를
  * 붙여 택배가 오면 바로 체크할 수 있게 함(체크해도 목록에서 사라지지
- * 않고 흐리게/취소선으로만 표시). 체크 시 메모에 "배송완료"를 자동으로
- * append하고(카드 정산기의 "입금완료" 패턴과 동일), 체크 해제 시엔
- * 자동으로 추가됐던 "배송완료" 텍스트만 다시 제거한다.
+ * 않고 흐리게/취소선으로만 표시). 체크 시 메모에 "배송완료(체크한 날짜)"를
+ * 자동으로 append하고(카드 정산기의 "입금완료" 패턴과 동일), 체크 해제
+ * 시엔 자동으로 추가됐던 문구만 다시 제거한다.
  */
 function DeliveryView({ month }: Props) {
   const { showToast } = useToast()
@@ -59,14 +59,9 @@ function DeliveryView({ month }: Props) {
   async function handleToggleDelivery(tx: Transaction) {
     const next = !tx.delivery_done
     const memo = (tx.memo || '').trim()
-    const alreadyDone = memo === DELIVERY_DONE_MEMO || memo.endsWith(` ${DELIVERY_DONE_MEMO}`)
     const nextMemo = next
-      ? (alreadyDone ? memo : (memo ? `${memo} ${DELIVERY_DONE_MEMO}` : DELIVERY_DONE_MEMO))
-      : (memo === DELIVERY_DONE_MEMO
-          ? ''
-          : memo.endsWith(` ${DELIVERY_DONE_MEMO}`)
-            ? memo.slice(0, -(DELIVERY_DONE_MEMO.length + 1))
-            : memo)
+      ? appendDoneTag(memo, DELIVERY_DONE_LABEL)
+      : stripDoneTag(memo, DELIVERY_DONE_LABEL)
     setTogglingId(tx.id)
     try {
       await updateTransaction(tx.id, { delivery_done: next, memo: nextMemo })
