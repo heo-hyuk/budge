@@ -1,5 +1,43 @@
 # WORKLOG
 
+## 2026-07-27 (110차) — 배송완료/입금완료 메모 문구에 완료 날짜 추가
+
+사용자 요청: "배송 완료 띄울때 완료를 누른 날짜도 같이 표기해주면
+너무 좋을거 같은데 가능한겨?"
+
+### 설계
+- 배송 탭 체크 시 메모에 자동으로 붙는 "배송완료"와 카드정산기 확인
+  시 붙는 "입금완료"가 정확히 같은 메커니즘(다른 세션에서 108차
+  이전에 memoHighlight.tsx로 공용화됨)이라, 요청은 "배송완료"만
+  콕 집었지만 둘 다 같은 방식으로 날짜를 넣는 게 일관성 있음
+- 형식은 "배송완료(2026-07-27)"처럼 라벨 뒤에 괄호로 ISO 날짜 —
+  기존 문구를 완전히 대체하는 게 아니라 이어붙이는 방식이라 예전에
+  이미 날짜 없이 저장된 "배송완료"/"입금완료" 메모와도 호환되게
+  정규식을 "라벨 뒤 날짜는 있어도 되고 없어도 됨"으로 설계
+- 체크 해제(되돌리기) 시엔 붙어있는 완료 문구(날짜 있든 없든)만 정확히
+  제거해야 하므로, 문구 추가/제거/보유여부 판정 로직을
+  `memoHighlight.tsx`에 공용 헬퍼(`appendDoneTag`/`stripDoneTag`/
+  `hasDoneTag`)로 모아 DeliveryView.tsx·CardSettlementView.tsx 양쪽이
+  똑같은 정규식을 쓰게 함(기존엔 각자 따로 `.endsWith()` 기반 문자열
+  비교를 중복 구현하고 있었음)
+- 강조 하이라이트(`renderMemoWithHighlights`)도 "배송완료"/"입금완료"
+  단어뿐 아니라 뒤에 붙는 "(YYYY-MM-DD)" 날짜까지 통째로 초록색
+  강조되도록 정규식 확장
+
+### 계획
+- `src/lib/format.ts`의 기존 `todayStr()` 재사용(중복 구현 안 함)
+- `src/lib/memoHighlight.tsx` — `appendDoneTag`/`stripDoneTag`/
+  `hasDoneTag` 헬퍼 추가, `renderMemoWithHighlights`의 정규식을
+  날짜 포함 형태까지 매칭하도록 확장
+- `src/components/DeliveryView.tsx` — `handleToggleDelivery`를 새
+  헬퍼 기반으로 단순화, 체크 시 "배송완료(오늘 날짜)" 삽입
+- `src/components/CardSettlementView.tsx` — `handleToggleSettlement`도
+  동일하게 새 헬퍼로 교체, 확인 시 "입금완료(오늘 날짜)" 삽입
+- `wrangler pages dev` + Playwright로 배송 탭 체크 시 오늘 날짜가
+  메모에 붙는지, 체크 해제 시 정확히 제거되는지, 카드정산기 확인/
+  되돌리기도 동일하게 동작하는지, 날짜 없는 예전 형식 메모도 되돌리기
+  시 정상 제거되는지 검증
+
 ## 2026-07-27 (109차) — 메모 입력 필드를 한 줄 입력창에서 여러 줄 입력창으로 변경
 
 사용자 요청: "수입 지출 입력하고 내역에 나오는 메모가 한줄까지만
