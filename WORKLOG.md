@@ -26,6 +26,19 @@
   입력이 되는지, 저장 후 목록에 줄바꿈이 그대로 보이는지, 인라인
   수정에서도 여러 줄 메모를 수정할 수 있는지 검증
 
+### 완료
+- [x] `src/components/TransactionForm.tsx` — 메모 `<input type="text">`를
+  `<textarea rows={2}>`로 교체
+- [x] `src/components/TransactionList.tsx` — 인라인 수정 폼의 메모도
+  동일하게 `<textarea rows={2}>`로 교체
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright로 검증: 거래 등록 폼의 메모
+  필드가 TEXTAREA임을 확인, 여러 줄("첫째 줄\n둘째 줄\n셋째 줄") 메모를
+  입력해 저장하면 목록에 줄바꿈이 그대로 보이고(white-space: pre-wrap
+  적용 확인), 인라인 수정 폼을 열어도 저장된 여러 줄 내용이 textarea에
+  온전히 로드되어 수정 가능함을 확인
+- 미완료 항목 없음(스키마/마이그레이션 변경 없음)
+
 ## 2026-07-27 (108차) — README 최신화 및 오늘 세션 마무리
 
 사용자 요청: "이제 리드미랑 워크로그 업데이트 하고 마무리해줘"

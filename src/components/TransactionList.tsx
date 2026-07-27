@@ -210,11 +210,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                     className="mb-2 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
                   {/* 메모 */}
-                  <input type="text"
+                  <textarea
+                    rows={2}
                     value={editState.memo}
                     onChange={(e) => setEditState((s) => s && { ...s, memo: e.target.value })}
                     placeholder="메모 (선택)"
-                    className="mb-3 min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                    className="mb-3 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => handleSave(tx.id)} disabled={saving}

@@ -1099,12 +1099,12 @@ function TransactionForm({
           <label htmlFor="memo" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             메모 <span className="text-neutral-400 dark:text-neutral-500 font-normal">(선택)</span>
           </label>
-          <input
+          <textarea
             id="memo"
-            type="text"
+            rows={2}
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+            className="mt-1.5 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
           />
         </div>
       </UiCard>
