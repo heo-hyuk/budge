@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~027 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~029 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS cards (
   benefits TEXT DEFAULT '[]',
   user_id TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
-  image_url TEXT  -- 카드 실물 디자인 이미지 URL (migration 013), NULL이면 color 기반 표시로 폴백
+  image_url TEXT,  -- 카드 실물 디자인 이미지 URL (migration 013), NULL이면 color 기반 표시로 폴백
+  is_debit INTEGER NOT NULL DEFAULT 0  -- 1 = 체크카드(즉시결제), 청구기간 계산 없이 거래일 그대로 반영(migration 029)
 );
 
 CREATE INDEX IF NOT EXISTS idx_cards_user ON cards(user_id);

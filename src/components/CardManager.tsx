@@ -35,6 +35,7 @@ interface CardFormState {
   billing_day: string
   closing_day: string
   benefits: string // 레거시 메모 텍스트 (삭제 예정)
+  is_debit: boolean // 체크카드(즉시결제) — 청구기간 계산 없이 거래일 그대로 반영
 }
 
 const defaultForm = (): CardFormState => ({
@@ -43,6 +44,7 @@ const defaultForm = (): CardFormState => ({
   billing_day: '25',
   closing_day: '14',
   benefits: '',
+  is_debit: false,
 })
 
 interface BenefitFormState {
@@ -185,6 +187,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       billing_day,
       closing_day,
       benefits: legacyBenefits.join('\n'),
+      is_debit: !!card.is_debit,
     })
     // 이미 "말일 모드"(31/31)인 카드는 되돌아갈 수동값을 알 수 없어 기본 제안값으로 채워둠
     const isLastDay = card.billing_day === 31 && card.closing_day === 31
@@ -265,6 +268,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       billing_day,
       closing_day,
       benefits,
+      is_debit: form.is_debit,
       ...(preset ? { image_url: preset.imageUrl } : {}),
     }
 
@@ -554,127 +558,156 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             ))}
           </div>
 
-          {/* 청구 기간 안내 */}
-          <div className="mb-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-800 dark:text-blue-300">
-            <p className="font-semibold mb-1">청구 기간이란?</p>
-            <p>마감일까지 사용한 금액이 결제일에 청구됩니다.</p>
-            <p className="mt-1 text-blue-600 dark:text-blue-400">
-              결제일이 마감일과 같거나 늦으면(예: 마감 14일·결제 25일) 같은 달에 마감→결제되고,
-              결제일이 마감일보다 빠르면(예: 마감 25일·결제 14일) 마감 다음 달에 결제됩니다.
-            </p>
-          </div>
-
-          {/* "말일 마감·결제" 토글 — 새 필드 없이 결제일/마감일을 둘 다 31로 저장하는 것으로 표현.
-              billing.ts가 31을 항상 그 달의 실제 말일로 클램핑해서 계산해줌 */}
+          {/* 체크카드(즉시결제) 토글 — 켜면 청구기간 개념 자체가 없어 결제일/마감일 입력을
+              감추고, 리포트/내보내기에서 거래일 그대로 즉시 반영되도록 함(is_debit 플래그) */}
           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-3">
             <div>
-              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">매달 1일~말일 마감·말일 결제</p>
+              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">체크카드(즉시결제)</p>
               <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
-                당월 1일부터 말일까지 사용한 금액을 그 달 말일에 결제하는 카드에 사용하세요
+                결제 즉시 통장에서 차감되는 체크카드·지역화폐 카드는 켜두세요. 혜택(할인/적립)은 그대로 적용돼요
               </p>
             </div>
             <button
               type="button"
               role="switch"
-              aria-checked={isLastDayMode}
-              aria-label="매달 1일~말일 마감·말일 결제"
-              onClick={toggleLastDayMode}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${isLastDayMode ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+              aria-checked={form.is_debit}
+              aria-label="체크카드(즉시결제)"
+              onClick={() => setForm((f) => ({ ...f, is_debit: !f.is_debit }))}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${form.is_debit ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
             >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isLastDayMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.is_debit ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-1.5">
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">결제일</label>
-              <div className="relative">
-                <input
-                  type={isLastDayMode ? 'text' : 'number'}
-                  min={1} max={31}
-                  disabled={isLastDayMode}
-                  value={isLastDayMode ? '말일' : form.billing_day}
-                  onChange={(e) => {
-                    const raw = e.target.value
-                    const parsed = parseInt(raw, 10)
-                    setForm((f) => ({
-                      ...f,
-                      billing_day: raw,
-                      // 결제일을 바꿀 때마다 마감일을 다시 제안 (기존 수동 수정값이 있어도 그냥 덮어씀)
-                      closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
-                    }))
-                  }}
-                  className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
-                    isLastDayMode
-                      ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
-                      : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
-                  }`}
-                />
-                {!isLastDayMode && (
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">청구 마감일</label>
-              <div className="relative">
-                <input
-                  type={isLastDayMode ? 'text' : 'number'}
-                  min={1} max={31}
-                  disabled={isLastDayMode}
-                  value={isLastDayMode ? '말일' : form.closing_day}
-                  onChange={(e) => setForm((f) => ({ ...f, closing_day: e.target.value }))}
-                  className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
-                    isLastDayMode
-                      ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
-                      : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
-                  }`}
-                />
-                {!isLastDayMode && (
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <p className="mb-4 text-xs text-neutral-400 dark:text-neutral-500">
-            마감일은 결제일 기준 자동 제안값이에요. 카드사 안내와 다르면 직접 수정하세요
-          </p>
-
-          {isLastDayMode ? (
+          {form.is_debit ? (
             <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
-              매달 <span className="font-bold text-neutral-900 dark:text-neutral-100">1일</span>부터{' '}
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>까지 사용분이{' '}
-              그 달 <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>에 청구됩니다
+              체크카드는 결제 즉시 통장에서 차감되어 청구일을 설정할 필요가 없어요
             </div>
-          ) : form.closing_day && form.billing_day && (() => {
-            const closingDay = parseInt(form.closing_day)
-            const billingDay = parseInt(form.billing_day)
-            if (isNaN(closingDay) || isNaN(billingDay)) return null
-            if (closingDay < 1 || closingDay > 31 || billingDay < 1 || billingDay > 31) return null
-
-            // 실제 청구기간 계산(billing.ts)과 동일한 로직으로 미리보기를 만들어 화면 문구와
-            // 실제 계산이 항상 일치하게 함 (마감일 31일처럼 "+1일"이 32일로 넘어가는 경우를
-            // 직접 계산하면 놓치기 쉬움). 앵커 월은 항상 31일까지 있는 달을 써서
-            // 말일 클램핑이 미리보기 숫자를 왜곡하지 않도록 함
-            const { start, end, billingDate } = getCardBillingPeriod('2024-01', {
-              id: '', name: '', color: '', billing_day: billingDay, closing_day: closingDay,
-              benefits: '[]', image_url: null, created_at: '',
-            })
-            const endLabel   = MONTH_BACK_LABELS[monthsBetween(billingDate, end)]   ?? '이전월'
-            const startLabel = MONTH_BACK_LABELS[monthsBetween(billingDate, start)] ?? '이전월'
-            const endDay   = parseInt(end.split('-')[2], 10)
-            const startDay = parseInt(start.split('-')[2], 10)
-
-            return (
-              <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
-                매월 <span className="font-bold text-neutral-900 dark:text-neutral-100">{billingDay}일</span>에{' '}
-                {startLabel} <span className="font-bold text-neutral-900 dark:text-neutral-100">{startDay}일</span>
-                {' '}~{' '}
-                {startLabel !== endLabel && `${endLabel} `}
-                <span className="font-bold text-neutral-900 dark:text-neutral-100">{endDay}일</span> 사용분이 청구됩니다
+          ) : (
+            <>
+              {/* 청구 기간 안내 */}
+              <div className="mb-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-800 dark:text-blue-300">
+                <p className="font-semibold mb-1">청구 기간이란?</p>
+                <p>마감일까지 사용한 금액이 결제일에 청구됩니다.</p>
+                <p className="mt-1 text-blue-600 dark:text-blue-400">
+                  결제일이 마감일과 같거나 늦으면(예: 마감 14일·결제 25일) 같은 달에 마감→결제되고,
+                  결제일이 마감일보다 빠르면(예: 마감 25일·결제 14일) 마감 다음 달에 결제됩니다.
+                </p>
               </div>
-            )
-          })()}
+
+              {/* "말일 마감·결제" 토글 — 새 필드 없이 결제일/마감일을 둘 다 31로 저장하는 것으로 표현.
+                  billing.ts가 31을 항상 그 달의 실제 말일로 클램핑해서 계산해줌 */}
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">매달 1일~말일 마감·말일 결제</p>
+                  <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
+                    당월 1일부터 말일까지 사용한 금액을 그 달 말일에 결제하는 카드에 사용하세요
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isLastDayMode}
+                  aria-label="매달 1일~말일 마감·말일 결제"
+                  onClick={toggleLastDayMode}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${isLastDayMode ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isLastDayMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-1.5">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">결제일</label>
+                  <div className="relative">
+                    <input
+                      type={isLastDayMode ? 'text' : 'number'}
+                      min={1} max={31}
+                      disabled={isLastDayMode}
+                      value={isLastDayMode ? '말일' : form.billing_day}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        const parsed = parseInt(raw, 10)
+                        setForm((f) => ({
+                          ...f,
+                          billing_day: raw,
+                          // 결제일을 바꿀 때마다 마감일을 다시 제안 (기존 수동 수정값이 있어도 그냥 덮어씀)
+                          closing_day: raw && !isNaN(parsed) ? String(suggestClosingDay(parsed)) : f.closing_day,
+                        }))
+                      }}
+                      className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
+                        isLastDayMode
+                          ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                          : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
+                      }`}
+                    />
+                    {!isLastDayMode && (
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">청구 마감일</label>
+                  <div className="relative">
+                    <input
+                      type={isLastDayMode ? 'text' : 'number'}
+                      min={1} max={31}
+                      disabled={isLastDayMode}
+                      value={isLastDayMode ? '말일' : form.closing_day}
+                      onChange={(e) => setForm((f) => ({ ...f, closing_day: e.target.value }))}
+                      className={`min-h-10 w-full rounded-xl border px-3 pr-8 text-base transition-colors ${
+                        isLastDayMode
+                          ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
+                          : 'border-neutral-300 dark:border-neutral-700 focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40'
+                      }`}
+                    />
+                    {!isLastDayMode && (
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">일</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="mb-4 text-xs text-neutral-400 dark:text-neutral-500">
+                마감일은 결제일 기준 자동 제안값이에요. 카드사 안내와 다르면 직접 수정하세요
+              </p>
+
+              {isLastDayMode ? (
+                <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
+                  매달 <span className="font-bold text-neutral-900 dark:text-neutral-100">1일</span>부터{' '}
+                  <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>까지 사용분이{' '}
+                  그 달 <span className="font-bold text-neutral-900 dark:text-neutral-100">말일</span>에 청구됩니다
+                </div>
+              ) : form.closing_day && form.billing_day && (() => {
+                const closingDay = parseInt(form.closing_day)
+                const billingDay = parseInt(form.billing_day)
+                if (isNaN(closingDay) || isNaN(billingDay)) return null
+                if (closingDay < 1 || closingDay > 31 || billingDay < 1 || billingDay > 31) return null
+
+                // 실제 청구기간 계산(billing.ts)과 동일한 로직으로 미리보기를 만들어 화면 문구와
+                // 실제 계산이 항상 일치하게 함 (마감일 31일처럼 "+1일"이 32일로 넘어가는 경우를
+                // 직접 계산하면 놓치기 쉬움). 앵커 월은 항상 31일까지 있는 달을 써서
+                // 말일 클램핑이 미리보기 숫자를 왜곡하지 않도록 함
+                const { start, end, billingDate } = getCardBillingPeriod('2024-01', {
+                  id: '', name: '', color: '', billing_day: billingDay, closing_day: closingDay,
+                  benefits: '[]', image_url: null, is_debit: 0, created_at: '',
+                })
+                const endLabel   = MONTH_BACK_LABELS[monthsBetween(billingDate, end)]   ?? '이전월'
+                const startLabel = MONTH_BACK_LABELS[monthsBetween(billingDate, start)] ?? '이전월'
+                const endDay   = parseInt(end.split('-')[2], 10)
+                const startDay = parseInt(start.split('-')[2], 10)
+
+                return (
+                  <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
+                    매월 <span className="font-bold text-neutral-900 dark:text-neutral-100">{billingDay}일</span>에{' '}
+                    {startLabel} <span className="font-bold text-neutral-900 dark:text-neutral-100">{startDay}일</span>
+                    {' '}~{' '}
+                    {startLabel !== endLabel && `${endLabel} `}
+                    <span className="font-bold text-neutral-900 dark:text-neutral-100">{endDay}일</span> 사용분이 청구됩니다
+                  </div>
+                )
+              })()}
+            </>
+          )}
 
           {error && <p className="mb-3 text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>}
 
@@ -736,7 +769,9 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{card.name}</p>
                       <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
-                        {card.billing_day === 31 && card.closing_day === 31
+                        {card.is_debit
+                          ? '체크카드(즉시결제)'
+                          : card.billing_day === 31 && card.closing_day === 31
                           ? '매달 1일~말일 마감 · 말일 결제'
                           : `마감 ${card.closing_day}일 · 결제 ${card.billing_day}일`}
                       </p>

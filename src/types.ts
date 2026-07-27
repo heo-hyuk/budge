@@ -59,6 +59,7 @@ export interface Card {
   closing_day: number   // 청구 마감일 (이 날까지 사용분이 다음달 청구)
   benefits: string      // JSON 배열 문자열
   image_url: string | null  // 카드 실물 디자인 이미지 URL, NULL이면 color 기반 표시
+  is_debit: number       // 1 = 체크카드(즉시결제), 청구기간 계산 없이 거래일 그대로 반영
   created_at: string
 }
 
@@ -69,6 +70,7 @@ export interface NewCard {
   closing_day: number
   benefits?: string
   image_url?: string | null
+  is_debit?: boolean
 }
 
 export interface RecurringTransaction {

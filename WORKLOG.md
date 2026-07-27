@@ -46,6 +46,33 @@
 - 원격(production) D1 마이그레이션은 로컬 검증 완료 후 사용자에게
   확인받고 진행
 
+### 완료
+- 계획한 6개 파일(`migrations/029_add_card_is_debit.sql`, `schema.sql`,
+  `functions/api/cards/index.ts`, `functions/api/cards/[id].ts`,
+  `src/types.ts`, `src/components/CardManager.tsx`,
+  `src/components/MonthlyReport.tsx`, `src/lib/exportExcel.ts`) 전부 수정 완료
+- `CardManager.tsx`: "체크카드(즉시결제)" 스위치 추가, 켜면 청구기간
+  안내·말일 토글·결제일/마감일 입력·청구기간 미리보기를 모두 숨기고
+  "체크카드는 결제 즉시 통장에서 차감되어 청구일을 설정할 필요가
+  없어요" 안내로 대체. 카드 목록 헤더도 체크카드는 마감/결제일 대신
+  "체크카드(즉시결제)" 라벨 표시
+- `MonthlyReport.tsx`: "출금일 기준" 모드에서 `is_debit` 카드는
+  `getCardBillingPeriod` 대신 `fetchTransactions({card_id, month})`로
+  그 달 거래를 그대로 집계, 아코디언 라벨도 "N월 즉시결제"로 표시
+- `exportExcel.ts`의 카드별정산 시트도 체크카드는 청구기간 계산 없이
+  거래일 기준 월별 집계 + "즉시결제" 라벨로 기록
+- 로컬 D1에 마이그레이션 029 적용, `tsc -b --noEmit` / `oxlint` /
+  `npm run build` 모두 통과
+- `wrangler pages dev` + Playwright로 실제 화면 검증:
+  - 신규 카드 등록 폼에서 토글 On 시 청구기간 관련 UI 전부 사라짐 확인
+  - 저장 후 카드 목록에 "체크카드(즉시결제)" 라벨 정상 표시 확인
+  - 체크카드로 등록한 카드(마감 14일·결제 25일)로 7/28에 지출 거래를
+    기록 → "출금일 기준" 월간 정산에서 원래대로라면 8월 청구분으로
+    빠져야 할 거래가 즉시 7월 "즉시결제" 항목(10,000원)으로 정상 반영됨을 확인
+  - 같은 카드로 등록되지 않은(일반) 카드는 기존 청구기간 로직 그대로
+    동작(0원, 기존 청구기간 라벨 유지)함을 함께 확인해 회귀 없음 검증
+- 원격(production) D1에는 아직 마이그레이션 미적용 — 사용자 확인 후 진행 예정
+
 ## 2026-07-27 (112차) — 고정 탭 목록이 날짜순으로 자동 정렬되지 않는 문제 수정 + 전체 정렬 기준 점검
 
 사용자 요청: "고정탭에서 기록을 하고 기록한 날짜 이전 날짜 추가할거

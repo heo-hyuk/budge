@@ -63,10 +63,15 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
     const settledOnly = (txs: Transaction[]) => txs.filter((t) => t.unsettled !== 1)
 
     if (basis === 'billing') {
-      // 출금일 기준 — 카드별로 실제 청구(출금)될 기간을 계산해 그 기간의 거래를 따로 조회
+      // 출금일 기준 — 카드별로 실제 청구(출금)될 기간을 계산해 그 기간의 거래를 따로 조회.
+      // 단, 체크카드(즉시결제, is_debit)는 청구기간 개념이 없어 그냥 이번 달 거래를 그대로 씀
       Promise.all([
         fetchTransactions({ month }),
         ...cards.map((card) => {
+          if (card.is_debit) {
+            return fetchTransactions({ card_id: card.id, month })
+              .then((txs) => ({ card, start: '', end: '', txs: settledOnly(txs) }))
+          }
           const { start, end } = getCardBillingPeriod(month, card)
           return fetchTransactions({ card_id: card.id, date_start: start, date_end: end })
             .then((txs) => ({ card, start, end, txs: settledOnly(txs) }))
@@ -76,7 +81,7 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
         setCardBills(
           (cardResults as { card: Card; start: string; end: string; txs: Transaction[] }[]).map(
             ({ card, start, end, txs }) => {
-              const { billingDate } = getCardBillingPeriod(month, card)
+              const billingDate = card.is_debit ? '' : getCardBillingPeriod(month, card).billingDate
               const amount = txs
                 .filter((t) => t.type === 'expense')
                 .reduce((s, t) => s + t.amount, 0)
@@ -298,7 +303,9 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
                   <div className="min-w-0">
                     <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{bill.card.name}</p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {basis === 'billing'
+                      {bill.card.is_debit
+                        ? `${shortMonthLabel} 즉시결제`
+                        : basis === 'billing'
                         ? `${bill.start} ~ ${bill.end} 사용분 · ${bill.billingDate} 결제`
                         : `${shortMonthLabel} 거래 기준`}
                     </p>

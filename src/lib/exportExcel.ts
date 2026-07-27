@@ -156,15 +156,17 @@ function buildCardBillingSheet(
 
   for (const card of cards) {
     for (const month of months) {
-      const period = getCardBillingPeriod(month, card)
-      // 해당 청구기간 안의 카드 거래 합계
+      // 체크카드(즉시결제)는 청구기간 개념이 없어 그 달 거래일 그대로 집계
+      const period = card.is_debit
+        ? { start: `${month}-01`, end: `${month}-31`, billingDate: '즉시결제' }
+        : getCardBillingPeriod(month, card)
+      // 해당 청구기간 안의 카드 거래 합계 (즉시결제는 그 달 거래 전체)
       const spent = txs
         .filter(
           (t) =>
             t.type === 'expense' &&
             t.card_id === card.id &&
-            t.date >= period.start &&
-            t.date <= period.end,
+            (card.is_debit ? t.date.slice(0, 7) === month : t.date >= period.start && t.date <= period.end),
         )
         .reduce((s, t) => s + t.amount, 0)
 
