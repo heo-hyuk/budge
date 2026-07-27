@@ -1,5 +1,47 @@
 # WORKLOG
 
+## 2026-07-27 (103차) — 카드 정산기를 배송 탭처럼 되돌리기 가능한 토글로 변경
+
+사용자 요청: "카드 정산기도 잘못 체크할수 있어서 이거 배송처럼 관리하는게
+더 좋을거같은데?" → 진행 승인받음
+
+### 확인한 현재 상태
+- `functions/lib/settlement.ts:7` — 정산·잔액·예산·계산기 등 모든 합산은
+  거래의 `payment_method`가 "소스 결제방법" 목록에 있는지로 포함/제외를
+  판단(EXCLUDE_PENDING_SETTLEMENT_SQL). 카드정산기 체크 = payment_method를
+  실제로 목표 결제방법으로 바꾸는 행위라서, 배송의 `delivery_done`
+  플래그와 달리 되돌리려면 "원래 결제방법이 뭐였는지"를 따로 기억해야 함
+- 기존 `handleConfirmSettlement`는 체크 즉시 `setTransactions filter`로
+  목록에서 거래를 제거 — 단방향(되돌리기 불가)
+
+### 계획
+- `migrations/028_add_card_settlement_pending_source.sql` — transactions에
+  `pending_source_payment_method TEXT` 컬럼 추가(NULL=미확인, 값 있으면
+  확인 완료 + 원래 결제방법 기억) + `schema.sql` 동기화
+- `src/types.ts` — `Transaction.pending_source_payment_method`,
+  `UpdateTransaction.pending_source_payment_method` 추가
+- `functions/api/transactions/[id].ts` — PATCH에 해당 필드 반영(문자열
+  또는 null 허용)
+- `src/components/CardSettlementView.tsx` — 배송 탭과 동일한 구조로 전면
+  수정:
+  - 목록 필터에 "확인된(pending_source_payment_method가 소스 목록에
+    포함)" 거래도 포함해 체크 후에도 목록에 남도록
+  - 체크(확인): payment_method→목표로 변경 + 원래 값을
+    pending_source_payment_method에 저장 + 메모에 "입금완료" append
+  - 체크 해제(되돌리기): pending_source_payment_method 값으로
+    payment_method 복원 + 컬럼 NULL로 비움 + 메모의 "입금완료" 제거
+  - 확인된 항목은 배송처럼 취소선/흐림 처리, 메모는
+    `renderMemoWithHighlights`로 표시
+- 로컬 D1에 마이그레이션 적용 → 동작 검증 → 사용자 확인 후 원격
+  (production) D1에도 적용
+- 예상 변경 파일: `migrations/028_add_card_settlement_pending_source.sql`(신규),
+  `schema.sql`, `src/types.ts`, `functions/api/transactions/[id].ts`,
+  `src/components/CardSettlementView.tsx`
+
+### 완료
+
+---
+
 ## 2026-07-27 (102차) — 카드정산 "입금완료" 메모도 초록색 강조
 
 사용자 요청: "카드정산에서 입금완료도 같은 형태로 해줘"
