@@ -35,6 +35,16 @@
   등록하고 이른 날짜(예: 1일) 항목을 나중에 등록해도 목록이 1일 →
   25일 순으로 자동 정렬되는지 검증
 
+### 완료
+- [x] `functions/api/recurring/index.ts` — GET 쿼리를
+  `ORDER BY day_of_month ASC, created_at ASC`로 변경
+- [x] `npx tsc -b --noEmit`, `npm run lint` 모두 통과
+- [x] `wrangler pages dev` + Playwright로 검증: 25일 항목 → 1일 항목 →
+  15일 항목 순서로 등록했는데도 목록엔 "1일 항목 → 15일 항목 →
+  25일 항목" 순으로 정확히 자동 정렬됨을 확인
+- 미완료 항목 없음(스키마/마이그레이션 변경 없음, 기존 recurring_transactions
+  테이블에 이미 day_of_month 컬럼이 있어 쿼리만 수정)
+
 ## 2026-07-27 (111차) — 메모 탭에서 다음 달로 이동 가능하게 수정
 
 사용자 요청: "메모탭 있자나 지금 이전달이랑 현재달만 나오고 앞으로

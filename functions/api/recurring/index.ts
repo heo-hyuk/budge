@@ -19,8 +19,10 @@ export const onRequestOptions: PagesFunction<Env> = async () =>
 // 고정지출 목록 조회
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   const userId = (data as { userId: string }).userId
+  // 매월 며칠(day_of_month) 기준 오름차순 — 등록한 순서가 아니라 실제
+  // 반복되는 날짜 순으로 보여야 나중에 등록한 이른 날짜 항목도 제자리에 옴
   const result = await env.DB.prepare(
-    'SELECT * FROM recurring_transactions WHERE user_id = ? ORDER BY created_at ASC'
+    'SELECT * FROM recurring_transactions WHERE user_id = ? ORDER BY day_of_month ASC, created_at ASC'
   ).bind(userId).all()
   return json({ data: result.results })
 }
