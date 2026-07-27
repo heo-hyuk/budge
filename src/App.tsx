@@ -376,8 +376,10 @@ function App() {
               <span className="min-w-20 text-center text-sm font-bold text-neutral-800 dark:text-neutral-200">
                 {monthLabel}
               </span>
+              {/* 메모 탭은 일기 성격이라 앞으로의 일정을 미리 적어둘 수 있어야 하므로
+                  다음 달 이동을 막지 않음(가계부 성격의 다른 탭은 현재 달까지만 허용) */}
               <button onClick={() => setSelectedMonth((m) => shiftMonth(m, 1))}
-                disabled={isCurrentMonth}
+                disabled={isCurrentMonth && activeTab !== 'notes'}
                 className="min-h-8 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:bg-neutral-100"
               >▶</button>
               {!isCurrentMonth && (
