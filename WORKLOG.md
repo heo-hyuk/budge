@@ -1,5 +1,40 @@
 # WORKLOG
 
+## 2026-07-27 (112차) — 고정 탭 목록이 날짜순으로 자동 정렬되지 않는 문제 수정 + 전체 정렬 기준 점검
+
+사용자 요청: "고정탭에서 기록을 하고 기록한 날짜 이전 날짜 추가할거
+있어서 추가 하는데 자동 정렬이 안되네 전체적으로 정렬 문제 있는곳을
+살펴보고 수정해줘"
+
+### 조사
+- `grep -rn "ORDER BY" functions/api/`로 정렬을 쓰는 모든 API 쿼리를
+  전수 조사:
+  - `recurring/index.ts`(고정 탭) — `ORDER BY created_at ASC`(등록한
+    순서). 매월 며칠(day_of_month)에 반복되는 항목인데 "언제
+    반복되는지"가 아니라 "언제 등록했는지" 순서라, 나중에 등록한
+    항목이 더 이른 날짜여도 뒤에 붙어버리는 버그 — 사용자가 지적한
+    지점
+  - `notes/index.ts`(메모) — `date ASC, created_at ASC`로 이미 날짜순 ✓
+  - `transactions/index.ts`(거래) — `date DESC, created_at DESC`로
+    이미 최신순 ✓
+  - `merchants/index.ts`, `templates/index.ts`(구매처, 빠른입력) —
+    `sort_order ASC, created_at ASC`로 이미 드래그 재정렬 가능 ✓
+  - `cards/index.ts`, `benefits/index.ts`, `benefit-groups/index.ts`
+    (카드/혜택) — `created_at ASC`인데, 이 항목들은 애초에 "날짜"
+    개념이 없는 목록(카드 등록순, 혜택 등록순)이라 정렬 기준 자체가
+    무의미 — 문제 아님
+  - `export/index.ts` — 날짜순 export라 이미 올바름 ✓
+  - `RecurringManager.tsx`/`App.tsx`엔 클라이언트 측 추가 정렬이 아예
+    없어 서버가 준 순서를 그대로 씀 → 서버 쿼리만 고치면 됨
+
+### 계획
+- `functions/api/recurring/index.ts` — GET 쿼리를
+  `ORDER BY day_of_month ASC, created_at ASC`로 변경(매월 며칠 기준
+  오름차순, 같은 날짜끼리는 등록순)
+- `wrangler pages dev` + Playwright로 늦은 날짜(예: 25일) 항목을 먼저
+  등록하고 이른 날짜(예: 1일) 항목을 나중에 등록해도 목록이 1일 →
+  25일 순으로 자동 정렬되는지 검증
+
 ## 2026-07-27 (111차) — 메모 탭에서 다음 달로 이동 가능하게 수정
 
 사용자 요청: "메모탭 있자나 지금 이전달이랑 현재달만 나오고 앞으로
