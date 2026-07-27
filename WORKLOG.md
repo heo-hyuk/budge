@@ -1,5 +1,29 @@
 # WORKLOG
 
+## 2026-07-27 (102차) — 카드정산 "입금완료" 메모도 초록색 강조
+
+사용자 요청: "카드정산에서 입금완료도 같은 형태로 해줘"
+
+### 확인한 현재 상태
+- 카드정산기(`CardSettlementView.tsx`)는 체크(확인) 즉시 해당 거래가
+  목록에서 사라지는 구조라 정산기 화면 자체엔 메모가 표시되지 않음
+  ("입금완료" 텍스트는 확인 후 홈 탭 거래내역/검색 화면에서 보임)
+- 사용자에게 적용 범위 확인 → 홈 탭(TransactionList) + 검색(SearchView)
+  둘 다 적용하기로 결정
+
+### 계획
+- "배송완료"/"입금완료" 강조 로직을 `DeliveryView.tsx`에서 뽑아 공용
+  헬퍼로 분리 — 신규 `src/lib/memoHighlight.tsx`에
+  `renderMemoWithHighlights(memo)` 추가(두 키워드 모두 초록색 처리)
+- `DeliveryView.tsx` — 기존 인라인 split 로직을 공용 헬퍼 호출로 교체
+- `TransactionList.tsx`, `SearchView.tsx` — 메모 표시부에 공용 헬퍼 적용
+- 예상 변경 파일: `src/lib/memoHighlight.tsx`(신규), `DeliveryView.tsx`,
+  `TransactionList.tsx`, `SearchView.tsx`
+
+### 완료
+
+---
+
 ## 2026-07-27 (101차) — 배송완료 메모 텍스트 초록색 강조
 
 사용자 요청: "배송완료 글자 색을 초록새으로 표기 해줘"
