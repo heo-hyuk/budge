@@ -111,7 +111,11 @@ function CardSettlementView({ month }: Props) {
       } else {
         const target = getCardSettlementTargetPaymentMethod() as string
         const memo = (tx.memo || '').trim()
-        const nextMemo = memo ? `${memo} ${SETTLEMENT_DONE_MEMO}` : SETTLEMENT_DONE_MEMO
+        // 예전(단방향) 카드정산기로 이미 확인 처리됐던 거래는 pending_source_payment_method가
+        // NULL이라 미확인으로 다시 보일 수 있는데, 그때 이미 메모에 완료 문구가 남아있으면
+        // 또 붙이지 않고 그대로 둠(중복 방지)
+        const alreadyDone = memo === SETTLEMENT_DONE_MEMO || memo.endsWith(` ${SETTLEMENT_DONE_MEMO}`)
+        const nextMemo = alreadyDone ? memo : (memo ? `${memo} ${SETTLEMENT_DONE_MEMO}` : SETTLEMENT_DONE_MEMO)
         await updateTransaction(tx.id, {
           payment_method: target,
           pending_source_payment_method: tx.payment_method,

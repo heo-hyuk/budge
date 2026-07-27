@@ -59,8 +59,9 @@ function DeliveryView({ month }: Props) {
   async function handleToggleDelivery(tx: Transaction) {
     const next = !tx.delivery_done
     const memo = (tx.memo || '').trim()
+    const alreadyDone = memo === DELIVERY_DONE_MEMO || memo.endsWith(` ${DELIVERY_DONE_MEMO}`)
     const nextMemo = next
-      ? (memo ? `${memo} ${DELIVERY_DONE_MEMO}` : DELIVERY_DONE_MEMO)
+      ? (alreadyDone ? memo : (memo ? `${memo} ${DELIVERY_DONE_MEMO}` : DELIVERY_DONE_MEMO))
       : (memo === DELIVERY_DONE_MEMO
           ? ''
           : memo.endsWith(` ${DELIVERY_DONE_MEMO}`)
