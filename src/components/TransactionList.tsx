@@ -4,6 +4,7 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatNumberInput, formatWon, parseAmountInput } from '../lib/format'
+import { renderMemoWithHighlights } from '../lib/memoHighlight'
 import { getPaymentMethods } from '../lib/paymentMethods'
 import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
@@ -286,7 +287,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                     </div>
                   </div>
                   {tx.memo && (
-                    <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{renderMemoWithHighlights(tx.memo)}</p>
                   )}
                 </li>
               )

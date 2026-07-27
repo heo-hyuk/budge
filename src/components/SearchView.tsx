@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { fetchTransactions } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatWon } from '../lib/format'
+import { renderMemoWithHighlights } from '../lib/memoHighlight'
 import { getMerchants } from '../lib/merchants'
 import { getPaymentMethods } from '../lib/paymentMethods'
 import type { Card, Transaction, TransactionType } from '../types'
@@ -496,7 +497,7 @@ function SearchView({ cards }: Props) {
                                 </span>
                               )}
                               {tx.memo && (
-                                <span className="text-xs text-neutral-400 dark:text-neutral-500">{tx.memo}</span>
+                                <span className="text-xs text-neutral-400 dark:text-neutral-500">{renderMemoWithHighlights(tx.memo)}</span>
                               )}
                               {/* 할인 뱃지 */}
                               {(tx.discount_amount ?? 0) > 0 && (

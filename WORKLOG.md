@@ -21,6 +21,16 @@
   `TransactionList.tsx`, `SearchView.tsx`
 
 ### 완료
+- [x] `src/lib/memoHighlight.tsx` 신규 — `renderMemoWithHighlights(memo)`가
+  "배송완료"/"입금완료" 두 단어를 정규식으로 split해 초록색
+  (`text-green-600 dark:text-green-400 font-semibold`) span으로 강조
+- [x] `DeliveryView.tsx` — 기존 인라인 Fragment/split 로직을 공용 헬퍼
+  호출로 교체(더는 안 쓰는 `Fragment` import 제거), 메모 append/제거용
+  `DELIVERY_DONE_MEMO` 상수는 토글 로직에 그대로 유지
+- [x] `TransactionList.tsx`(홈 탭), `SearchView.tsx`(검색) — 메모 표시부에
+  동일하게 `renderMemoWithHighlights` 적용
+- [x] tsc 빌드 확인 — 변경 파일 관련 타입 에러 없음
+- [x] oxlint 통과
 
 ---
 

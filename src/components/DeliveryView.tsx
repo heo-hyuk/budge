@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { useToast } from '../contexts/ToastContext'
@@ -6,6 +6,7 @@ import { fetchTransactions, updateTransaction } from '../lib/api'
 import { getCategories, loadCategories } from '../lib/categories'
 import { isDeliveryCategoryIncluded, loadDeliveryExcludedCategories, toggleDeliveryCategory } from '../lib/deliveryCategories'
 import { formatDateLabel, formatWon } from '../lib/format'
+import { renderMemoWithHighlights } from '../lib/memoHighlight'
 import type { Transaction } from '../types'
 
 interface Props {
@@ -169,14 +170,7 @@ function DeliveryView({ month }: Props) {
                         )}
                         {tx.memo && (
                           <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">
-                            {tx.memo.split(DELIVERY_DONE_MEMO).map((part, i, arr) => (
-                              <Fragment key={i}>
-                                {part}
-                                {i < arr.length - 1 && (
-                                  <span className="font-semibold text-green-600 dark:text-green-400">{DELIVERY_DONE_MEMO}</span>
-                                )}
-                              </Fragment>
-                            ))}
+                            {renderMemoWithHighlights(tx.memo)}
                           </p>
                         )}
                       </div>
