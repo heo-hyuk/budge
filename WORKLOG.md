@@ -17,6 +17,14 @@
 - 예상 변경 파일: `src/components/DeliveryView.tsx`
 
 ### 완료
+- [x] `handleToggleDelivery` 수정 — 체크 시 `updateTransaction` 호출에
+  `memo: 기존메모 ? \`${기존메모} 배송완료\` : '배송완료'` 형태로 함께 전송,
+  체크 해제 시 자동 추가됐던 "배송완료"만 정확히 매칭해 제거(수동으로
+  적어둔 다른 메모는 보존)
+- [x] `DELIVERY_DONE_MEMO` 상수 추가, 컴포넌트 상단 주석 갱신
+- [x] tsc 빌드 확인 — `DeliveryView.tsx` 관련 타입 에러 없음(vite-plugin-pwa
+  관련 기존 에러는 이 작업과 무관, 미설치 의존성 문제)
+- [x] oxlint 통과
 
 ---
 

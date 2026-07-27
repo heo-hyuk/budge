@@ -12,12 +12,16 @@ interface Props {
   month: string // 'YYYY-MM'
 }
 
+const DELIVERY_DONE_MEMO = '배송완료'
+
 /**
  * "배송" 탭 — 지출계산기와 같은 방식(기본 전체 포함, 탭하면 제외)으로
  * 지출 분류를 필터링하되, 월정산 표가 아니라 홈 탭(TransactionList)과
  * 같은 날짜별 개별 거래 목록으로 보여준다. 각 거래에 배송완료 체크박스를
  * 붙여 택배가 오면 바로 체크할 수 있게 함(체크해도 목록에서 사라지지
- * 않고 흐리게/취소선으로만 표시).
+ * 않고 흐리게/취소선으로만 표시). 체크 시 메모에 "배송완료"를 자동으로
+ * append하고(카드 정산기의 "입금완료" 패턴과 동일), 체크 해제 시엔
+ * 자동으로 추가됐던 "배송완료" 텍스트만 다시 제거한다.
  */
 function DeliveryView({ month }: Props) {
   const { showToast } = useToast()
@@ -53,10 +57,18 @@ function DeliveryView({ month }: Props) {
 
   async function handleToggleDelivery(tx: Transaction) {
     const next = !tx.delivery_done
+    const memo = (tx.memo || '').trim()
+    const nextMemo = next
+      ? (memo ? `${memo} ${DELIVERY_DONE_MEMO}` : DELIVERY_DONE_MEMO)
+      : (memo === DELIVERY_DONE_MEMO
+          ? ''
+          : memo.endsWith(` ${DELIVERY_DONE_MEMO}`)
+            ? memo.slice(0, -(DELIVERY_DONE_MEMO.length + 1))
+            : memo)
     setTogglingId(tx.id)
     try {
-      await updateTransaction(tx.id, { delivery_done: next })
-      setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, delivery_done: next ? 1 : 0 } : t)))
+      await updateTransaction(tx.id, { delivery_done: next, memo: nextMemo })
+      setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, delivery_done: next ? 1 : 0, memo: nextMemo } : t)))
     } catch (err) {
       showToast(err instanceof Error ? err.message : '배송 상태를 변경하지 못했습니다', 'error')
     } finally {
