@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import UiCard from './ui/Card'
 import { useToast } from '../contexts/ToastContext'
@@ -168,7 +168,16 @@ function DeliveryView({ month }: Props) {
                           <span className="text-sm text-neutral-500 dark:text-neutral-400">{tx.category}</span>
                         )}
                         {tx.memo && (
-                          <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">{tx.memo}</p>
+                          <p className="whitespace-pre-wrap break-words text-sm text-neutral-400 dark:text-neutral-500">
+                            {tx.memo.split(DELIVERY_DONE_MEMO).map((part, i, arr) => (
+                              <Fragment key={i}>
+                                {part}
+                                {i < arr.length - 1 && (
+                                  <span className="font-semibold text-green-600 dark:text-green-400">{DELIVERY_DONE_MEMO}</span>
+                                )}
+                              </Fragment>
+                            ))}
+                          </p>
                         )}
                       </div>
                     </label>

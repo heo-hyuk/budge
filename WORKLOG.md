@@ -11,6 +11,13 @@
 - 예상 변경 파일: `src/components/DeliveryView.tsx`
 
 ### 완료
+- [x] `tx.memo`를 `DELIVERY_DONE_MEMO` 기준으로 split 후 `Fragment`로 다시
+  이어붙이면서 "배송완료" 부분만 `text-green-600 dark:text-green-400
+  font-semibold` span으로 감싸 렌더링(사용자가 메모에 직접 "배송완료"를
+  적은 경우도 동일하게 강조됨)
+- [x] `react`에서 `Fragment` import 추가
+- [x] tsc 빌드 확인 — `DeliveryView.tsx` 관련 타입 에러 없음
+- [x] oxlint 통과
 
 ---
 
