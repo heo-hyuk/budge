@@ -1,5 +1,18 @@
 # WORKLOG
 
+## 2026-07-28 (121차) — 구글 서치 콘솔 HTML 태그 인증
+
+사용자 요청: 구글 서치 콘솔 소유권 확인용 `google-site-verification`
+메타 태그를 `index.html`에 추가
+
+### 계획
+- `index.html`의 `<head>` 안, viewport 메타 태그 바로 아래에 사용자가
+  제공한 인증 코드로 `<meta name="google-site-verification" content="...">`
+  추가
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (120차) — `workers/monthly-tax-reporter` 배포(VAPID 시크릿은 보류)
 
 사용자 요청: 118차에서 만든 세금 마감 리포트 Cron Worker도 배포해달라는
