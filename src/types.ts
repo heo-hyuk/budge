@@ -18,6 +18,7 @@ export interface Transaction {
   unsettled: number        // 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외)
   delivery_done: number    // 1 = 배송완료 체크(배송 탭 전용)
   pending_source_payment_method: string | null  // 카드정산기 확인 시 원래 결제방법(되돌리기용), null이면 미확인
+  is_entertainment: number  // 1 = 거래처 접대성 지출(부가세 매입세액공제 제외 대상). is_tax_deductible(분류)과 별개 개념
   created_at: string
 }
 
@@ -35,6 +36,7 @@ export interface NewTransaction {
   benefit_id?: string
   cashback_amount?: number
   unsettled?: boolean
+  is_entertainment?: boolean
 }
 
 export interface UpdateTransaction {
@@ -49,6 +51,7 @@ export interface UpdateTransaction {
   unsettled?: boolean
   delivery_done?: boolean
   pending_source_payment_method?: string | null
+  is_entertainment?: boolean
 }
 
 export interface Card {
@@ -60,6 +63,7 @@ export interface Card {
   benefits: string      // JSON 배열 문자열
   image_url: string | null  // 카드 실물 디자인 이미지 URL, NULL이면 color 기반 표시
   is_debit: number       // 1 = 체크카드(즉시결제), 청구기간 계산 없이 거래일 그대로 반영
+  is_business: number    // 1 = 사업용 카드
   created_at: string
 }
 
@@ -71,6 +75,7 @@ export interface NewCard {
   benefits?: string
   image_url?: string | null
   is_debit?: boolean
+  is_business?: boolean
 }
 
 export interface RecurringTransaction {
@@ -303,4 +308,15 @@ export interface NewNote {
   date: string
   category: string
   content: string
+}
+
+// ── 1인 사업자 세금 설정 ────────────────────────────────
+// business_type/has_yellow_umbrella는 스키마엔 있지만 아직 설정 UI가 없는
+// 향후 확장용 필드라 여기엔 포함하지 않음
+
+export type TaxType = 'general' | 'simplified' | 'freelance_3_3'
+
+export interface UserTaxSettings {
+  tax_type: TaxType | null           // null = 아직 설정 안 함
+  simplified_vat_rate: number | null // 간이과세자 업종별 부가가치율(%), null = 미입력
 }

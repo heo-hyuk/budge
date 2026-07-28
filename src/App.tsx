@@ -224,6 +224,7 @@ function App() {
         memo: tx.memo,
         date: tx.date,
         unsettled: tx.unsettled === 1,
+        is_entertainment: tx.is_entertainment === 1,
       },
       nonce: Date.now(),
     })
@@ -243,6 +244,7 @@ function App() {
         memo: tx.memo,
         date: tx.date,
         unsettled: tx.unsettled === 1,
+        is_entertainment: tx.is_entertainment === 1,
       },
       nonce: Date.now(),
     })

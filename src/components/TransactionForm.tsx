@@ -6,7 +6,7 @@ import UiCard from './ui/Card'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { createTemplate, deleteTemplate, fetchRecentMerchants, fetchTemplates, matchBenefit, updateTemplate } from '../lib/api'
-import { addCustomCategory, getCategories, loadCategories, removeCategory, reorderCategories } from '../lib/categories'
+import { addCustomCategory, getCategories, getExpenseTaxDeductible, loadCategories, removeCategory, reorderCategories, setExpenseTaxDeductible } from '../lib/categories'
 import { formatNumberInput, formatWon, parseAmountInput, todayStr } from '../lib/format'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import { addMerchant, getMerchants, loadMerchants, removeMerchant, reorderMerchants } from '../lib/merchants'
@@ -22,6 +22,7 @@ export interface TransactionPrefill {
   memo: string
   date: string  // 복제/템플릿 적용 시엔 무시되고 오늘로 재설정되지만, 수정 모드에선 원래 날짜를 유지하는 데 사용
   unsettled?: boolean  // 비정산 거래 여부(가족 비용 확인용 — 정산/예산/잔액/내보내기에서 제외)
+  is_entertainment?: boolean  // 거래처 접대성 지출 여부(부가세 매입세액공제 제외 대상)
 }
 
 interface Props {
@@ -62,6 +63,13 @@ function TransactionForm({
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
   const [manageCategories, setManageCategories] = useState(false)
+  // 지출 분류별 "세무 경비 포함" 여부 — lib/categories.ts 캐시를 그대로 읽으면 리렌더가
+  // 안 일어나므로 React state로 스냅샷을 따로 들고 토글/로드 시점마다 갱신
+  const [taxDeductibleMap, setTaxDeductibleMap] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(getCategories('expense').map((c) => [c, getExpenseTaxDeductible(c)]))
+  )
+  const [togglingTaxDeductible, setTogglingTaxDeductible] = useState<string | null>(null)
+  const [isEntertainment, setIsEntertainment] = useState(false)  // 거래처 접대성 지출 — 매입세액공제 제외 대상
   const [editingId, setEditingId]     = useState<string | null>(null)  // 있으면 수정 모드(생성 대신 onUpdateSubmit 호출)
 
   // 혜택 매칭 상태
@@ -101,8 +109,23 @@ function TransactionForm({
       const next = getCategories(typeRef.current)
       setCategories(next)
       setCategory((c) => (next.includes(c) ? c : next[0]))
+      setTaxDeductibleMap(Object.fromEntries(getCategories('expense').map((c) => [c, getExpenseTaxDeductible(c)])))
     })
   }, [])
+
+  // 세무 경비 포함 여부 토글 (지출 분류 관리 모드 전용)
+  async function handleToggleTaxDeductible(name: string) {
+    const next = !(taxDeductibleMap[name] ?? true)
+    setTogglingTaxDeductible(name)
+    try {
+      await setExpenseTaxDeductible(name, next)
+      setTaxDeductibleMap((m) => ({ ...m, [name]: next }))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '세무 경비 설정을 저장하지 못했습니다', 'error')
+    } finally {
+      setTogglingTaxDeductible(null)
+    }
+  }
 
   // 구매처 관리 목록도 분류와 동일하게 마운트 시점엔 비어있을 수 있어 로드 후 재동기화
   useEffect(() => {
@@ -126,6 +149,7 @@ function TransactionForm({
     setPaymentMethod(data.paymentMethod)
     setPaymentMethods(getPaymentMethods(data.type))
     setUnsettled(data.unsettled ?? false)
+    setIsEntertainment(data.is_entertainment ?? false)
     setMemo(data.memo)
     setDate(todayStr())
     setAddingCategory(false)
@@ -160,6 +184,7 @@ function TransactionForm({
     setMemo('')
     setMerchant('')
     setUnsettled(false)
+    setIsEntertainment(false)
     setMatches([])
     setSelectedMatch(null)
     setDate(todayStr())
@@ -268,6 +293,7 @@ function TransactionForm({
       setMerchant('')
       setAddingMerchant(false)
       setManageMerchants(false)
+      setIsEntertainment(false)  // 접대 체크박스는 지출 전용이라 수입 전환 시 초기화
     }
   }
 
@@ -446,6 +472,7 @@ function TransactionForm({
     setMemo('')
     setMerchant('')
     setUnsettled(false)
+    setIsEntertainment(false)
     setMatches([])
     setSelectedMatch(null)
   }
@@ -470,6 +497,7 @@ function TransactionForm({
           payment_method: selectedCard ? selectedCard.id : paymentMethod,
           card_id: selectedCard ? selectedCard.id : '',
           unsettled,
+          is_entertainment: type === 'expense' && isEntertainment,
         })
         setEditingId(null)
         resetAfterSave()
@@ -502,6 +530,7 @@ function TransactionForm({
         benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
         cashback_amount: cashbackAmount > 0 ? cashbackAmount : undefined,
         unsettled,
+        is_entertainment: type === 'expense' && isEntertainment,
       })
       resetAfterSave()
       showToast('거래를 저장했습니다')
@@ -845,6 +874,24 @@ function TransactionForm({
           )}
         </div>
 
+        {/* 거래처 접대 체크박스 — 지출 + 카드결제일 때만 노출(1인 사업자 부가세 매입세액공제 판별용) */}
+        {type === 'expense' && cards.some((c) => c.id === paymentMethod) && (
+          <div className="mt-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isEntertainment}
+                onChange={(e) => setIsEntertainment(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-coral-400 focus:ring-coral-400"
+              />
+              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">거래처 접대</span>
+            </label>
+            {isEntertainment && (
+              <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">이 거래는 매입세액공제 대상에서 제외돼요</p>
+            )}
+          </div>
+        )}
+
         {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서는 재계산 안 하므로 숨김) */}
         {!editingId && type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
           <div className="mt-4">
@@ -1006,6 +1053,36 @@ function TransactionForm({
             >
               추가
             </button>
+          </div>
+        )}
+
+        {/* 지출 분류별 "세무 경비 포함" 여부 — 종합소득세 신고 시 경비로 인정할 분류만 켜두는
+            용도. 기존 칩(드래그 재정렬/탭하여 삭제) UI는 그대로 두고 별도 섹션으로 추가 */}
+        {manageCategories && type === 'expense' && (
+          <div className="mt-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-3">
+            <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400">세무 경비 포함 여부</p>
+            <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">종합소득세 신고 시 경비로 인정할 분류만 켜두세요</p>
+            <div className="mt-2 space-y-1.5">
+              {categories.map((c) => {
+                const included = taxDeductibleMap[c] ?? true
+                return (
+                  <div key={c} className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm text-neutral-700 dark:text-neutral-300">{c}</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={included}
+                      aria-label={`${c} 세무 경비 포함`}
+                      disabled={togglingTaxDeductible === c}
+                      onClick={() => handleToggleTaxDeductible(c)}
+                      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50 ${included ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${included ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

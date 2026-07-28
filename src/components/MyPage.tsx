@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import NotificationSettings from './NotificationSettings'
 import Card from './ui/Card'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { fetchTaxSettings, updateTaxSettings } from '../lib/api'
 import { validateNicknameClient } from '../lib/nickname'
+import type { TaxType } from '../types'
+
+const TAX_TYPE_OPTIONS: { value: TaxType; label: string }[] = [
+  { value: 'general',       label: '일반과세자' },
+  { value: 'simplified',    label: '간이과세자' },
+  { value: 'freelance_3_3', label: '프리랜서 (3.3% 원천징수)' },
+]
 
 function formatJoinDate(createdAt: string): string {
   const d = new Date(createdAt)
@@ -29,7 +37,50 @@ function MyPage({ onClose }: Props) {
   const [passwordError, setPasswordError]     = useState('')
   const [passwordSaving, setPasswordSaving]   = useState(false)
 
+  // 사업자 세금 설정 — null = 아직 로드 전/미설정. 부가율은 홈택스 확인 없이
+  // 임의로 채우면 안 되므로 서버가 null로 내려주면 입력칸도 빈 채로 둔다
+  const [taxType, setTaxType]                 = useState<TaxType | null>(null)
+  const [vatRateInput, setVatRateInput]       = useState('')
+  const [taxSettingsLoading, setTaxSettingsLoading] = useState(true)
+  const [taxSettingsSaving, setTaxSettingsSaving]   = useState(false)
+  const [taxSettingsError, setTaxSettingsError]     = useState('')
+
+  useEffect(() => {
+    fetchTaxSettings()
+      .then((s) => {
+        setTaxType(s.tax_type)
+        setVatRateInput(s.simplified_vat_rate != null ? String(s.simplified_vat_rate) : '')
+      })
+      .catch(() => { /* 미설정 상태와 동일하게 조용히 폴백 */ })
+      .finally(() => setTaxSettingsLoading(false))
+  }, [])
+
   if (!user) return null
+
+  async function handleSaveTaxSettings() {
+    if (!taxType) return
+    setTaxSettingsError('')
+    const trimmedRate = vatRateInput.trim()
+    if (taxType === 'simplified' && trimmedRate) {
+      const v = Number(trimmedRate)
+      if (!Number.isFinite(v) || v <= 0 || v > 100) {
+        setTaxSettingsError('부가가치율은 0~100 사이의 숫자로 입력해주세요')
+        return
+      }
+    }
+    setTaxSettingsSaving(true)
+    try {
+      await updateTaxSettings({
+        tax_type: taxType,
+        simplified_vat_rate: taxType === 'simplified' && trimmedRate ? Number(trimmedRate) : null,
+      })
+      showToast('세금 설정을 저장했습니다')
+    } catch (err) {
+      setTaxSettingsError(err instanceof Error ? err.message : '세금 설정을 저장하지 못했습니다')
+    } finally {
+      setTaxSettingsSaving(false)
+    }
+  }
 
   async function handleSaveNickname() {
     const validationError = validateNicknameClient(nicknameInput)
@@ -149,6 +200,67 @@ function MyPage({ onClose }: Props) {
             <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-1">가입일</p>
             <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{formatJoinDate(user.created_at)}</p>
           </div>
+        </Card>
+
+        {/* 사업자 세금 설정 */}
+        <Card>
+          <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-1">사업자 세금 설정</p>
+          <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
+            1인 사업자 세금 계산에 사용돼요. 정확하지 않으면 계산 결과도 부정확해질 수 있으니 신중하게 선택해주세요
+          </p>
+          {taxSettingsLoading ? (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">불러오는 중...</p>
+          ) : (
+            <>
+              <div className="space-y-2 mb-3">
+                {TAX_TYPE_OPTIONS.map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="taxType"
+                      checked={taxType === opt.value}
+                      onChange={() => setTaxType(opt.value)}
+                      className="h-4 w-4 border-neutral-300 dark:border-neutral-700 text-coral-400 focus:ring-coral-400"
+                    />
+                    <span className="text-base text-neutral-800 dark:text-neutral-200">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {taxType === 'simplified' && (
+                <div className="mb-3">
+                  <label htmlFor="vatRate" className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                    업종별 부가가치율 (%)
+                  </label>
+                  <input
+                    id="vatRate"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    placeholder="예: 20"
+                    value={vatRateInput}
+                    onChange={(e) => setVatRateInput(e.target.value)}
+                    className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                  <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+                    모르면 비워두세요 — 임의로 채우지 않아요. 정확한 값은 홈택스 또는 세무사 확인 후 입력해주세요
+                  </p>
+                </div>
+              )}
+
+              {taxSettingsError && <p className="mb-3 text-sm font-semibold text-red-700 dark:text-red-400">{taxSettingsError}</p>}
+
+              <button
+                type="button"
+                onClick={handleSaveTaxSettings}
+                disabled={!taxType || taxSettingsSaving}
+                className="min-h-11 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
+              >
+                {taxSettingsSaving ? '저장 중...' : '저장'}
+              </button>
+            </>
+          )}
         </Card>
 
         {/* 카드 정산 알림 */}

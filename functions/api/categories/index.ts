@@ -7,6 +7,7 @@ interface CategoryRow {
   name: string
   removed_default: number
   sort_order: number
+  is_tax_deductible: number
 }
 
 const cors = {
@@ -44,16 +45,32 @@ function resolveOrder(type: 'expense' | 'income', rows: CategoryRow[]): string[]
   })
 }
 
+// 지출 분류별 종합소득세 경비 인정 여부 맵 — 물질화되지 않은(기본값 그대로인)
+// 분류는 스키마 기본값과 동일하게 true(경비 포함)로 채워서 반환
+function resolveExpenseTaxDeductible(names: string[], rows: CategoryRow[]): Record<string, boolean> {
+  const overrides = new Map(
+    rows.filter((r) => r.type === 'expense' && r.removed_default === 0).map((r) => [r.name, r.is_tax_deductible !== 0])
+  )
+  const map: Record<string, boolean> = {}
+  for (const name of names) map[name] = overrides.get(name) ?? true
+  return map
+}
+
 // 계정에 저장된 분류 목록 조회 — 기본 분류 + 커스텀 분류를 서버에서 병합/정렬까지
 // 끝낸 최종 순서 배열로 반환(프론트는 병합 로직 없이 그대로 렌더링)
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   const userId = (data as { userId: string }).userId
   const { results } = await env.DB.prepare(
-    'SELECT type, name, removed_default, sort_order FROM categories WHERE user_id = ?'
+    'SELECT type, name, removed_default, sort_order, is_tax_deductible FROM categories WHERE user_id = ?'
   ).bind(userId).all<CategoryRow>()
 
   const rows = results ?? []
-  return json({ expense: resolveOrder('expense', rows), income: resolveOrder('income', rows) })
+  const expense = resolveOrder('expense', rows)
+  return json({
+    expense,
+    income: resolveOrder('income', rows),
+    expenseTaxDeductible: resolveExpenseTaxDeductible(expense, rows),
+  })
 }
 
 // 분류 추가 — 예전에 삭제했던 기본 분류를 같은 이름으로 다시 추가하면 삭제 표시를 지워 복원

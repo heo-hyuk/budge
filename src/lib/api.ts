@@ -1,4 +1,4 @@
-import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, Transaction, TransactionType, UpdateTransaction, WeeklySettlement } from '../types'
+import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, TaxType, Transaction, TransactionType, UpdateTransaction, UserTaxSettings, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -350,8 +350,15 @@ export interface CategoriesResponse {
   income: string[]
 }
 
-export async function fetchCategoryOverrides(): Promise<CategoriesResponse> {
-  return apiRequest<CategoriesResponse>('/api/categories', undefined, '분류를 불러오지 못했습니다')
+// 지출 분류별 종합소득세 경비 인정 여부(is_tax_deductible)를 함께 내려주는
+// /api/categories 전용 응답 타입 — 결제 방법(fetchPaymentMethods)은 이 개념이
+// 없어 기본 CategoriesResponse를 그대로 씀
+export interface CategoryOverridesResponse extends CategoriesResponse {
+  expenseTaxDeductible: Record<string, boolean>
+}
+
+export async function fetchCategoryOverrides(): Promise<CategoryOverridesResponse> {
+  return apiRequest<CategoryOverridesResponse>('/api/categories', undefined, '분류를 불러오지 못했습니다')
 }
 
 export async function addCategoryApi(type: TransactionType, name: string): Promise<void> {
@@ -368,6 +375,15 @@ export async function removeCategoryApi(type: TransactionType, name: string): Pr
 
 export async function reorderCategoriesApi(type: TransactionType, order: string[]): Promise<void> {
   await apiRequest('/api/categories', jsonInit('PATCH', { type, order }), '분류 순서를 저장하지 못했습니다')
+}
+
+/** 지출 분류 하나의 "세무 경비 포함" 여부 토글(마이페이지가 아닌 분류명 기준) */
+export async function setCategoryTaxDeductibleApi(name: string, isTaxDeductible: boolean): Promise<void> {
+  await apiRequest(
+    '/api/categories/tax-deductible',
+    jsonInit('PATCH', { name, is_tax_deductible: isTaxDeductible }),
+    '세무 경비 설정을 저장하지 못했습니다'
+  )
 }
 
 // ── 메모 분류 API ────────────────────────────────────────
@@ -525,4 +541,16 @@ export async function removeCardSettlementSourcePaymentMethod(paymentMethod: str
     { method: 'DELETE' },
     '결제방법을 제거하지 못했습니다'
   )
+}
+
+// ── 1인 사업자 세금 설정 API ───────────────────────────────
+// 마이페이지 "사업자 세금 설정" 섹션 전용. 미설정 상태는 tax_type: null로
+// 내려오며, 임의 추정치를 채우지 않는다(간이과세자 부가율 미입력 시 null 유지)
+
+export async function fetchTaxSettings(): Promise<UserTaxSettings> {
+  return apiRequest<UserTaxSettings>('/api/tax-settings', undefined, '세금 설정을 불러오지 못했습니다')
+}
+
+export async function updateTaxSettings(data: { tax_type: TaxType; simplified_vat_rate?: number | null }): Promise<void> {
+  await apiRequest('/api/tax-settings', jsonInit('PATCH', data), '세금 설정을 저장하지 못했습니다')
 }

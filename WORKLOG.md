@@ -49,7 +49,41 @@
   확인받고 진행
 
 ### 완료
-(작업 진행 중)
+- 계획한 모든 파일 수정 완료:
+  - `migrations/030_add_tax_calculator.sql`(신규) + `schema.sql` 동기화
+  - `functions/api/tax-settings/index.ts`(신규 GET/PATCH)
+  - `functions/api/categories/index.ts`(GET에 expenseTaxDeductible 추가),
+    `functions/api/categories/tax-deductible.ts`(신규 PATCH)
+  - `functions/api/cards/index.ts`, `[id].ts`, `functions/api/transactions/index.ts`,
+    `[id].ts` — is_business/is_entertainment 필드 추가
+  - `src/types.ts`, `src/lib/api.ts`, `src/lib/categories.ts`
+  - `src/components/MyPage.tsx`, `TransactionForm.tsx`, `CardManager.tsx`, `src/App.tsx`
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 모두 통과
+- 로컬 D1에 마이그레이션 030 적용 (`tax_brackets_config` 2026년 8단계
+  시드 8건 확인). 검증 과정에서 이 로컬 DB에 migration 029(is_debit)가
+  실제로는 한 번도 적용된 적이 없었다는 걸 발견해 함께 적용함(이번
+  작업과 무관한 기존 로컬 개발 환경의 누락 — 코드/원격 DB 문제 아님)
+- `wrangler pages dev` + Playwright(라이브러리 누락으로 `libnspr4`/
+  `libnss3`/`libasound2t64`를 로컬 추출해 `LD_LIBRARY_PATH` 우회, 이전
+  작업과 동일한 방식)로 5개 화면 모두 종단간 검증:
+  - 카드 관리: "사업용 카드" 토글 켜고 등록 → 목록에 "사업용" 배지 표시 확인
+  - 마이페이지: 과세 유형 "간이과세자" 선택 + 부가율 20 입력 후 저장 →
+    새로고침해도 서버에 저장된 값 그대로 유지됨을 확인
+  - 분류 관리(톱니바퀴): "식비"의 "세무 경비 포함" 토글을 끄고 다른
+    분류는 그대로인지, 아직 물질화되지 않은 기본 분류를 처음 토글해도
+    분류 순서가 흐트러지지 않는지 확인
+  - 거래 입력: 지출 + 등록된(사업용) 카드 선택 시에만 "거래처 접대"
+    체크박스가 나타나고, 체크 시 매입세액공제 제외 안내 문구가 뜨는지
+    확인. 저장 후 서버에서 거래를 다시 조회해 `is_entertainment: 1`이
+    실제로 저장됐는지 확인
+  - 브라우저 콘솔 에러 없음
+  - 테스트에 사용한 계정/카드/거래/세금설정 데이터는 로컬 D1에서 정리,
+    `wrangler pages dev` 프로세스도 종료함
+- 미완료: business_type/has_yellow_umbrella 컬럼은 스키마에만 있고
+  설정 UI는 아직 없음(요청 범위 밖, 향후 확장용). 실제 "세금 계산"
+  화면 자체도 이번 범위가 아니라 다음 작업으로 남음
+- 원격(production) D1에는 아직 마이그레이션 030 미적용 — 사용자 확인
+  후 진행 예정
 
 ## 2026-07-28 (114차) — 메모 첨부 이미지 업로드 전 클라이언트 압축(리사이즈+WebP)
 

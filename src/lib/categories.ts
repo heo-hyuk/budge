@@ -1,4 +1,4 @@
-import { addCategoryApi, fetchCategoryOverrides, removeCategoryApi, reorderCategoriesApi } from './api'
+import { addCategoryApi, fetchCategoryOverrides, removeCategoryApi, reorderCategoriesApi, setCategoryTaxDeductibleApi } from './api'
 import type { TransactionType } from '../types'
 
 // functions/lib/categories.ts의 DEFAULT_CATEGORIES와 항상 동일하게 유지할 것.
@@ -14,13 +14,18 @@ let cache: Record<TransactionType, string[]> = {
   expense: [...DEFAULT_CATEGORIES.expense],
   income: [...DEFAULT_CATEGORIES.income],
 }
+// 지출 분류별 종합소득세 경비 인정 여부 — 없는 키(아직 로드 전)는 getExpenseTaxDeductible이 기본 true로 처리
+let taxDeductibleCache: Record<string, boolean> = {}
 let loadPromise: Promise<void> | null = null
 
 /** 로그인 직후 호출 — 서버의 분류 목록을 캐시에 채운다(App.tsx) */
 export function loadCategories(): Promise<void> {
   if (!loadPromise) {
     loadPromise = fetchCategoryOverrides()
-      .then((res) => { cache = res })
+      .then((res) => {
+        cache = { expense: res.expense, income: res.income }
+        taxDeductibleCache = res.expenseTaxDeductible
+      })
       .catch(() => { /* 실패해도 기본 분류만으로 계속 동작 */ })
   }
   return loadPromise
@@ -29,11 +34,28 @@ export function loadCategories(): Promise<void> {
 /** 로그아웃 시 호출 — 다음 로그인(다른 계정일 수도 있음)에 이전 계정 분류가 새지 않게 캐시 비움 */
 export function resetCategories() {
   cache = { expense: [...DEFAULT_CATEGORIES.expense], income: [...DEFAULT_CATEGORIES.income] }
+  taxDeductibleCache = {}
   loadPromise = null
 }
 
 export function getCategories(type: TransactionType): string[] {
   return cache[type]
+}
+
+/** 지출 분류 하나가 종합소득세 경비로 인정되는지 — 캐시에 없으면(로드 전/미설정) 스키마 기본값과 동일하게 true */
+export function getExpenseTaxDeductible(name: string): boolean {
+  return taxDeductibleCache[name] ?? true
+}
+
+export async function setExpenseTaxDeductible(name: string, value: boolean): Promise<void> {
+  const prev = taxDeductibleCache[name]
+  taxDeductibleCache = { ...taxDeductibleCache, [name]: value }
+  try {
+    await setCategoryTaxDeductibleApi(name, value)
+  } catch (err) {
+    taxDeductibleCache = { ...taxDeductibleCache, [name]: prev ?? true }
+    throw err
+  }
 }
 
 export async function addCustomCategory(type: TransactionType, name: string): Promise<string[]> {
@@ -43,7 +65,9 @@ export async function addCustomCategory(type: TransactionType, name: string): Pr
   await addCategoryApi(type, trimmed)
   // 추가된 위치(기본 분류 복원은 원래 자리, 신규 커스텀은 맨 끝)는 서버 로직에
   // 달려 있어 프론트에서 예측하기보다 다시 조회하는 편이 단순하고 항상 정확함
-  cache = await fetchCategoryOverrides()
+  const res = await fetchCategoryOverrides()
+  cache = { expense: res.expense, income: res.income }
+  taxDeductibleCache = res.expenseTaxDeductible
   return getCategories(type)
 }
 

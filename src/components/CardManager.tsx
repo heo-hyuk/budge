@@ -36,6 +36,7 @@ interface CardFormState {
   closing_day: string
   benefits: string // 레거시 메모 텍스트 (삭제 예정)
   is_debit: boolean // 체크카드(즉시결제) — 청구기간 계산 없이 거래일 그대로 반영
+  is_business: boolean // 사업용 카드 — 세금 계산 시 사업 경비 지출을 구분하는 용도
 }
 
 const defaultForm = (): CardFormState => ({
@@ -45,6 +46,7 @@ const defaultForm = (): CardFormState => ({
   closing_day: '14',
   benefits: '',
   is_debit: false,
+  is_business: false,
 })
 
 interface BenefitFormState {
@@ -188,6 +190,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       closing_day,
       benefits: legacyBenefits.join('\n'),
       is_debit: !!card.is_debit,
+      is_business: !!card.is_business,
     })
     // 이미 "말일 모드"(31/31)인 카드는 되돌아갈 수동값을 알 수 없어 기본 제안값으로 채워둠
     const isLastDay = card.billing_day === 31 && card.closing_day === 31
@@ -269,6 +272,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
       closing_day,
       benefits,
       is_debit: form.is_debit,
+      is_business: form.is_business,
       ...(preset ? { image_url: preset.imageUrl } : {}),
     }
 
@@ -579,6 +583,27 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
             </button>
           </div>
 
+          {/* 사업용 카드 토글 — 세금 계산 시 사업 경비 지출로 구분하는 용도, 청구기간
+              계산과는 무관해 is_debit과 독립적으로 켤 수 있음 */}
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-3">
+            <div>
+              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">사업용 카드</p>
+              <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
+                사업 경비로 쓰는 카드는 켜두세요. 세금 계산에서 이 카드의 지출을 구분하는 데 쓰여요
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.is_business}
+              aria-label="사업용 카드"
+              onClick={() => setForm((f) => ({ ...f, is_business: !f.is_business }))}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${form.is_business ? 'bg-coral-400' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.is_business ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
           {form.is_debit ? (
             <div className="mb-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-3 text-sm text-neutral-600 dark:text-neutral-400">
               체크카드는 결제 즉시 통장에서 차감되어 청구일을 설정할 필요가 없어요
@@ -689,7 +714,7 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                 // 말일 클램핑이 미리보기 숫자를 왜곡하지 않도록 함
                 const { start, end, billingDate } = getCardBillingPeriod('2024-01', {
                   id: '', name: '', color: '', billing_day: billingDay, closing_day: closingDay,
-                  benefits: '[]', image_url: null, is_debit: 0, created_at: '',
+                  benefits: '[]', image_url: null, is_debit: 0, is_business: 0, created_at: '',
                 })
                 const endLabel   = MONTH_BACK_LABELS[monthsBetween(billingDate, end)]   ?? '이전월'
                 const startLabel = MONTH_BACK_LABELS[monthsBetween(billingDate, start)] ?? '이전월'
@@ -767,7 +792,12 @@ function CardManager({ cards, recurringItems, onRefresh }: Props) {
                       />
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100">{card.name}</p>
+                      <p className="truncate text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                        <span className="truncate">{card.name}</span>
+                        {!!card.is_business && (
+                          <span className="shrink-0 rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">사업용</span>
+                        )}
+                      </p>
                       <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
                         {card.is_debit
                           ? '체크카드(즉시결제)'
