@@ -1,5 +1,23 @@
 # WORKLOG
 
+## 2026-07-28 (126차) — VAPID 키 재발급
+
+사용자 요청: 120차에서 보류했던 `VAPID_PRIVATE_KEY`를 결국 찾지 못해
+("없어") 재발급하기로 결정. 기존 "카드 정산 알림" 구독자는 전부
+무효화되고 재구독이 필요하다는 점을 확인받고 진행
+
+### 계획
+- `npx web-push generate-vapid-keys`로 새 키 쌍 생성
+- `src/lib/pushConfig.ts`(공개키) +
+  `workers/card-settlement-notifier/wrangler.toml`,
+  `workers/monthly-tax-reporter/wrangler.toml`의 `VAPID_PUBLIC_KEY`
+  전부 갱신
+- 양쪽 워커에 `wrangler secret put VAPID_PRIVATE_KEY`로 비공개키 등록
+- 메인 앱(`npm run deploy`) + 양쪽 워커(`npm run deploy`) 재배포
+
+### 완료
+(진행 중)
+
 ## 2026-07-28 (125차) — README 업데이트
 
 사용자 요청: "리드미 업데이트 하자" — 최근 세션(115~124차)에서 추가된
