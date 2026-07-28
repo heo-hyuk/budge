@@ -1,5 +1,28 @@
 # WORKLOG
 
+## 2026-07-28 (122차) — 구글 검색 노출용 SEO 기본 요소 추가
+
+사용자 요청: 서치 콘솔 등록 목적이 "구글 검색 노출로 신규 가입자 유입"
+이라고 확인 → 그 목적에 필요한 요소 추가(로그인/랜딩 화면만 크롤링
+가능한 SPA라 그 화면 기준으로 최소한만 구성)
+
+### 계획
+- `index.html` — `<title>`을 "텅~ 장"에서 "텅~ 장 — 나만의 가계부
+  서비스"로(검색 키워드 노출), `<meta name="description">` +
+  `og:*` 태그(제목/설명/이미지) + `<link rel="canonical">` 추가.
+  문구는 기존 `manifest.json`/`AuthPage.tsx`의 "나만의 가계부 서비스"
+  카피 그대로 재사용(새 마케팅 문구 창작 안 함)
+- `public/robots.txt`(신규) — 전체 허용 + `/api/` 크롤링 제외 +
+  sitemap 위치 명시
+- `public/sitemap.xml`(신규) — SPA라 실질적으로 크롤링 가능한 페이지가
+  루트 하나뿐이라 홈 URL 1건만 등록
+- `npm run build`로 `dist/robots.txt`, `dist/sitemap.xml` 정상 복사
+  확인 후 커밋·푸시(GitHub Actions가 자동 배포 — 120차에서 확인한 대로
+  수동 `npm run deploy` 생략)
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (121차) — 구글 서치 콘솔 HTML 태그 인증
 
 사용자 요청: 구글 서치 콘솔 소유권 확인용 `google-site-verification`
