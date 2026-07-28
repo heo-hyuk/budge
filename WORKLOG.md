@@ -19,7 +19,20 @@
   정상 응답하는지 간단히 확인
 
 ### 완료
-(진행 중)
+- 원격 D1에 `migrations/030_add_tax_calculator.sql` 적용 완료(6 queries,
+  9 changes). 적용 후 `tax_brackets_config`에 2026년 8단계 시드 8건,
+  `categories.is_tax_deductible`/`transactions.is_entertainment`/
+  `cards.is_business` 컬럼 전부 존재함을 `PRAGMA table_info`로 확인.
+  적용 전 원격 `cards` 테이블에 `is_debit`(migration 029)이 이미
+  정상적으로 있는 것도 함께 확인(로컬 개발 DB에서만 있었던 029 누락
+  현상이 원격에는 없었음)
+- `npm run deploy` 완료 — https://4fc7e2fc.budget-3wb.pages.dev
+- 배포 후 인증 없이 `/api/tax-settings`, `/api/tax/estimate?month=2026-07`
+  호출 → 둘 다 401(라우트 정상 배포·미들웨어 정상 동작 확인, 404/500
+  아님), 홈페이지 200 확인
+- `workers/monthly-tax-reporter`는 이번 배포 범위 밖(위 사유 참고) —
+  실제 발송이 되게 하려면 `cd workers/monthly-tax-reporter && npx
+  wrangler secret put VAPID_PRIVATE_KEY && npm run deploy` 별도 필요
 
 ## 2026-07-28 (118차) — `workers/monthly-tax-reporter` 신규 Cron Worker(세금 마감 리포트 Push)
 
