@@ -1,5 +1,41 @@
 # WORKLOG
 
+## 2026-07-28 (123차) — 개인정보처리방침/이용약관 페이지 + 실제 회원 탈퇴 기능
+
+사용자 요청: "성장성" 질문에 대한 답으로 제안한 우선순위(법적 문서 →
+랜딩) 중 1번 진행. 확인 결과 회원 탈퇴 기능 자체가 없었고 회원가입
+폼에 약관 동의 절차도 없어서 함께 구현하기로 확정(연락처
+exgjgur4@gmail.com, 개인 프로젝트/비사업자로 문서 작성, 실제 탈퇴
+기능 구현, 가입 폼에 동의 체크박스 필수)
+
+### 계획
+- `functions/api/auth/me.ts` — `onRequestDelete` 추가. 비밀번호
+  재확인 → notes의 R2 첨부 이미지 개별 삭제 → user_id를 참조하는
+  전체 테이블(카드/거래/예산/메모/템플릿/구독/로그/분류/설정/구매처/
+  결제방법/계산기 선택/배송 제외/카드정산기 설정/세금설정/세션/
+  users) 배치 삭제 → 세션 쿠키 삭제. D1은 FK cascade가 없어(기존
+  카드 삭제 로직과 동일한 이유) 전부 명시적으로 나열
+- `src/contexts/AuthContext.tsx` — `deleteAccount` 추가, 로그아웃과
+  캐시 초기화 로직 공유(`resetLocalCaches`로 추출)
+- `src/components/LegalPage.tsx`(신규) — 개인정보처리방침/이용약관
+  콘텐츠 + 공통 페이지 틀
+- `src/App.tsx` — `/privacy`, `/terms` pathname을 인증 게이트보다
+  먼저 확인해 로그인 여부 무관하게 접근 가능하게(라우터 라이브러리
+  없이 최소 구현, Cloudflare Pages가 이미 알 수 없는 경로를
+  index.html로 폴백해주는 것 확인 후 결정)
+- `src/components/AuthPage.tsx` — 회원가입 시 약관 동의 체크박스
+  필수(동의 전 제출 버튼 비활성화), 로그인/가입 공통 하단에 약관
+  링크
+- `src/components/MyPage.tsx` — "회원 탈퇴" 섹션(비밀번호 재확인 +
+  confirm 다이얼로그 2단계 방지), 하단 약관 링크
+- `public/sitemap.xml` — `/terms`, `/privacy` 추가
+- `wrangler pages dev` + Playwright(또는 curl)로 실제 회원가입 동의
+  체크, 탈퇴 API가 실제로 전체 테이블을 정리하는지, 약관 페이지가
+  비로그인 상태에서도 열리는지 검증
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (122차) — 구글 검색 노출용 SEO 기본 요소 추가
 
 사용자 요청: 서치 콘솔 등록 목적이 "구글 검색 노출로 신규 가입자 유입"
