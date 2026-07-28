@@ -21,7 +21,23 @@
   레이아웃 확인
 
 ### 완료
-(작업 진행 중)
+- 데모 계정에 실제 수입/지출/카드+혜택/예산/세금설정을 채운 뒤
+  헤드리스 환경에 한글 폰트(Noto Sans CJK)가 없어 스크린샷이 네모(□)로
+  깨지는 걸 발견 → `fonts-noto-cjk` 설치 후 재캡처해 정상 렌더링 확인
+  (사용자에게 배포되는 정적 이미지라 폰트 문제를 반드시 잡아야 했음)
+- `public/screenshots/{home,cards,tax}.png`(모바일 뷰포트, 2배
+  해상도) 저장
+- 계획한 파일(`src/components/LandingIntro.tsx`(신규),
+  `src/components/AuthPage.tsx`, `index.html`의 `og:image`) 전부
+  작성 완료. 기존 로그인/가입 폼 로직은 위치만 아래로 옮기고 손대지 않음
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 모두 통과
+- `wrangler pages dev` + Playwright로 데스크톱/모바일 뷰포트 모두 검증:
+  헤드라인·기능 5개 카드·실제 스크린샷 3장 렌더링 확인, "무료로
+  시작하기" 클릭 시 로그인 폼(#signup)으로 정상 스크롤 이동 확인,
+  콘솔 에러 없음
+- 데모 계정은 새로 만든 회원 탈퇴 API로 직접 정리, `wrangler pages dev`
+  프로세스 종료
+- 커밋·푸시만 하고 수동 배포는 생략(GitHub Actions 자동 배포)
 
 ## 2026-07-28 (123차) — 개인정보처리방침/이용약관 페이지 + 실제 회원 탈퇴 기능
 

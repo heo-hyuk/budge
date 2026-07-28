@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import LandingIntro from './LandingIntro'
 import { useAuth } from '../contexts/AuthContext'
 import { validateNicknameClient } from '../lib/nickname'
 
@@ -45,161 +46,161 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-svh bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* 로고/타이틀 — 심볼+텅~ 장 워드마크가 하나로 합쳐진 로고 */}
-        <div className="text-center mb-8">
-          <img src="/logo.svg" alt="텅~ 장" className="mx-auto h-20 w-auto" />
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">나만의 가계부 서비스</p>
-        </div>
+    <div className="min-h-svh bg-neutral-50 dark:bg-neutral-950">
+      {/* 비로그인 상태의 첫 화면 — 기능 소개 + 실제 스크린샷(SEO 콘텐츠도 겸함).
+          "무료로 시작하기" 버튼이 아래 로그인/가입 카드(#signup)로 스크롤 이동 */}
+      <LandingIntro />
 
-        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-          {/* 탭 */}
-          <div className="flex rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setError('') }}
-              className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                mode === 'login' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-              }`}
-            >
-              로그인
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('register'); setError('') }}
-              className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                mode === 'register' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-              }`}
-            >
-              회원가입
-            </button>
+      <div id="signup" className="flex items-center justify-center px-4 pb-16 pt-4 scroll-mt-6">
+        <div className="w-full max-w-sm">
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+            {/* 탭 */}
+            <div className="flex rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError('') }}
+                className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
+                  mode === 'login' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                }`}
+              >
+                로그인
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setError('') }}
+                className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
+                  mode === 'register' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                }`}
+              >
+                회원가입
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 이름 (회원가입만) */}
+              {mode === 'register' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이름</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="홍길동"
+                    className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                </div>
+              )}
+
+              {/* 닉네임 (회원가입만) — 헤더에 표시될 이름 */}
+              {mode === 'register' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">닉네임</label>
+                  <input
+                    type="text"
+                    required
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="한글/영문/숫자 2~12자"
+                    className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                </div>
+              )}
+
+              {/* 이메일 */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이메일</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@email.com"
+                  className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                />
+              </div>
+
+              {/* 비밀번호 */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">비밀번호</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'register' ? '8자 이상' : ''}
+                  minLength={mode === 'register' ? 8 : undefined}
+                  className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                />
+              </div>
+
+              {/* 아이디 저장 / 자동 로그인 (로그인 모드만) — 체크박스 자체는 작아도
+                  라벨 전체를 터치 영역으로 넓혀서 탭하기 쉽게 함 */}
+              {mode === 'login' && (
+                <div className="-ml-2 flex items-center gap-2">
+                  <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    <input
+                      type="checkbox"
+                      checked={saveEmail}
+                      onChange={(e) => setSaveEmail(e.target.checked)}
+                      className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
+                    />
+                    아이디 저장
+                  </label>
+                  <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                    <input
+                      type="checkbox"
+                      checked={autoLogin}
+                      onChange={(e) => setAutoLogin(e.target.checked)}
+                      className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
+                    />
+                    자동 로그인
+                  </label>
+                </div>
+              )}
+
+              {/* 이용약관/개인정보처리방침 동의 (회원가입만) — 새 탭으로 열어 입력 중인 폼이 안 날아가게 함 */}
+              {mode === 'register' && (
+                <label className="-ml-2 flex items-start gap-2 rounded-lg px-2 text-sm text-neutral-600 dark:text-neutral-400">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
+                  />
+                  <span>
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">이용약관</a>
+                    {' '}및{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">개인정보처리방침</a>
+                    에 동의합니다
+                  </span>
+                </label>
+              )}
+
+              {/* 에러 메시지 */}
+              {error && (
+                <p className="rounded-xl bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-400">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || (mode === 'register' && !agreed)}
+                className="min-h-12 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
+              >
+                {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 이름 (회원가입만) */}
-            {mode === 'register' && (
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이름</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="홍길동"
-                  className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-                />
-              </div>
-            )}
-
-            {/* 닉네임 (회원가입만) — 헤더에 표시될 이름 */}
-            {mode === 'register' && (
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">닉네임</label>
-                <input
-                  type="text"
-                  required
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="한글/영문/숫자 2~12자"
-                  className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-                />
-              </div>
-            )}
-
-            {/* 이메일 */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이메일</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
-                className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-              />
-            </div>
-
-            {/* 비밀번호 */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">비밀번호</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'register' ? '8자 이상' : ''}
-                minLength={mode === 'register' ? 8 : undefined}
-                className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-              />
-            </div>
-
-            {/* 아이디 저장 / 자동 로그인 (로그인 모드만) — 체크박스 자체는 작아도
-                라벨 전체를 터치 영역으로 넓혀서 탭하기 쉽게 함 */}
-            {mode === 'login' && (
-              <div className="-ml-2 flex items-center gap-2">
-                <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                  <input
-                    type="checkbox"
-                    checked={saveEmail}
-                    onChange={(e) => setSaveEmail(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
-                  />
-                  아이디 저장
-                </label>
-                <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                  <input
-                    type="checkbox"
-                    checked={autoLogin}
-                    onChange={(e) => setAutoLogin(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
-                  />
-                  자동 로그인
-                </label>
-              </div>
-            )}
-
-            {/* 이용약관/개인정보처리방침 동의 (회원가입만) — 새 탭으로 열어 입력 중인 폼이 안 날아가게 함 */}
-            {mode === 'register' && (
-              <label className="-ml-2 flex items-start gap-2 rounded-lg px-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <input
-                  type="checkbox"
-                  required
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
-                />
-                <span>
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">이용약관</a>
-                  {' '}및{' '}
-                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">개인정보처리방침</a>
-                  에 동의합니다
-                </span>
-              </label>
-            )}
-
-            {/* 에러 메시지 */}
-            {error && (
-              <p className="rounded-xl bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-400">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || (mode === 'register' && !agreed)}
-              className="min-h-12 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
-            >
-              {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
-            </button>
-          </form>
+          <p className="mt-4 text-center text-xs text-neutral-400 dark:text-neutral-500">
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline">이용약관</a>
+            {' · '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">개인정보처리방침</a>
+          </p>
         </div>
-
-        <p className="mt-4 text-center text-xs text-neutral-400 dark:text-neutral-500">
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline">이용약관</a>
-          {' · '}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">개인정보처리방침</a>
-        </p>
       </div>
     </div>
   )
