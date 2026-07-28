@@ -1,5 +1,31 @@
 # WORKLOG
 
+## 2026-07-28 (116차) — `/api/tax/estimate` 부가세·종합소득세 추정 엔드포인트
+
+사용자 요청: 115차에서 만든 세금 스키마를 바탕으로 부가세/종합소득세를
+추정하는 GET `/api/tax/estimate?month=YYYY-MM` 엔드포인트 구현
+
+### 계획
+- `functions/lib/settlement.ts`의 `EXCLUDE_PENDING_SETTLEMENT_SQL`을
+  export해서 재사용(카드정산기 "예정" 상태 수입 제외 로직 중복 방지)
+- `functions/lib/tax.ts`(신규) `calculateTaxEstimate(db, userId, month)`:
+  - 총수입: 그 달 확정 매출(예정 제외, 비정산 제외)
+  - 종소세용 필요경비: 그 달 지출 중 is_tax_deductible=1인 분류만
+    (물질화 안 된 기본 분류는 LEFT JOIN + COALESCE로 기본값 true 처리)
+  - 부가세 매입세액 대상: 위 필요경비 중 사업용 카드 결제 + 접대 아님만
+  - 부가세: general → 매출세액−매입세액, simplified → 부가율 있으면
+    공급대가×부가율×10%, 없으면 vat_calculable:false, freelance_3_3 →
+    vat_not_applicable:true
+  - 종소세: 연초~해당월 누적 순수익을 연환산 → tax_brackets_config에서
+    해당 귀속연도 구간 조회(연도 데이터 없으면 TaxEstimateError로
+    거부) → 세율×연환산−누진공제 + 지방소득세 → 경과월수로 일할
+  - 세금 설정 미저장 상태도 TaxEstimateError로 거부(임의 추정 금지)
+- `functions/api/tax/estimate.ts`(신규) — 얇은 라우트 핸들러, month 형식
+  검증 + TaxEstimateError를 400으로 변환
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (115차) — '1인 사업자 세금 계산' 기반 스키마 + 설정 UI
 
 사용자 요청: 세금 계산 기능을 위한 기반 스키마(과세유형 설정, 연도별
