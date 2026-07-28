@@ -1,10 +1,11 @@
 /// <reference types="@cloudflare/workers-types" />
 
 // 카드 정산기에서 소스로 선택한 결제방법(예: "예정")으로 등록된 수입은 아직 실제
-// 입금이 확인되지 않은 상태라 정산·예산·잔액·계산기 등 모든 합산에서 제외한다
-// (거래 목록 자체에는 그대로 보임 — 그건 /api/transactions가 처리, 여기 정산
-// 집계만 제외). 카드정산기에서 확인하면 payment_method가 바뀌어 자연히 합산에 포함됨
-const EXCLUDE_PENDING_SETTLEMENT_SQL =
+// 입금이 확인되지 않은 상태라 정산·예산·잔액·계산기·세금 추정 등 모든 합산에서
+// 제외한다(거래 목록 자체에는 그대로 보임 — 그건 /api/transactions가 처리, 여기
+// 정산 집계만 제외). 카드정산기에서 확인하면 payment_method가 바뀌어 자연히 합산에
+// 포함됨. functions/lib/tax.ts(세금 추정)도 이 상수를 그대로 재사용함
+export const EXCLUDE_PENDING_SETTLEMENT_SQL =
   'AND payment_method NOT IN (SELECT payment_method FROM card_settlement_source_payment_methods WHERE user_id = ?)'
 
 export interface SettlementTransaction {

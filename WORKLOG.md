@@ -24,7 +24,28 @@
   검증 + TaxEstimateError를 400으로 변환
 
 ### 완료
-(작업 진행 중)
+- 계획한 3개 파일(`functions/lib/settlement.ts`, `functions/lib/tax.ts`,
+  `functions/api/tax/estimate.ts`) 모두 작성 완료
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 모두 통과
+- `wrangler pages dev` + curl로 실제 계산 검증(UI 없는 순수 API라
+  Playwright 대신 curl로 직접 호출 후 수기 계산과 대조):
+  - 세금 설정 미저장 상태 조회 → 400 에러 확인
+  - 세율 데이터 없는 연도(2025) 조회 → 400 에러 확인(과거/미래 연도
+    방치 방지 요구사항 확인)
+  - general 과세유형 시나리오(확정매출 100만원 + 예정매출 50만원,
+    필요경비 현금 10만원 + 사업카드 5만원 + 사업카드 접대 3만원 +
+    비경비분류 2만원 + 비정산 99.9만원 혼합 등록) → total_revenue
+    1,000,000(예정 제외 확인), total_expense 180,000(비경비·비정산
+    제외 확인), est_vat 95,000, est_income_tax 54,120, tax_reserve_fund
+    149,120, real_net_income 670,880 — 전부 수기 계산과 정확히 일치
+  - simplified(부가율 미입력) → est_vat: null, vat_calculable: false 확인
+  - simplified(부가율 20%) → est_vat 20,000(공급대가×20%×10%) 확인
+  - freelance_3_3 → vat_not_applicable: true, est_vat: null 확인
+  - 거래가 전혀 없는 달(0원) 조회 시 에러 없이 전부 0으로 정상 반환
+    (연환산 대상 0원일 때 세율 구간 조회를 건너뛰는 분기 확인)
+  - 테스트 계정/카드/거래/설정 데이터는 로컬 D1에서 정리,
+    `wrangler pages dev` 프로세스도 종료함
+- 프론트엔드 연동(UI)은 이번 요청 범위 밖 — API만 구현
 
 ## 2026-07-28 (115차) — '1인 사업자 세금 계산' 기반 스키마 + 설정 UI
 
