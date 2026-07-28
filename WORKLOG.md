@@ -1,5 +1,26 @@
 # WORKLOG
 
+## 2026-07-28 (119차) — 세금 계산기 기능 원격 배포(마이그레이션 030 + 메인 앱)
+
+사용자 요청: "원격 D1에 마이그레이션 030 적용하고 배포해줘" — 115~117차
+(세금 스키마, `/api/tax/estimate`, "세금 계산기" 화면)를 실제 서비스에
+반영. 118차의 `workers/monthly-tax-reporter`는 별도 Cloudflare Workers
+프로젝트라 이번 `npm run deploy`(메인 앱)에는 포함되지 않고, 실제 발송이
+동작하려면 `wrangler secret put VAPID_PRIVATE_KEY`(대화형, 값을 아는
+사용자가 직접 실행 필요)가 선행돼야 해서 이번 배포 범위에서는 제외
+
+### 계획
+- `npx wrangler d1 execute budget-db --remote --file=./migrations/030_add_tax_calculator.sql`
+  — user_tax_settings/tax_brackets_config 신규 테이블 + categories/
+  transactions/cards 컬럼 추가를 원격 D1에 적용
+- `npm run deploy`(= `npm run build && wrangler pages deploy dist`)로
+  메인 앱(Pages Functions 포함) 배포
+- 배포 후 원격에서 실제로 `/api/tax-settings`, `/api/tax/estimate`가
+  정상 응답하는지 간단히 확인
+
+### 완료
+(진행 중)
+
 ## 2026-07-28 (118차) — `workers/monthly-tax-reporter` 신규 Cron Worker(세금 마감 리포트 Push)
 
 사용자 요청: `workers/card-settlement-notifier` 구조를 참고해 매월 말일
