@@ -1,5 +1,37 @@
 # WORKLOG
 
+## 2026-07-28 (118차) — `workers/monthly-tax-reporter` 신규 Cron Worker(세금 마감 리포트 Push)
+
+사용자 요청: `workers/card-settlement-notifier` 구조를 참고해 매월 말일
+자정(한국시간)에 알림 구독 유저의 `/api/tax/estimate` 결과를 Push로
+요약 발송하는 신규 Worker. notification_log 재사용 중복 방지, 만료
+구독(410) 자동 정리, tax 계산 로직은 재사용 가능한 공용 모듈로 구성
+
+### 계획
+- `workers/monthly-tax-reporter/`(신규 디렉토리, 별도 wrangler 프로젝트,
+  `card-settlement-notifier`와 동일 구조: `package.json`, `tsconfig.json`,
+  `wrangler.toml`, `src/`)
+- `src/tax.ts` — `functions/lib/tax.ts`(+ `functions/lib/settlement.ts`의
+  `EXCLUDE_PENDING_SETTLEMENT_SQL`)를 포팅. 별도 배포 단위라 소스 공유가
+  안 돼 `src/billing.ts`와 동일한 이유로 복사(로직 100% 동일 유지)
+- `src/index.ts` — Cloudflare Cron이 "매월 말일"을 직접 표현 못 해
+  (표준 5필드, "L" 미지원) `card-settlement-notifier`와 동일하게 매일
+  UTC 15시(KST 자정) 크론 + "오늘이 KST 1일인지" 체크 방식 사용(그 시각이
+  "전달 말일 자정"과 정확히 같은 순간). 1일이면 전달을 대상으로 리포트 생성
+  - `notification_log`에 `type='monthly_tax_report', reference_id='monthly'`로
+    유저당 월 1건 dedup
+  - 세금 설정 미저장/세율 데이터 없음(TaxEstimateError)이면 조용히 스킵
+  - vat_calculable에 따라 본문 분기(부가세 미계산 시 순수익만 안내)
+  - data.url은 SPA가 경로 라우팅이 아닌 `?tab=` 쿼리 기반이라
+    `/?tab=taxCalculator`로 설정(card-settlement-notifier의
+    `/?tab=overview&view=monthly`와 동일 패턴 — 사용자가 언급한
+    "/tax-calculator"는 실제 라우팅 구조에 맞게 이 형태로 구현)
+  - 410/404 응답 시 만료 구독 자동 삭제
+- README에 새 Worker 배포 섹션 + 디렉토리 트리 + 기능 설명 추가
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (117차) — "세금 계산기" 화면(수입/지출 계산기 옆 탭)
 
 사용자 요청: 116차 `/api/tax/estimate`를 그대로 보여주는 "세금 계산기"
