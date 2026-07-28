@@ -5,11 +5,13 @@ import ReorderableChipList from './ReorderableChipList'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteNote, fetchNotes, noteImageUrl, saveNote, updateNote } from '../lib/api'
+import { compressImageForUpload } from '../lib/imageCompress'
 import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
 import { addCustomNoteCategory, getNoteCategories, loadNoteCategories, removeNoteCategory, reorderNoteCategories } from '../lib/noteCategories'
 import type { Note } from '../types'
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB, 서버 검증과 동일한 상한(압축 후 기준)
+const RAW_MAX_IMAGE_BYTES = 20 * 1024 * 1024 // 압축 전 원본 상한 — 휴대폰 카메라 원본 등을 일단 받아 압축을 시도해볼 수 있도록 여유를 둠
 
 interface Props {
   month: string // 'YYYY-MM'
@@ -62,6 +64,7 @@ function NotesView({ month }: Props) {
   const [imageFile, setImageFile]     = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [removeExistingImage, setRemoveExistingImage] = useState(false)
+  const [compressingImage, setCompressingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function resetImageState() {
@@ -72,7 +75,7 @@ function NotesView({ month }: Props) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
@@ -80,14 +83,24 @@ function NotesView({ month }: Props) {
       e.target.value = ''
       return
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      showToast('이미지 용량은 5MB 이하만 가능합니다', 'error')
+    if (file.size > RAW_MAX_IMAGE_BYTES) {
+      showToast('이미지 용량이 너무 큽니다', 'error')
+      e.target.value = ''
+      return
+    }
+
+    setCompressingImage(true)
+    const compressed = await compressImageForUpload(file)
+    setCompressingImage(false)
+
+    if (compressed.size > MAX_IMAGE_BYTES) {
+      showToast('압축 후에도 이미지 용량은 5MB 이하만 가능합니다', 'error')
       e.target.value = ''
       return
     }
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
-    setImageFile(file)
-    setImagePreviewUrl(URL.createObjectURL(file))
+    setImageFile(compressed)
+    setImagePreviewUrl(URL.createObjectURL(compressed))
     setRemoveExistingImage(false)
   }
 
@@ -268,6 +281,14 @@ function NotesView({ month }: Props) {
   function renderImageAttachField() {
     const existingImageKey = editTarget?.note?.image_key
     const showExisting = !imageFile && !removeExistingImage && !!existingImageKey
+
+    if (compressingImage) {
+      return (
+        <div className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 px-2.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500">
+          <LoadingSpinner size={14} /> 이미지 압축 중...
+        </div>
+      )
+    }
 
     if (imageFile && imagePreviewUrl) {
       return (

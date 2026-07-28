@@ -24,7 +24,36 @@
   동작하는지 검증
 
 ### 완료
-(작업 진행 중)
+- `src/lib/imageCompress.ts`(신규) — `compressImageForUpload(file)`:
+  `createImageBitmap` + `<canvas>`로 긴 변 1600px 이하로 리사이즈 후
+  `toBlob(..., 'image/webp', 0.8)`로 재인코딩. GIF는 애니메이션 손실을
+  막기 위해 건드리지 않고, 압축 결과가 원본보다 크거나 canvas 관련
+  API를 쓸 수 없는 환경(예외 발생)이면 원본 파일 그대로 반환하는
+  폴백 포함
+- `src/components/NotesView.tsx` — `handleImageSelect`를 async로
+  바꿔 파일 선택 시 위 압축 함수를 거치도록 수정. 원본 파일에 대한
+  1차 상한을 `RAW_MAX_IMAGE_BYTES`(20MB, 압축 시도 여지를 위해 여유
+  있게)로 올리고, 압축 결과에 대해 기존 서버 상한과 동일한
+  `MAX_IMAGE_BYTES`(5MB)를 재검사. 압축 중에는 첨부 버튼 자리에
+  "이미지 압축 중..." 스피너 표시(`compressingImage` state 추가)
+- 서버(`functions/lib/noteImages.ts`)의 5MB 상한·허용 타입·R2 저장
+  구조는 변경하지 않음(webp는 이미 허용 타입에 포함돼 있어 그대로 통과)
+- `tsc -b --noEmit`, `oxlint`, `npm run build` 모두 통과
+- `wrangler pages dev` + Playwright(라이브러리 누락으로 헤드리스
+  Chromium 실행이 막혀 있어 `libnspr4`/`libnss3`/`libasound2t64` deb를
+  `apt-get download`+`dpkg-deb -x`로 로컬 추출해 `LD_LIBRARY_PATH`로
+  우회) 로 실제 업로드 흐름을 종단간 검증:
+  - 4000×3000급 가상 사진(그라디언트+노이즈) JPEG 원본 4800.9KB를
+    첨부 → 첨부 직후 미리보기 정상 표시 확인
+  - 저장 후 실제 R2에 저장된 이미지를 다시 받아와 확인한 결과 WebP
+    349.4KB로 92.7% 감소, content-type도 `image/webp`로 정상 저장됨을
+    확인
+  - 첨부 이미지 제거 후 저장 시 목록에서 이미지가 정상적으로
+    사라짐(회귀 없음), 이미지 없이 메모만 저장하는 기존 플로우도
+    정상 동작함을 확인
+  - 브라우저 콘솔 에러 없음
+  - 테스트에 사용한 계정/메모 데이터는 로컬 D1에서 정리, 로컬
+    `wrangler pages dev` 프로세스도 종료함
 
 ## 2026-07-28 (113차) — 카드 관리에 "체크카드(즉시결제)" 토글 추가
 
