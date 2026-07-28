@@ -21,7 +21,10 @@
   수동 `npm run deploy` 생략)
 
 ### 완료
-(작업 진행 중)
+- 계획한 3개 파일(`index.html`, `public/robots.txt`, `public/sitemap.xml`)
+  모두 작성, `npm run build` 통과 + `dist/robots.txt`, `dist/sitemap.xml`
+  정상 생성 확인
+- 커밋·푸시만 하고 수동 배포는 생략(GitHub Actions 자동 배포에 맡김)
 
 ## 2026-07-28 (121차) — 구글 서치 콘솔 HTML 태그 인증
 
