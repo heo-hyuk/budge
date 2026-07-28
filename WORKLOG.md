@@ -11,7 +11,9 @@
   추가
 
 ### 완료
-(작업 진행 중)
+- `index.html`에 태그 추가 완료, `npm run build` 통과 확인
+- 아직 배포 전 — 서치 콘솔이 실제로 인증하려면 운영 사이트에 반영돼야
+  하므로 사용자 확인 후 `npm run deploy` 진행 예정
 
 ## 2026-07-28 (120차) — `workers/monthly-tax-reporter` 배포(VAPID 시크릿은 보류)
 
