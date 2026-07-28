@@ -2,13 +2,15 @@
 
 개인 웹 가계부 서비스(PWA). 카드 청구 기간 기반 정산, 고정지출 자동화, 카드 혜택 매칭,
 예산 관리, 메모장, 홈 화면 설치, 카드 정산 push 알림에 더해 배송 조회·수입/지출
-개인화 계산기·자영업자용 카드매출 정산기까지 지원합니다.
+개인화 계산기·자영업자용 카드매출 정산기·1인 사업자용 세금(종합소득세/부가세)
+계산기까지 지원합니다. 비로그인 사용자에겐 기능 소개 랜딩 화면을 보여주고,
+개인정보처리방침/이용약관 페이지와 실제 회원 탈퇴 기능도 갖추고 있습니다.
 
 **배포 URL:** https://budget-3wb.pages.dev
 
 > 전체 개발 과정(요청 배경 → 설계 → 구현 → 로컬 실기기 검증)은
 > [`WORKLOG.md`](./WORKLOG.md)에 세션별로 그대로 기록되어 있습니다 —
-> 2026-07-14 ~ 2026-07-28, 120개 작업 로그(113차까지 진행), 236개 커밋 중
+> 2026-07-14 ~ 2026-07-28, 131개 작업 로그(124차까지 진행), 259개 커밋 중
 > 버그 수정(`fix:`) 44건. 아래 "개발 / 검증 프로세스" 절은 그중 실제
 > 검증 과정에서 잡아낸 버그 몇 가지를 발췌한 것입니다.
 
@@ -39,6 +41,21 @@
 - 비밀번호 PBKDF2 해싱(유저별 반복횟수 저장, 로그인 시 자동 재해싱)
 - 모든 API 미들웨어에서 세션 검증, 사용자별 데이터 완전 격리
 - 헤더 닉네임 표시/변경, "내 정보" 화면(닉네임 인라인 수정, 비밀번호 변경)
+- 회원가입 시 이용약관 동의 체크박스 필수(동의 전 제출 버튼 비활성화)
+- "내 정보" 화면에서 회원 탈퇴(비밀번호 재확인 + 되돌리기 불가 확인 다이얼로그
+  2단계 방지) — R2에 저장된 메모 첨부 이미지 포함, 계정에 연결된 전체 데이터를
+  실제로 삭제(FK cascade가 없는 D1 특성상 관련 테이블 전부를 명시적으로 정리)
+
+### 비로그인 랜딩
+- 로그인/가입 폼(`AuthPage.tsx`) 위에 헤드라인 + 핵심 기능 요약 + 실제 화면
+  스크린샷(`public/screenshots/`, 데모 계정으로 캡처)을 보여주는 마케팅 섹션
+  (`LandingIntro.tsx`) — "무료로 시작하기" 클릭 시 로그인/가입 폼으로 스크롤 이동
+- `index.html`에 검색 노출용 title/description/OG 태그, `robots.txt` +
+  `sitemap.xml`로 구글 서치 콘솔 등록 대응
+
+### 법적 문서
+- `/privacy`(개인정보처리방침), `/terms`(이용약관) — 로그인 여부와 무관하게
+  접근 가능한 정적 페이지(`LegalPage.tsx`), 로그인/가입 화면 하단에 링크
 
 ### 다크모드 / 화면
 - 라이트/다크 테마 토글(헤더), `localStorage` 저장 + 시스템 설정 폴백
@@ -92,6 +109,17 @@
 - 선택된 분류의 합계 요약 + 월정산과 동일한 날짜별 표(분류별 열 + 일별 합계)
 - 비정산 거래는 이미 서버 집계에서 제외되므로 이 화면에서 별도 처리 불필요
 
+### 세금 계산기 (1인 사업자)
+- 마이페이지에서 과세유형(일반과세/간이과세/프리랜서 3.3%) 등록 후, 선택한
+  월의 예상 순수익 + 부가세 + 종합소득세를 추정치로 확인(신고 대체 아님을
+  화면·발송 알림 모두에서 항상 눈에 띄게 안내)
+- 지출 분류마다 "세무 경비 인정 여부"(`is_tax_deductible`, 기본 포함) /
+  "접대성 지출"(`is_entertainment`, 매입세액공제 제외 대상) 토글로 세무 집계
+  기준을 수입/지출 계산기와 분리
+- 간이과세자 업종별 부가가치율은 임의로 채우지 않고 사용자가 직접 입력(모르면
+  미입력 상태로 두고 홈택스 확인 안내), 종합소득세율/누진공제는 연도별 테이블
+  (`tax_brackets_config`)에서 조회해 매년 갱신 가능
+
 ### 배송
 - 택배 등 배송 여부를 추적하고 싶은 지출 거래만 모아보는 목록(기본 전체 지출
   분류 포함, 지출계산기와 같은 방식으로 원치 않는 분류는 칩으로 제외)
@@ -134,6 +162,8 @@
 - 카드별 혜택 규칙(정률/정액 할인, 분류·구매처 조건, 월 한도) 등록, 여러 혜택을
   하나의 통합 한도로 묶는 혜택 그룹 지원
 - 카드 삭제 시 연결된 고정지출/혜택 영향 범위 안내 후 정리
+- "사업용 카드" 토글 — 세금 계산기에서 사업 경비 지출 카드를 구분하는 용도
+  (청구기간 계산 등 기존 카드 로직에는 영향 없음)
 
 ### 카드 정산 Push 알림
 - 마이페이지에서 알림 구독 토글(브라우저 Notification 권한 + Service Worker
@@ -208,6 +238,8 @@ budget/
 │   │   ├── card-settlement-payment-methods/      # 카드 정산기 소스 결제방법 CRUD
 │   │   ├── settings/                             # 계정별 단일값 설정(정산 기준 등)
 │   │   ├── push/                     # subscribe / unsubscribe (알림 구독)
+│   │   ├── tax/estimate.ts           # 세금 계산기(순수익/부가세/종합소득세 추정치)
+│   │   ├── tax-settings/             # 과세유형/부가율 등록 CRUD
 │   │   └── export/                   # 엑셀 내보내기용 데이터
 │   └── lib/
 │       ├── auth.ts                   # PBKDF2 해싱, 쿠키 유틸, 닉네임 검증
@@ -215,17 +247,21 @@ budget/
 │       ├── benefitMatcher.ts         # 카드 혜택 매칭 로직
 │       ├── settlement.ts             # 일/주/월/연 정산 계산
 │       ├── recurring.ts              # 고정지출 자동 생성
+│       ├── tax.ts                    # 세금 계산기 계산 로직(순수익/부가세/종합소득세)
 │       ├── categories.ts, noteCategories.ts, paymentMethods.ts  # 분류/결제방법 오버라이드 공통 로직
 │       └── noteImages.ts             # 메모 첨부 이미지 타입/용량 검증(5MB, JPEG/PNG/WEBP/GIF)
 ├── src/
 │   ├── components/
 │   │   ├── ui/Card.tsx               # 공통 카드형 레이아웃 컴포넌트
 │   │   ├── AuthPage.tsx, MyPage.tsx, SummaryCard.tsx
+│   │   ├── LandingIntro.tsx          # 비로그인 랜딩(기능 소개 + 실제 스크린샷)
+│   │   ├── LegalPage.tsx             # 개인정보처리방침/이용약관 정적 페이지
 │   │   ├── TransactionForm.tsx, TransactionList.tsx, CategoryBreakdown.tsx
 │   │   ├── OverviewView.tsx, DailySettlement.tsx, WeeklySettlement.tsx,
 │   │   │   MonthlySettlementTable.tsx, AnnualSettlementTable.tsx
 │   │   ├── MonthlyReport.tsx, AnnualReport.tsx
 │   │   ├── UnsettledView.tsx, CategoryCalculator.tsx(수입/지출계산기 공용)
+│   │   ├── TaxCalculatorView.tsx     # 세금 계산기(1인 사업자용)
 │   │   ├── DeliveryView.tsx, CardSettlementView.tsx
 │   │   ├── CardManager.tsx, RecurringManager.tsx, BudgetManager.tsx
 │   │   ├── NotesView.tsx, SearchView.tsx, ExportButton.tsx
@@ -259,9 +295,11 @@ budget/
 ├── workers/
 │   ├── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
 │   └── monthly-tax-reporter/         # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~029, schema.sql과 항상 동기화
+├── migrations/                       # 001~030, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
+├── public/screenshots/               # 랜딩 페이지용 실제 화면 캡처(홈/카드/세금계산기)
+├── public/robots.txt, public/sitemap.xml  # 검색엔진 크롤링 허용/사이트맵
 └── wrangler.toml                     # Cloudflare Pages 설정
 ```
 
@@ -273,12 +311,14 @@ budget/
 users                 -- id, email, password_hash, salt, name, nickname, iterations
 sessions              -- id, user_id, expires_at
 cards                 -- id, name, color, billing_day, closing_day, benefits,
-                       --   image_url, is_debit(체크카드/즉시결제 여부), user_id
+                       --   image_url, is_debit(체크카드/즉시결제 여부),
+                       --   is_business(사업용 카드 — 세금 계산기 경비 구분용), user_id
 transactions           -- id, type, category, amount, memo, date, merchant,
                        --   payment_method, card_id, recurring_id,
                        --   original_amount, discount_amount, benefit_id,
                        --   cashback_amount, unsettled, delivery_done,
-                       --   pending_source_payment_method, user_id
+                       --   pending_source_payment_method, is_entertainment
+                       --   (접대성 지출 — 매입세액공제 제외 대상), user_id
 recurring_transactions -- id, user_id, name, type, category, amount, ...,
                        --   day_of_month, start_date, end_date, last_generated_date, active
 card_benefits          -- id, user_id, card_id, name, category, merchant_pattern,
@@ -293,7 +333,8 @@ quick_templates        -- id, user_id, label, type, category, amount, merchant,
 push_subscriptions      -- id, user_id, endpoint, p256dh, auth (Web Push 구독)
 notification_log       -- id, user_id, type, reference_id, year_month, sent_at
                        --   (같은 카드·같은 청구월 중복 알림 방지)
-categories             -- id, user_id, type, name, removed_default, sort_order
+categories             -- id, user_id, type, name, removed_default, sort_order,
+                       --   is_tax_deductible(종합소득세 경비 인정 여부, 기본 포함)
                        --   (거래 분류 커스텀 추가/기본 삭제/순서를 계정 단위로 저장, 기기 간 동기화)
 note_categories        -- id, user_id, name, removed_default, sort_order (메모 분류, categories와 동일 구조)
 user_settings          -- user_id, key, value (계정별 단일값 설정 — 카드 지출 집계
@@ -307,11 +348,20 @@ delivery_excluded_categories        -- id, user_id, category (배송 탭에서 �
                        --   기본 전체 포함 · exclude 전용)
 card_settlement_source_payment_methods  -- id, user_id, payment_method (카드 정산기에서
                        --   추적 대상으로 선택한 수입 결제방법, 기본 전체 미선택)
+user_tax_settings      -- user_id, tax_type(general/simplified/freelance_3_3),
+                       --   business_type, simplified_vat_rate(간이과세자 업종별
+                       --   부가율, 사용자 직접 입력), has_yellow_umbrella
+tax_brackets_config    -- id, year, min_amount, max_amount, rate, deduction,
+                       --   local_tax_rate (연도별 종합소득세 누진세율표, 매년 갱신)
 ```
 
 `transactions.pending_source_payment_method`는 카드 정산기에서 "확인" 체크 시
 원래 결제방법을 기억해두는 컬럼입니다(NULL이면 미확인). 체크 해제(되돌리기)
 시 이 값으로 결제 방법을 복원합니다(migration 028).
+
+`tax_brackets_config`는 연도별 종합소득세 세율/누진공제표입니다. 매년 5월
+국세청 고시 확인 후 새 연도 row만 추가하고, 과거 귀속연도 row는 재계산 방지를
+위해 절대 수정하지 않습니다(migration 030).
 
 전체 정의는 `schema.sql` 참고. 스키마 변경 시 `migrations/`에 새 파일을 추가하고
 `schema.sql`도 함께 동기화합니다.

@@ -1,5 +1,30 @@
 # WORKLOG
 
+## 2026-07-28 (125차) — README 업데이트
+
+사용자 요청: "리드미 업데이트 하자" — 최근 세션(115~124차)에서 추가된
+세금 계산기(1인 사업자), 비로그인 랜딩 페이지, 개인정보처리방침/이용약관 +
+회원 탈퇴, SEO 기본 요소가 README에 전혀 반영되지 않아 실제 코드와 문서가
+어긋나 있던 상태를 정리
+
+### 계획
+- 상단 요약 문단 — 세금 계산기/랜딩/법적 문서 언급 추가, WORKLOG 통계
+  (작업 로그 수·최신 차수·커밋 수·fix 커밋 수) 최신값으로 갱신
+- "구현된 기능" — "비로그인 랜딩", "법적 문서", "세금 계산기 (1인 사업자)"
+  신규 절 추가, "카드 관리"에 "사업용 카드" 토글 항목 추가
+- "프로젝트 구조" 트리 — `tax/`, `tax-settings/`, `tax.ts`,
+  `LandingIntro.tsx`, `LegalPage.tsx`, `TaxCalculatorView.tsx`,
+  `public/screenshots/`, `robots.txt`/`sitemap.xml` 추가, migrations 범위
+  001~030으로 수정
+- "DB 스키마" — `user_tax_settings`, `tax_brackets_config` 테이블 추가,
+  `cards.is_business`/`categories.is_tax_deductible`/
+  `transactions.is_entertainment` 컬럼 반영
+
+### 완료
+- 위 계획한 항목 전부 README.md에 반영(코드 변경 없음, 문서 전용 작업)
+- `schema.sql`/`src`/`functions`를 직접 대조해 신규 테이블·컬럼·컴포넌트
+  경로가 실제 존재하는지 확인 후 작성
+
 ## 2026-07-28 (124차) — 비로그인 랜딩 페이지(기능 소개 + 실제 스크린샷)
 
 사용자 요청: 우선순위 2번째였던 비로그인 랜딩(기능 요약 + 스크린샷)
