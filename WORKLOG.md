@@ -1,5 +1,38 @@
 # WORKLOG
 
+## 2026-07-28 (120차) — `workers/monthly-tax-reporter` 배포(VAPID 시크릿은 보류)
+
+사용자 요청: 118차에서 만든 세금 마감 리포트 Cron Worker도 배포해달라는
+요청에 따라 `wrangler deploy` 진행. 이어서 실제 발송에 필요한
+`VAPID_PRIVATE_KEY` 시크릿 등록을 시도했으나, 이 값은 45차 세션에서
+`web-push generate-vapid-keys`로 1회성 생성 후 Cloudflare 시크릿으로만
+등록되고 저장소 어디에도(로컬 파일·git) 남아있지 않은 상태 — Cloudflare
+시크릿은 조회 불가(write-only)라 값을 복구할 방법이 없음을 확인.
+"새로 생성"(기존 카드 정산 알림 구독자 전부 재구독 필요)과 "일단 보류"
+중 사용자가 **보류**를 선택함
+
+### 진행
+- `cd workers/monthly-tax-reporter && npm run deploy`(`wrangler deploy`)
+  완료 — `budget-monthly-tax-reporter` Worker 최초 생성, 크론
+  `0 15 * * *`(UTC, = 한국시간 매일 자정) 등록 확인
+- `npx wrangler secret list` → 시크릿 없음(`[]`) 확인. `VAPID_PRIVATE_KEY`
+  미등록 상태로는 실제 push 발송이 조용히 실패하지만(sendPush가 에러를
+  삼킴) `notification_log`에는 "발송함"으로 기록돼(logNotified가 발송
+  성패와 무관하게 항상 호출됨) 그 달은 재시도가 영영 안 되는 리스크가
+  있음 — 사용자에게 명확히 안내함(다음 트리거는 8월 1일 KST 자정이라
+  그 전까지만 등록하면 문제없음)
+- 코드/스키마 변경 없음(순수 배포 작업)이라 별도 코드 커밋 없이 이
+  WORKLOG 기록만 남김
+
+### 다음에 참고할 것
+- `VAPID_PRIVATE_KEY`를 못 찾으면: `npx web-push generate-vapid-keys`로
+  새 키 쌍 생성 → `src/lib/pushConfig.ts`(공개키) + 양쪽 워커
+  `wrangler.toml`의 `VAPID_PUBLIC_KEY` 갱신 → 양쪽 워커 모두
+  `wrangler secret put VAPID_PRIVATE_KEY` 재등록 필요. 이 경우 기존
+  "카드 정산 알림" 구독자는 전부 무효화되어 다시 켜야 함
+- 값을 찾으면(비밀번호 관리자 등): `cd workers/monthly-tax-reporter &&
+  npx wrangler secret put VAPID_PRIVATE_KEY`만 실행하면 됨(재배포 불필요)
+
 ## 2026-07-28 (119차) — 세금 계산기 기능 원격 배포(마이그레이션 030 + 메인 앱)
 
 사용자 요청: "원격 D1에 마이그레이션 030 적용하고 배포해줘" — 115~117차
