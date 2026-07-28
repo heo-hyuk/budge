@@ -8,8 +8,8 @@
 
 > 전체 개발 과정(요청 배경 → 설계 → 구현 → 로컬 실기기 검증)은
 > [`WORKLOG.md`](./WORKLOG.md)에 세션별로 그대로 기록되어 있습니다 —
-> 2026-07-14 ~ 2026-07-27, 114개 작업 로그(107차까지 진행), 225개 커밋 중
-> 버그 수정(`fix:`) 41건. 아래 "개발 / 검증 프로세스" 절은 그중 실제
+> 2026-07-14 ~ 2026-07-28, 120개 작업 로그(113차까지 진행), 236개 커밋 중
+> 버그 수정(`fix:`) 44건. 아래 "개발 / 검증 프로세스" 절은 그중 실제
 > 검증 과정에서 잡아낸 버그 몇 가지를 발췌한 것입니다.
 
 ---
@@ -119,8 +119,14 @@
 
 ### 카드 관리
 - 카드 등록·수정·삭제, 결제일 입력 시 마감일 자동 제안
+- "체크카드(즉시결제)" 토글 — 지역화폐 카드 등 결제 즉시 통장에서 차감되는
+  카드는 청구일/마감일 개념이 아예 없어, 이 토글을 켜면 결제일·마감일 입력과
+  "말일 마감·말일 결제" 토글, 청구기간 미리보기가 전부 사라지고 안내 문구로
+  대체됨. 월정산(출금일 기준)·엑셀 카드별정산 시트 모두 이 카드는 청구기간
+  계산 없이 거래일 그대로 그 달에 즉시 반영("즉시결제" 라벨). 혜택(할인/적립)
+  매칭은 `card_id` 등록 여부만으로 판단해 체크카드 여부와 무관하게 동일하게 동작
 - "매달 1일~말일 마감·말일 결제" 토글 — 청구 기간이 달력월과 그대로 일치하는
-  카드(체크카드, 일부 후불 결제 등)는 마감일/결제일을 매번 31로 입력할 필요 없이
+  카드(일부 후불 결제 등)는 마감일/결제일을 매번 31로 입력할 필요 없이
   한 번에 설정. 끄면 직전에 입력했던 수동 값으로 복원
 - 카드 상품 프리셋 선택(삼성 taptap O / KB 쿠팡와우 / 롯데 LOCA LIKIT / NH zgm.the
   pay) — 혜택 규칙 자동 등록 + 카드사 공식 디자인 이미지(R2) 표시, 미선택 시 색상
@@ -241,7 +247,7 @@ budget/
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
 │   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
-├── migrations/                       # 001~027, schema.sql과 항상 동기화
+├── migrations/                       # 001~029, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
 └── wrangler.toml                     # Cloudflare Pages 설정
@@ -255,7 +261,7 @@ budget/
 users                 -- id, email, password_hash, salt, name, nickname, iterations
 sessions              -- id, user_id, expires_at
 cards                 -- id, name, color, billing_day, closing_day, benefits,
-                       --   image_url, user_id
+                       --   image_url, is_debit(체크카드/즉시결제 여부), user_id
 transactions           -- id, type, category, amount, memo, date, merchant,
                        --   payment_method, card_id, recurring_id,
                        --   original_amount, discount_amount, benefit_id,
