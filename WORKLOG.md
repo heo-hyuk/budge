@@ -1,5 +1,56 @@
 # WORKLOG
 
+## 2026-07-28 (115차) — '1인 사업자 세금 계산' 기반 스키마 + 설정 UI
+
+사용자 요청: 세금 계산 기능을 위한 기반 스키마(과세유형 설정, 연도별
+세율/누진공제 테이블, 분류별 경비인정 여부, 거래별 접대비 여부, 카드별
+사업용 여부)와 그 설정 UI(마이페이지, 분류 관리, 거래 입력 폼, 카드
+관리)를 구현. 실제 "세금 계산" 화면 자체는 이번 범위 아님(다음 작업)
+
+### 계획
+- `migrations/030_add_tax_calculator.sql` + `schema.sql` 동기화 —
+  `user_tax_settings`(과세유형/업종/간이과세 부가율/노란우산공제),
+  `tax_brackets_config`(연도별 세율·누진공제, 2026년 8단계 시드),
+  `categories.is_tax_deductible`(기본 1=포함), `transactions.is_entertainment`
+  (기본 0), `cards.is_business`(기본 0). `tax_brackets_config`는
+  `UNIQUE(year, min_amount)` + `INSERT OR IGNORE`로 schema.sql 재실행 시
+  중복 시드 방지
+- `functions/api/tax-settings/index.ts`(신규 GET/PATCH) — upsert,
+  tax_type이 simplified가 아니면 simplified_vat_rate는 항상 NULL로 정리.
+  부가율은 절대 임의 추정치를 채우지 않고 미입력 시 NULL 그대로 반환
+- `functions/api/categories/index.ts` — GET 응답에 `expenseTaxDeductible`
+  맵 추가(미설정 분류는 기본값 true)
+- `functions/api/categories/tax-deductible.ts`(신규 PATCH) — 분류별
+  is_tax_deductible 토글. 아직 물질화되지 않은 기본 분류를 토글할 때
+  기존 정렬 순서가 흐트러지지 않도록 `ROWED_OFFSET` 역산으로 sort_order 보정
+- `functions/api/cards/index.ts`, `[id].ts` — is_business 필드 추가
+- `functions/api/transactions/index.ts`, `[id].ts` — is_entertainment 필드 추가
+- `src/types.ts` — TaxType, UserTaxSettings, Card/NewCard.is_business,
+  Transaction/NewTransaction/UpdateTransaction.is_entertainment
+- `src/lib/api.ts` — 세금 설정 API, 분류 응답 타입 확장, 세무경비 토글 API
+- `src/lib/categories.ts` — expenseTaxDeductible 캐시 + 조회/토글 함수
+- `src/components/MyPage.tsx` — "사업자 세금 설정" 카드(과세유형 라디오
+  3종 + 간이과세자 선택 시 부가율 입력, 미입력 안내 문구)
+- `src/components/TransactionForm.tsx` — 분류 관리(톱니바퀴) 모드에
+  지출 분류별 "세무 경비 포함" 토글 목록 추가(기존 칩 드래그/삭제 UI는
+  그대로 두고 별도 섹션으로 추가, 인입 위험 최소화). 지출+카드결제일
+  때만 "거래처 접대" 체크박스 노출(기본 미체크, 체크 시 매입세액공제
+  제외 안내). TransactionPrefill에 is_entertainment 추가해 수정/복제
+  플로우에서도 유지
+- `src/components/CardManager.tsx` — "사업용 카드" 토글(기본 꺼짐) +
+  목록에 "사업용" 배지
+- `src/App.tsx` — handleDuplicate/handleEditRequest가 is_entertainment도
+  함께 prefill에 실어 보내도록
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과 확인, 로컬 D1에
+  마이그레이션 적용 후 `wrangler pages dev`로 마이페이지 세금 설정
+  저장, 분류 관리 토글, 거래 입력 시 접대 체크박스, 카드 사업용 토글
+  각각 동작 확인
+- 원격(production) D1 마이그레이션은 로컬 검증 완료 후 사용자에게
+  확인받고 진행
+
+### 완료
+(작업 진행 중)
+
 ## 2026-07-28 (114차) — 메모 첨부 이미지 업로드 전 클라이언트 압축(리사이즈+WebP)
 
 사용자 요청: "메모에 이미 첨부하자나 이거 용량줄이는 방법이 뭘까?"

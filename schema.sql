@@ -1,5 +1,5 @@
 -- ============================================================
--- schema.sql — 최종 상태 (모든 마이그레이션 001~029 포함)
+-- schema.sql — 최종 상태 (모든 마이그레이션 001~030 포함)
 -- ============================================================
 -- 주의: 마이그레이션 파일 추가 시 반드시 이 파일도 동기화할 것
 -- 로컬 초기화: npm run d1:init (wrangler d1 execute --local --file=./schema.sql)
@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS cards (
   user_id TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   image_url TEXT,  -- 카드 실물 디자인 이미지 URL (migration 013), NULL이면 color 기반 표시로 폴백
-  is_debit INTEGER NOT NULL DEFAULT 0  -- 1 = 체크카드(즉시결제), 청구기간 계산 없이 거래일 그대로 반영(migration 029)
+  is_debit INTEGER NOT NULL DEFAULT 0,  -- 1 = 체크카드(즉시결제), 청구기간 계산 없이 거래일 그대로 반영(migration 029)
+  is_business INTEGER NOT NULL DEFAULT 0  -- 1 = 사업용 카드 (migration 030)
 );
 
 CREATE INDEX IF NOT EXISTS idx_cards_user ON cards(user_id);
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   unsettled INTEGER NOT NULL DEFAULT 0,  -- 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외, migration 021)
   delivery_done INTEGER NOT NULL DEFAULT 0,  -- 1 = 배송완료 체크(배송 탭 전용, migration 025)
   pending_source_payment_method TEXT,    -- 카드정산기 확인 시 원래 결제방법을 기억(되돌리기용, migration 028), NULL이면 미확인
+  is_entertainment INTEGER NOT NULL DEFAULT 0,  -- 1 = 거래처 접대성 지출(부가세 매입세액공제 제외 대상, migration 030). is_tax_deductible과 별개 개념
   created_at TEXT NOT NULL
 );
 
@@ -205,6 +207,7 @@ CREATE TABLE IF NOT EXISTS categories (
   name TEXT NOT NULL,
   removed_default INTEGER NOT NULL DEFAULT 0,  -- 0 = 사용자가 추가한 커스텀 분류, 1 = 삭제한 기본 분류 표시
   sort_order INTEGER NOT NULL DEFAULT 0,  -- 커스텀 분류끼리의 순서(기본 분류는 항상 앞에 고정, migration 022)
+  is_tax_deductible INTEGER NOT NULL DEFAULT 1,  -- 종합소득세 경비 인정 여부, 기본 포함(opt-out, migration 030)
   created_at TEXT NOT NULL,
   UNIQUE(user_id, type, name)
 );
@@ -308,3 +311,42 @@ CREATE TABLE IF NOT EXISTS card_settlement_source_payment_methods (
 );
 
 CREATE INDEX IF NOT EXISTS idx_card_settlement_source_payment_methods_user ON card_settlement_source_payment_methods(user_id);
+
+-- ── 1인 사업자 세금 계산 (migration 030) ────────────────────────
+-- business_type/has_yellow_umbrella는 지금 UI에서 아직 입력받지 않는 향후 확장용 컬럼
+CREATE TABLE IF NOT EXISTS user_tax_settings (
+  user_id TEXT PRIMARY KEY,
+  tax_type TEXT NOT NULL CHECK (tax_type IN ('general','simplified','freelance_3_3')),
+  business_type TEXT,
+  -- 간이과세자 업종별 부가가치율(%, 예: 20 = 20%). 국세청 고시표를 임의로 채우지
+  -- 말 것 — tax_type='simplified' 선택 시 사용자가 본인 업종 부가율을 직접 입력.
+  -- 모르면 NULL로 두고 "정확한 값은 홈택스에서 확인 후 입력" 안내(임의 추정치 금지)
+  simplified_vat_rate REAL,
+  has_yellow_umbrella INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+-- 세율/누진공제 — 매년 바뀔 수 있으므로 코드가 아닌 이 테이블에서 조회.
+-- 매년 5월 국세청 고시 확인 후 새 연도 row 추가. 기존 연도 row는 절대 수정하지
+-- 말 것(과거 귀속연도 재계산 방지)
+CREATE TABLE IF NOT EXISTS tax_brackets_config (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  year INTEGER NOT NULL,
+  min_amount INTEGER NOT NULL,
+  max_amount INTEGER,              -- NULL = 상한 없음(최고 구간)
+  rate REAL NOT NULL,
+  deduction INTEGER NOT NULL,      -- 누진공제액
+  local_tax_rate REAL NOT NULL DEFAULT 0.1,
+  UNIQUE(year, min_amount)
+);
+
+-- 2026년 귀속 8단계 기준 시드 데이터
+INSERT OR IGNORE INTO tax_brackets_config (year, min_amount, max_amount, rate, deduction) VALUES
+  (2026, 0, 14000000, 0.06, 0),
+  (2026, 14000000, 50000000, 0.15, 1260000),
+  (2026, 50000000, 88000000, 0.24, 5760000),
+  (2026, 88000000, 150000000, 0.35, 15440000),
+  (2026, 150000000, 300000000, 0.38, 19940000),
+  (2026, 300000000, 500000000, 0.40, 25940000),
+  (2026, 500000000, 1000000000, 0.42, 35940000),
+  (2026, 1000000000, NULL, 0.45, 65940000);
