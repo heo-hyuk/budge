@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import NotificationSettings from './NotificationSettings'
 import Card from './ui/Card'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { fetchTaxSettings, updateTaxSettings } from '../lib/api'
 import { validateNicknameClient } from '../lib/nickname'
@@ -23,8 +24,9 @@ interface Props {
 }
 
 function MyPage({ onClose }: Props) {
-  const { user, updateNickname, changePassword } = useAuth()
+  const { user, updateNickname, changePassword, deleteAccount } = useAuth()
   const { showToast } = useToast()
+  const confirm = useConfirm()
 
   const [editingNickname, setEditingNickname] = useState(false)
   const [nicknameInput, setNicknameInput]      = useState(user?.nickname ?? user?.name ?? '')
@@ -36,6 +38,11 @@ function MyPage({ onClose }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError]     = useState('')
   const [passwordSaving, setPasswordSaving]   = useState(false)
+
+  const [showDeleteForm, setShowDeleteForm] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError]       = useState('')
+  const [deleteSaving, setDeleteSaving]     = useState(false)
 
   // 사업자 세금 설정 — null = 아직 로드 전/미설정. 부가율은 홈택스 확인 없이
   // 임의로 채우면 안 되므로 서버가 null로 내려주면 입력칸도 빈 채로 둔다
@@ -120,6 +127,22 @@ function MyPage({ onClose }: Props) {
       setPasswordError(err instanceof Error ? err.message : '비밀번호 변경에 실패했습니다')
     } finally {
       setPasswordSaving(false)
+    }
+  }
+
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault()
+    setDeleteError('')
+    if (!(await confirm('정말로 계정을 삭제할까요? 모든 가계부 데이터가 영구적으로 삭제되며 되돌릴 수 없습니다.'))) return
+    setDeleteSaving(true)
+    try {
+      await deleteAccount(deletePassword)
+      showToast('계정이 삭제되었습니다')
+      onClose()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : '계정을 삭제하지 못했습니다')
+    } finally {
+      setDeleteSaving(false)
     }
   }
 
@@ -306,6 +329,58 @@ function MyPage({ onClose }: Props) {
             </button>
           </form>
         </Card>
+
+        {/* 회원 탈퇴 — 눈에 띄지 않게 다른 설정과 톤을 분리하고, 비밀번호 재확인 +
+            확인 다이얼로그 2단계로 실수로 인한 삭제를 방지 */}
+        <Card>
+          <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-2">회원 탈퇴</p>
+          {!showDeleteForm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteForm(true)}
+              className="text-sm font-semibold text-red-600 dark:text-red-400 hover:underline"
+            >
+              계정 삭제하기
+            </button>
+          ) : (
+            <form onSubmit={handleDeleteAccount} className="space-y-2">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                탈퇴하면 거래 내역, 카드, 메모, 예산 등 모든 데이터가 즉시 영구 삭제되며 복구할 수 없어요.
+              </p>
+              <input
+                type="password"
+                required
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="비밀번호 확인"
+                className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-50 dark:focus:ring-red-900/40"
+              />
+              {deleteError && <p className="text-sm font-semibold text-red-700 dark:text-red-400">{deleteError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={deleteSaving}
+                  className="min-h-10 flex-1 rounded-xl bg-red-600 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deleteSaving ? '삭제 중...' : '탈퇴하기'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteForm(false); setDeletePassword(''); setDeleteError('') }}
+                  className="min-h-10 flex-1 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-sm font-bold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          )}
+        </Card>
+
+        <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline">이용약관</a>
+          {' · '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">개인정보처리방침</a>
+        </p>
       </div>
     </div>
   )

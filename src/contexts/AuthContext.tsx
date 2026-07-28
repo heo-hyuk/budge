@@ -24,6 +24,7 @@ interface AuthContextValue {
   logout: () => Promise<void>
   updateNickname: (nickname: string) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  deleteAccount: (password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -63,10 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(body.user)
   }
 
-  async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
+  // 로그아웃/탈퇴 공통 — 다음 로그인(다른 계정일 수도)에 이전 계정 분류/설정/구매처가 새지 않게 캐시 정리
+  function resetLocalCaches() {
     setUser(null)
-    // 다음 로그인(다른 계정일 수도)에 이전 계정 분류/설정/구매처가 새지 않게
     resetCategories()
     resetNoteCategories()
     resetSettings()
@@ -75,6 +75,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetCalcSelections()
     resetDeliveryExcludedCategories()
     resetCardSettlementSourcePaymentMethods()
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    resetLocalCaches()
+  }
+
+  /** 회원 탈퇴 — 서버에서 계정과 연결 데이터를 전부 삭제한 뒤 로그아웃과 동일하게 로컬 상태 정리 */
+  async function deleteAccount(password: string) {
+    const res  = await fetch('/api/auth/me', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    })
+    const body = (await res.json()) as { ok?: boolean; error?: string }
+    if (!res.ok || !body.ok) throw new Error(body.error ?? '계정을 삭제하지 못했습니다')
+    resetLocalCaches()
   }
 
   async function updateNickname(nickname: string) {
@@ -99,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateNickname, changePassword }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateNickname, changePassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

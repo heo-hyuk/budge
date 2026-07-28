@@ -7,6 +7,7 @@ import CardSettlementView from './components/CardSettlementView'
 import CategoryBreakdown from './components/CategoryBreakdown'
 import CategoryCalculator from './components/CategoryCalculator'
 import DeliveryView from './components/DeliveryView'
+import LegalPage from './components/LegalPage'
 import LoadingSpinner from './components/LoadingSpinner'
 import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
@@ -307,6 +308,13 @@ function App() {
   const isCurrentMonth = selectedMonth === currentMonth()
   const [y, mon] = selectedMonth.split('-')
   const monthLabel = `${y}년 ${parseInt(mon)}월`
+
+  // 개인정보처리방침/이용약관 — 로그인 여부와 무관하게 항상 접근 가능해야 하므로
+  // (회원가입 전 확인, 로그인 상태에서도 재확인 가능) 인증 게이트보다 먼저 확인.
+  // 이 앱은 경로 라우팅 없이 ?tab= 쿼리로만 화면을 고르는 구조라 이 두 페이지만
+  // 예외적으로 pathname을 직접 확인(라우터 라이브러리 도입 없이 최소 구현)
+  if (window.location.pathname === '/privacy') return <LegalPage type="privacy" />
+  if (window.location.pathname === '/terms') return <LegalPage type="terms" />
 
   // 인증 로딩 중
   if (authLoading) {

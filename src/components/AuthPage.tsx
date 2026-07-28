@@ -17,6 +17,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [saveEmail, setSaveEmail] = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) !== null)
   const [autoLogin, setAutoLogin] = useState(true)
+  const [agreed, setAgreed]       = useState(false)  // 이용약관/개인정보처리방침 동의(회원가입만 필수)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -158,6 +159,25 @@ function AuthPage() {
               </div>
             )}
 
+            {/* 이용약관/개인정보처리방침 동의 (회원가입만) — 새 탭으로 열어 입력 중인 폼이 안 날아가게 함 */}
+            {mode === 'register' && (
+              <label className="-ml-2 flex items-start gap-2 rounded-lg px-2 text-sm text-neutral-600 dark:text-neutral-400">
+                <input
+                  type="checkbox"
+                  required
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
+                />
+                <span>
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">이용약관</a>
+                  {' '}및{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-coral-600 dark:text-coral-300 hover:underline">개인정보처리방침</a>
+                  에 동의합니다
+                </span>
+              </label>
+            )}
+
             {/* 에러 메시지 */}
             {error && (
               <p className="rounded-xl bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-400">
@@ -167,13 +187,19 @@ function AuthPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (mode === 'register' && !agreed)}
               className="min-h-12 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
             >
               {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
             </button>
           </form>
         </div>
+
+        <p className="mt-4 text-center text-xs text-neutral-400 dark:text-neutral-500">
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline">이용약관</a>
+          {' · '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline">개인정보처리방침</a>
+        </p>
       </div>
     </div>
   )

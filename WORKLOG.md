@@ -34,7 +34,32 @@ exgjgur4@gmail.com, 개인 프로젝트/비사업자로 문서 작성, 실제 �
   비로그인 상태에서도 열리는지 검증
 
 ### 완료
-(작업 진행 중)
+- 계획한 7개 파일(`functions/api/auth/me.ts`, `src/contexts/AuthContext.tsx`,
+  `src/components/LegalPage.tsx`(신규), `src/App.tsx`,
+  `src/components/AuthPage.tsx`, `src/components/MyPage.tsx`,
+  `public/sitemap.xml`) 전부 작성 완료
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 모두 통과
+- `wrangler pages dev` + curl/Playwright로 실제 검증:
+  - 틀린 비밀번호로 탈퇴 시도 → 거부 확인
+  - 카드/거래/예산/세금설정/메모(+R2 이미지)를 채운 뒤 올바른
+    비밀번호로 탈퇴 → 응답 `Set-Cookie`로 세션 쿠키 삭제 확인,
+    user_id를 참조하는 20개 테이블 + `benefit_groups`(card_id 경유)
+    전부 0건, `users` 행 자체도 삭제됨을 직접 조회로 확인. R2
+    노트 이미지도 실제로 삭제됨(`wrangler r2 object get` → "키가
+    존재하지 않음") 확인. 탈퇴 후 같은 세션 쿠키로 API 호출 시 401
+    확인
+  - `/terms`, `/privacy`를 비로그인 상태에서 직접 접근 → 정상
+    렌더링(Cloudflare Pages의 SPA 폴백이 이미 임의 경로를
+    index.html로 응답하는 것을 사전에 확인하고 별도 `_redirects`
+    설정 없이 진행)
+  - 회원가입 폼에서 약관 동의 체크 전엔 제출 버튼 비활성화, 체크 후
+    활성화되어 실제 가입까지 정상 진행되는 것을 Playwright로 확인
+  - 마이페이지 "회원 탈퇴" 섹션이 비밀번호 확인 폼으로 정상
+    펼쳐지는 것을 스크린샷으로 확인
+  - 검증에 쓴 테스트 계정들은 새로 만든 탈퇴 API로 직접 정리(마지막
+    계정은 API 자체로 탈퇴시켜 정리를 겸함), `wrangler pages dev`
+    프로세스 종료
+- 커밋·푸시만 하고 수동 배포는 생략(GitHub Actions 자동 배포)
 
 ## 2026-07-28 (122차) — 구글 검색 노출용 SEO 기본 요소 추가
 
