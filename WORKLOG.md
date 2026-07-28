@@ -16,7 +16,20 @@
 - 메인 앱(`npm run deploy`) + 양쪽 워커(`npm run deploy`) 재배포
 
 ### 완료
-(진행 중)
+- `npx web-push generate-vapid-keys`로 새 키 쌍 생성
+- `src/lib/pushConfig.ts`, `workers/card-settlement-notifier/wrangler.toml`,
+  `workers/monthly-tax-reporter/wrangler.toml` 세 곳의 `VAPID_PUBLIC_KEY`를
+  새 공개키로 갱신
+- 양쪽 워커에 `wrangler secret put VAPID_PRIVATE_KEY`로 새 비공개키 등록
+  완료(등록 직후 삭제 — 로컬/git 어디에도 값 남기지 않음)
+- `workers/card-settlement-notifier` 배포 완료
+- `workers/monthly-tax-reporter` 배포 시도 중 `node_modules` 미설치로
+  번들링 실패(`Could not resolve "@block65/webcrypto-web-push"`) —
+  `npm install` 후 재배포해 해결
+- 메인 앱 `npm run deploy` 완료 — https://fe10e29c.budget-3wb.pages.dev
+- **기존 "카드 정산 알림" 구독자는 전부 무효화됨** — 옛 공개키로 만든
+  구독은 새 비공개키로 서명한 발송을 검증 못 해 실패함. 실사용자가
+  마이페이지에서 알림을 다시 켜야 함(자동 마이그레이션 불가능)
 
 ## 2026-07-28 (125차) — README 업데이트
 

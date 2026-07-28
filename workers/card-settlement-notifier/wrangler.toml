@@ -20,5 +20,5 @@ database_id = "ff31284d-4e34-4a03-a99c-313cc330d7d0"
 [vars]
 # VAPID 공개키/subject는 비밀정보가 아니라 평문 변수로 둠 (src/lib/pushConfig.ts와
 # 동일한 공개키여야 함). 비공개키(VAPID_PRIVATE_KEY)는 `wrangler secret put`으로만 등록
-VAPID_PUBLIC_KEY = "BNVF3ffHdd83A3kTySza582XejgDV6xRmg4h9O3uRQ9JFFusdy6UqmpS6w1l4jf9pLG51VTBdiNGxSbmE1Gz4Nc"
+VAPID_PUBLIC_KEY = "BAYaCkdYCPduSmypoCI0Wt4YL9rz6wiNo8EJdbpMZovN28TsIgr-BuYjBgNIHpHu1Ulj2L5gRkF_zFO3wAkc3U8"
 VAPID_SUBJECT = "https://budget-3wb.pages.dev"
