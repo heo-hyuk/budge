@@ -320,3 +320,17 @@ export interface UserTaxSettings {
   tax_type: TaxType | null           // null = 아직 설정 안 함
   simplified_vat_rate: number | null // 간이과세자 업종별 부가가치율(%), null = 미입력
 }
+
+// /api/tax/estimate 응답 — 세무 신고를 대체하지 않는 참고용 추정치(is_estimate 항상 true)
+export interface TaxEstimate {
+  total_revenue: number        // 지정 월 확정 매출(카드정산기 "예정" 제외)
+  total_expense: number        // 지정 월 종소세용 필요경비(세무 경비 인정 분류만) — 전체 지출 아님
+  est_vat: number | null       // null = vat_calculable이 false라 계산 안 함
+  est_income_tax: number       // 연초~지정 월 누적 순수익을 연환산해 경과월수로 일할 계산한 값
+  tax_reserve_fund: number     // est_vat + est_income_tax
+  real_net_income: number      // (총매출 - 필요경비) - tax_reserve_fund
+  vat_calculable: boolean
+  vat_not_applicable: boolean  // true = 프리랜서(3.3%)라 부가세 체계 자체가 해당 없음
+  calculation_basis_year: number
+  is_estimate: true
+}
