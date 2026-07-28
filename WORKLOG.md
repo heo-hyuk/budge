@@ -32,6 +32,16 @@
   "카드 정산 알림" 구독자는 전부 무효화되어 다시 켜야 함
 - 값을 찾으면(비밀번호 관리자 등): `cd workers/monthly-tax-reporter &&
   npx wrangler secret put VAPID_PRIVATE_KEY`만 실행하면 됨(재배포 불필요)
+- 시크릿은 계정 전체가 아니라 워커(Worker) 단위로 저장되는 것이라
+  `card-settlement-notifier`에 이미 등록돼 있어도 `monthly-tax-reporter`엔
+  따로(같은 값으로) 등록해야 함 — `wrangler secret list`로 실제
+  `monthly-tax-reporter`엔 시크릿이 하나도 없음(`[]`)을 확인해 안내함
+- 원래 값 등록 시점: `card-settlement-notifier`의 `wrangler deployments
+  list`에서 "Secret Change" 이벤트로 **2026-07-17 UTC 09:40:16(한국시간
+  7월 17일 18:40:16)** 확인 — 워커 최초 업로드 직후 바로 등록된 것으로
+  보아 그때 `web-push generate-vapid-keys`로 생성과 동시에 등록한 것으로
+  추정. 사용자는 "집에 저장해뒀을 것 같다"며 나중에 직접 등록하기로 함
+  (미완료 상태로 대기 중)
 
 ## 2026-07-28 (119차) — 세금 계산기 기능 원격 배포(마이그레이션 030 + 메인 앱)
 
