@@ -142,6 +142,17 @@
 - 별도 Cloudflare Workers Cron(`workers/card-settlement-notifier`)이 매일
   실행하며 중복 발송 방지, 만료 구독 자동 정리
 
+### 세금 마감 리포트 Push 알림
+- 알림 구독 있는 유저 대상, 매월 말일 자정(한국시간)에 방금 끝난 달의
+  `/api/tax/estimate` 결과를 요약해 발송("O월 자금 마감 리포트" — 예상
+  순수익 + 세금 예비비 추천, 전부 "추정치" 톤 유지). 부가세 계산이 불가한
+  상태(간이과세자 부가율 미입력 등)면 부가세 언급 없이 순수익만 안내
+- 세금 설정을 아직 저장하지 않았거나 해당 연도 세율 데이터가 없는 유저는
+  임의 추정치를 만들지 않고 조용히 건너뜀
+- 별도 Cloudflare Workers Cron(`workers/monthly-tax-reporter`)이 매일
+  실행하며(한국시간 자정마다 "오늘이 1일인지" 체크해 사실상 월 1회만 동작)
+  중복 발송 방지, 만료 구독 자동 정리
+
 ### 고정 수입/지출
 - 매월 특정일에 자동으로 거래 생성(밀린 달 소급 생성 포함)
 - 활성/비활성 토글, 카드 연결
@@ -246,7 +257,8 @@ budget/
 │   ├── sw.ts                         # 커스텀 Service Worker(프리캐시 + push 핸들러)
 │   └── types.ts                      # 공통 타입 정의
 ├── workers/
-│   └── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
+│   ├── card-settlement-notifier/     # 별도 배포되는 Cron Worker (아래 참고)
+│   └── monthly-tax-reporter/         # 별도 배포되는 Cron Worker (아래 참고)
 ├── migrations/                       # 001~029, schema.sql과 항상 동기화
 ├── schema.sql                        # 전체 DB 스키마(모든 마이그레이션 반영된 최종 상태)
 ├── public/manifest.json, public/icons/  # PWA manifest + 아이콘
@@ -410,6 +422,27 @@ npm run deploy                              # = wrangler deploy
   `wrangler secret put`으로만 등록(레포에는 없음). 키를 재발급하면
   `src/lib/pushConfig.ts`(프론트 공개키)도 함께 갱신해야 함
 - 같은 D1 데이터베이스(`budget-db`)를 메인 앱과 공유 바인딩
+
+### Cron Worker (세금 마감 리포트) 배포
+
+`workers/monthly-tax-reporter`도 마찬가지로 Pages Functions와 분리된 별도
+Cloudflare Workers 프로젝트라 **루트 `npm run deploy`에 포함되지 않고 따로
+배포해야 합니다.**
+
+```bash
+cd workers/monthly-tax-reporter
+npm install
+npx wrangler secret put VAPID_PRIVATE_KEY   # card-settlement-notifier와 동일한 값
+npm run deploy                              # = wrangler deploy
+```
+
+- 크론: 매일 UTC 15시(한국시간 자정) — `src/index.ts`가 "오늘이 KST 기준
+  1일인지"를 체크해 사실상 매월 1번(전달 말일 자정 시각과 동일)만 동작
+- `src/tax.ts`는 `functions/lib/tax.ts`(+ `functions/lib/settlement.ts`의
+  `EXCLUDE_PENDING_SETTLEMENT_SQL`)를 포팅한 것 — 별도 배포 단위라 소스
+  공유 대신 복사. 세금 계산 로직을 고치면 두 곳 모두 동일하게 반영할 것
+  (`src/billing.ts`가 `src/lib/billing.ts`를 포팅한 것과 동일한 패턴)
+- VAPID 키·D1 바인딩은 `card-settlement-notifier`와 동일한 값을 그대로 사용
 
 ---
 
