@@ -1,5 +1,34 @@
 # WORKLOG
 
+## 2026-07-29 (128차) — 인앱 알림함 추가
+
+사용자 요청: 127차에서 카드 정산 알림을 실제로 검증하다가 "푸시가 오면 볼 수 있는
+알림 섹션이 필요할 것 같다"는 아이디어가 나옴. 지금은 푸시를 놓치면 다시 볼 방법이
+전혀 없었음(`notification_log`엔 발송 여부만 기록되고 실제 문구는 저장 안 함)
+
+### 계획
+- `notification_log`에 `title`/`body`/`url`/`read_at` 컬럼 추가(마이그레이션 031)
+- 카드 정산 알림/월간 세금 리포트 두 워커가 발송 시 실제 문구를 함께 저장하도록 수정
+- `GET /api/notifications`(목록+안읽음 개수), `PATCH /api/notifications/read`(전체 읽음) API 추가
+- 헤더에 종 아이콘(`NotificationBell`) — 뱃지, 클릭 시 목록+자동 읽음 처리+딥링크 이동
+
+### 완료
+- `migrations/031_notification_log_content.sql` + `schema.sql` 반영
+- `workers/card-settlement-notifier`, `workers/monthly-tax-reporter`의 `logNotified`가
+  제목/본문/url도 저장하도록 수정, 각각 `wrangler deploy`로 재배포 완료
+- `functions/api/notifications/index.ts`(GET), `functions/api/notifications/read.ts`(PATCH) 추가
+- `src/components/NotificationBell.tsx` 신규, `App.tsx` 헤더에 다크모드 토글 옆 배치
+- 로컬 D1에 테스트 유저+알림 2건(카드 정산/세금 리포트 각 1건) 넣어 GET(안읽음 2건) →
+  PATCH → GET(안읽음 0건, read_at 채워짐) 순서로 API 동작 확인, 테스트 데이터 정리
+- `npm run build`(tsc+vite), `npm run lint`(oxlint), 양쪽 워커 `npm run typecheck` 통과
+- 원격 D1에 마이그레이션 031 적용 완료, 양쪽 워커 원격 배포 완료
+
+### 미완료 / 다음 참고
+- 세금 계산기 검색과 별개로 요청했던 "검색에서 금액 입력 검색"은 이미 구현돼 있던
+  기능이라 확인만 하고 넘어감(`SearchView.tsx` 필터 패널의 금액 범위)
+- 알림 항목별 읽음 처리는 없음 — 패널을 열면 전체를 한 번에 읽음 처리하는 방식으로
+  단순화함(요구사항상 문제없어 보이나, 추후 필요하면 항목별 읽음으로 확장 가능)
+
 ## 2026-07-29 (127차) — 세금 계산기 검증(테스트 데이터로 실제 계산 비교)
 
 사용자 요청: "이제 기능은 대부분 완성된거 같은데 이제 세금 계산기 테스트 데이터 만들어서

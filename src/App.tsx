@@ -11,6 +11,7 @@ import LegalPage from './components/LegalPage'
 import LoadingSpinner from './components/LoadingSpinner'
 import MyPage from './components/MyPage'
 import NotesView from './components/NotesView'
+import NotificationBell from './components/NotificationBell'
 import OverviewView from './components/OverviewView'
 import RecurringManager from './components/RecurringManager'
 import ScrollButtons from './components/ScrollButtons'
@@ -411,6 +412,9 @@ function App() {
           >
             {theme === 'dark' ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
           </button>
+
+          {/* 알림함 — 카드 정산 알림/월간 세금 리포트 푸시를 놓쳐도 다시 볼 수 있게 */}
+          <NotificationBell />
 
           {/* 닉네임 — 클릭 시 드롭다운으로 내 정보/로그아웃 진입.
               min-w-0 + shrink로 좁은 화면에서 다른 헤더 요소(햄버거/로고,

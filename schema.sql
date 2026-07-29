@@ -191,12 +191,18 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(use
 CREATE TABLE IF NOT EXISTS notification_log (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  type TEXT NOT NULL,           -- 'card_settlement'
-  reference_id TEXT NOT NULL,   -- card_id
+  type TEXT NOT NULL,           -- 'card_settlement' | 'monthly_tax_report'
+  reference_id TEXT NOT NULL,   -- card_id ('card_settlement') | 'monthly'('monthly_tax_report')
   year_month TEXT NOT NULL,     -- 어느 청구월 기준인지 (getCardBillingPeriod의 month)
   sent_at TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',  -- 실제 발송된 푸시 제목 (migration 031, 인앱 알림함 표시용)
+  body TEXT NOT NULL DEFAULT '',   -- 실제 발송된 푸시 본문 (migration 031)
+  url TEXT NOT NULL DEFAULT '/',   -- 클릭 시 이동할 딥링크 (migration 031)
+  read_at TEXT,                    -- NULL = 안 읽음 (migration 031)
   UNIQUE(user_id, type, reference_id, year_month)  -- 같은 카드, 같은 청구월 중복 발송 방지
 );
+
+CREATE INDEX IF NOT EXISTS idx_notification_log_user ON notification_log(user_id, sent_at);
 
 -- ── 거래 분류(카테고리) 오버라이드 (migration 018) ─────────────────
 -- 계정별로 저장해 기기 간 동기화(이전엔 localStorage에만 저장돼 기기마다 달랐음)

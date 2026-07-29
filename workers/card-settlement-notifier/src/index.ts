@@ -67,11 +67,14 @@ async function alreadyNotified(env: Env, userId: string, cardId: string, yearMon
   return !!row
 }
 
-async function logNotified(env: Env, userId: string, cardId: string, yearMonth: string, sentAt: string) {
+async function logNotified(
+  env: Env, userId: string, cardId: string, yearMonth: string, sentAt: string,
+  title: string, body: string, url: string,
+) {
   await env.DB.prepare(`
-    INSERT INTO notification_log (id, user_id, type, reference_id, year_month, sent_at)
-    VALUES (?, ?, 'card_settlement', ?, ?, ?)
-  `).bind(crypto.randomUUID(), userId, cardId, yearMonth, sentAt).run()
+    INSERT INTO notification_log (id, user_id, type, reference_id, year_month, sent_at, title, body, url)
+    VALUES (?, ?, 'card_settlement', ?, ?, ?, ?, ?, ?)
+  `).bind(crypto.randomUUID(), userId, cardId, yearMonth, sentAt, title, body, url).run()
 }
 
 /** 카드 1개면 개별 문구, 여러 개면 묶어서 하나의 알림으로 (사용자 요청대로 묶는 방향 채택) */
@@ -136,7 +139,7 @@ async function processUser(
   // 구독이 하나도 없어도, "어제 마감"이라는 사실 자체는 다시 재평가할 필요 없는 과거
   // 이벤트이므로 카드별로 기록해 나중에 구독해도 지난 마감이 소급 발송되지 않게 함
   for (const c of items) {
-    await logNotified(env, userId, c.card_id, c.year_month, sentAt)
+    await logNotified(env, userId, c.card_id, c.year_month, sentAt, title, body, targetUrl)
   }
 }
 

@@ -40,11 +40,14 @@ async function alreadyNotified(env: Env, userId: string, yearMonth: string): Pro
 // reference_id는 card_settlement의 card_id처럼 항목별로 구분할 대상이 없어(유저당 월 1건
 // 고정) 'monthly' 고정값을 씀 — UNIQUE(user_id, type, reference_id, year_month) 제약은
 // user_id+year_month만으로도 이미 유저당 월 1건을 보장하지만 스키마 형태를 그대로 따름
-async function logNotified(env: Env, userId: string, yearMonth: string, sentAt: string) {
+async function logNotified(
+  env: Env, userId: string, yearMonth: string, sentAt: string,
+  title: string, body: string, url: string,
+) {
   await env.DB.prepare(`
-    INSERT INTO notification_log (id, user_id, type, reference_id, year_month, sent_at)
-    VALUES (?, ?, 'monthly_tax_report', 'monthly', ?, ?)
-  `).bind(crypto.randomUUID(), userId, yearMonth, sentAt).run()
+    INSERT INTO notification_log (id, user_id, type, reference_id, year_month, sent_at, title, body, url)
+    VALUES (?, ?, 'monthly_tax_report', 'monthly', ?, ?, ?, ?, ?)
+  `).bind(crypto.randomUUID(), userId, yearMonth, sentAt, title, body, url).run()
 }
 
 // vat_calculable=false(간이과세자 부가율 미입력/프리랜서 3.3%)일 땐 부가세를 뺀
@@ -111,7 +114,7 @@ async function processUser(env: Env, userId: string, yearMonth: string, monthNum
     }
   }
 
-  await logNotified(env, userId, yearMonth, sentAt)
+  await logNotified(env, userId, yearMonth, sentAt, title, body, targetUrl)
 }
 
 async function handleScheduled(env: Env, scheduledTime: number): Promise<void> {

@@ -1,4 +1,4 @@
-import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, QuickTemplate, RecentMerchant, RecurringTransaction, TaxEstimate, TaxType, Transaction, TransactionType, UpdateTransaction, UserTaxSettings, WeeklySettlement } from '../types'
+import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, NotificationLogEntry, QuickTemplate, RecentMerchant, RecurringTransaction, TaxEstimate, TaxType, Transaction, TransactionType, UpdateTransaction, UserTaxSettings, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -558,4 +558,15 @@ export async function updateTaxSettings(data: { tax_type: TaxType; simplified_va
 /** 부가세/종합소득세 추정 — 세금 설정 미저장이거나 해당 연도 세율 데이터가 없으면 서버가 에러로 거부 */
 export async function fetchTaxEstimate(month: string): Promise<TaxEstimate> {
   return apiRequest<TaxEstimate>(`/api/tax/estimate?month=${encodeURIComponent(month)}`, undefined, '세금 추정치를 불러오지 못했습니다')
+}
+
+// ── 인앱 알림함 API ───────────────────────────────────────
+// 카드 정산 알림/월간 세금 리포트 워커가 실제 발송한 푸시를 열람용으로 조회
+
+export async function fetchNotifications(): Promise<{ data: NotificationLogEntry[]; unread_count: number }> {
+  return apiRequest('/api/notifications', undefined, '알림을 불러오지 못했습니다')
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  await apiRequest('/api/notifications/read', { method: 'PATCH' }, '알림을 읽음 처리하지 못했습니다')
 }

@@ -334,3 +334,14 @@ export interface TaxEstimate {
   calculation_basis_year: number
   is_estimate: true
 }
+
+// /api/notifications 응답 — 실제 발송된 푸시(카드 정산 알림/월간 세금 리포트)의 인앱 열람용 기록
+export interface NotificationLogEntry {
+  id: string
+  type: 'card_settlement' | 'monthly_tax_report'
+  title: string
+  body: string
+  url: string
+  sent_at: string
+  read_at: string | null
+}
