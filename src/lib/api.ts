@@ -302,8 +302,8 @@ export async function fetchWeeklySettlement(weekStart: string): Promise<WeeklySe
   return apiRequest<WeeklySettlement>(`/api/settlement/weekly?week_start=${encodeURIComponent(weekStart)}`, undefined, '주간 정산을 불러오지 못했습니다')
 }
 
-export async function fetchMonthlySettlement(month: string): Promise<MonthlySettlement> {
-  return apiRequest<MonthlySettlement>(`/api/settlement/monthly?month=${encodeURIComponent(month)}`, undefined, '월간 정산을 불러오지 못했습니다')
+export async function fetchMonthlySettlement(month: string, basis: 'billing' | 'transaction' = 'transaction'): Promise<MonthlySettlement> {
+  return apiRequest<MonthlySettlement>(`/api/settlement/monthly?month=${encodeURIComponent(month)}&basis=${basis}`, undefined, '월간 정산을 불러오지 못했습니다')
 }
 
 export async function fetchAnnualSettlement(year: string): Promise<AnnualSettlement> {

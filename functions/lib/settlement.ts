@@ -1,4 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
+import { getCardBillingPeriod } from './billing'
 
 // 카드 정산기에서 소스로 선택한 결제방법(예: "예정")으로 등록된 수입은 아직 실제
 // 입금이 확인되지 않은 상태라 정산·예산·잔액·계산기·세금 추정 등 모든 합산에서
@@ -167,23 +168,27 @@ export interface MonthlySettlementResult {
   month_total: { income: CategoryBucket; expense: CategoryBucket }
 }
 
-/** 월간 정산 계산 — 해당 월의 모든 날짜를 행으로, 마지막에 월계 */
+export type SettlementBasis = 'billing' | 'transaction'
+
+/**
+ * 월간 정산 계산 — 해당 월의 모든 날짜를 행으로, 마지막에 월계
+ *
+ * basis='transaction'(거래일 기준, 기본값)이면 거래의 실제 date 그대로 집계.
+ * basis='billing'(출금일 기준)이면 카드별 청구 리포트(MonthlyReport)와 합계가
+ * 일치하도록, 카드 거래(체크카드 제외)는 실제 거래일이 아니라 그 카드의 청구일
+ * (billingDate) 하루에 몰아서 집계한다 — 현금·계좌이체 등 카드 미연결 거래와
+ * 체크카드(is_debit)는 청구주기 개념이 없어 거래일 그대로 사용
+ */
 export async function calculateMonthlySettlement(
   db: D1Database,
   userId: string,
   month: string,  // 'YYYY-MM'
+  basis: SettlementBasis = 'transaction',
 ): Promise<MonthlySettlementResult> {
   const [y, m] = month.split('-').map(Number)
   const totalDays = new Date(y, m, 0).getDate()
   const monthStart = `${month}-01`
   const monthEnd = `${month}-${String(totalDays).padStart(2, '0')}`
-
-  const { results } = await db
-    .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
-    .bind(userId, monthStart, monthEnd, userId)
-    .all<SettlementTransaction>()
-
-  const rows = results ?? []
 
   const dayDates = Array.from({ length: totalDays }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)
   const days: MonthlySettlementDay[] = dayDates.map((date) => ({
@@ -193,17 +198,56 @@ export async function calculateMonthlySettlement(
 
   const monthTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
-  for (const tx of rows) {
-    const dayIdx = dayIndexByDate.get(tx.date)
-    if (dayIdx === undefined) continue
-    const bucket = days[dayIdx]
-    if (tx.type === 'income') {
-      addAmount(bucket.income, tx.category, tx.amount)
-      addAmount(monthTotal.income, tx.category, tx.amount)
-    } else {
-      addAmount(bucket.expense, tx.category, tx.amount)
-      addAmount(monthTotal.expense, tx.category, tx.amount)
+  function applyRows(rows: SettlementTransaction[], bucketDate?: string) {
+    for (const tx of rows) {
+      const dayIdx = dayIndexByDate.get(bucketDate ?? tx.date)
+      if (dayIdx === undefined) continue
+      const bucket = days[dayIdx]
+      if (tx.type === 'income') {
+        addAmount(bucket.income, tx.category, tx.amount)
+        addAmount(monthTotal.income, tx.category, tx.amount)
+      } else {
+        addAmount(bucket.expense, tx.category, tx.amount)
+        addAmount(monthTotal.expense, tx.category, tx.amount)
+      }
     }
+  }
+
+  if (basis === 'billing') {
+    const { results: cardResults } = await db
+      .prepare('SELECT id, billing_day, closing_day, is_debit FROM cards WHERE user_id = ?')
+      .bind(userId)
+      .all<{ id: string; billing_day: number; closing_day: number; is_debit: number }>()
+    const cards = cardResults ?? []
+
+    const { results: cashRows } = await db
+      .prepare(`SELECT * FROM transactions WHERE user_id = ? AND card_id = '' AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+      .bind(userId, monthStart, monthEnd, userId)
+      .all<SettlementTransaction>()
+    applyRows(cashRows ?? [])
+
+    for (const card of cards) {
+      if (card.is_debit) {
+        const { results } = await db
+          .prepare(`SELECT * FROM transactions WHERE user_id = ? AND card_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+          .bind(userId, card.id, monthStart, monthEnd, userId)
+          .all<SettlementTransaction>()
+        applyRows(results ?? [])
+      } else {
+        const { start, end, billingDate } = getCardBillingPeriod(month, card)
+        const { results } = await db
+          .prepare(`SELECT * FROM transactions WHERE user_id = ? AND card_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+          .bind(userId, card.id, start, end, userId)
+          .all<SettlementTransaction>()
+        applyRows(results ?? [], billingDate)
+      }
+    }
+  } else {
+    const { results } = await db
+      .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
+      .bind(userId, monthStart, monthEnd, userId)
+      .all<SettlementTransaction>()
+    applyRows(results ?? [])
   }
 
   return { month, days, month_total: monthTotal }

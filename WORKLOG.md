@@ -1,5 +1,57 @@
 # WORKLOG
 
+## 2026-07-30 (129차) — 월간 정산 "분류별 표"도 출금일/거래일 기준 토글 적용
+
+사용자 요청(사진 첨부): "카드별청구에서만 출금일 기준이랑 거래일 기준이라는 집계가
+나오는데 이게 분류별 표에서도 나와서 내역을 볼수 있어야되는건데 확인좀 해봐"
+
+### 원인
+- 월간 정산의 "카드별 청구"(`MonthlyReport.tsx`)는 카드 지출 집계를 출금일
+  기준/거래일 기준으로 전환하는 토글이 있는데, 같은 화면의 "분류별 표"
+  (`MonthlySettlementTable.tsx` → `GET /api/settlement/monthly`)는 그런 개념이
+  아예 없이 항상 거래의 실제 date로만 집계하고 있었음
+- 그 결과 "출금일 기준"을 선택한 상태에서 두 탭을 오가면 지출 합계가 서로
+  달라 보이고, 카드 청구가 실제로 언제 나가는지 날짜별 표에서는 확인할 방법이
+  없었음
+
+### 설계
+- `functions/lib/settlement.ts`의 `calculateMonthlySettlement`에 `basis`
+  파라미터 추가. `billing`일 때는 카드별 청구 리포트와 동일한 규칙으로,
+  카드 거래(체크카드 제외)는 실제 거래일이 아니라 그 카드의 청구일
+  (`getCardBillingPeriod`의 billingDate) 하루에 몰아서 집계 — 현금·계좌이체와
+  체크카드(is_debit)는 청구주기 개념이 없어 거래일 그대로 사용
+- `src/lib/billing.ts`의 청구기간 계산 로직은 프론트 전용이라 백엔드에서
+  재사용 불가 — `functions/lib/billing.ts`에 동일 로직을 복제(다른
+  functions/lib/*.ts들과 같은 "동기화 유지" 주석 컨벤션)
+- 월계 합계는 basis와 무관하게 항상 동일(거래가 재배치될 뿐 사라지거나
+  중복되지 않음) — 이 불변식으로 회귀 여부를 검증
+
+### 계획
+- `functions/lib/billing.ts` 신규(청구기간 계산 로직 복제)
+- `functions/lib/settlement.ts` — `calculateMonthlySettlement`에 basis 파라미터
+- `functions/api/settlement/monthly.ts` — `?basis=` 쿼리 파라미터 추가
+- `src/lib/api.ts`의 `fetchMonthlySettlement`에 basis 인자 추가
+- `src/components/MonthlySettlementTable.tsx`에 `MonthlyReport.tsx`와 동일한
+  "출금일 기준/거래일 기준" 토글 UI 추가(같은 서버 설정 `getMonthlyBasis`/
+  `setMonthlyBasis` 공유)
+
+### 완료
+- 위 5개 파일 전부 수정, `tsc -b --noEmit` / `oxlint` / `npm run build` 통과
+- 로컬 D1에 다른 세션에서 추가됐던 마이그레이션 030(세금 계산기)·031(알림
+  본문 저장)이 미적용 상태였던 것을 확인해 먼저 적용(원격엔 이미 적용돼
+  있던 것 확인됨, 이번 작업 자체는 스키마 변경 없음)
+- API 레벨 검증: 현금 거래(7/5, 식비 1000) + 일반카드 거래(7/10, 쇼핑 2000,
+  마감14·결제25 → 청구기간 6/15~7/14, 7/25 청구) + 체크카드 거래(7/28,
+  교통 3000)를 등록해 `GET /api/settlement/monthly?basis=transaction`과
+  `?basis=billing`을 비교 — transaction은 7/10에 쇼핑 2000이 그대로,
+  billing은 7/25로 이동해서 집계됨을 확인. 월계는 두 기준 모두 6,000원으로
+  동일(재배치만 되고 금액 유실/중복 없음)
+- Playwright로 분류별 표 화면도 동일하게 확인: 거래일 기준→10일에 쇼핑
+  2,000, 출금일 기준→25일로 이동. 카드별 청구 탭(출금일 기준)의 카드별
+  청구 합계(일반카드 2,000 + 체크카드 3,000 = 5,000, 현금 1,000, 합계
+  6,000)와도 정확히 일치함을 교차 확인
+- 원격 D1 적용 불필요(스키마 변경 없음, 코드만 배포하면 됨)
+
 ## 2026-07-29 (128차) — 인앱 알림함 추가
 
 사용자 요청: 127차에서 카드 정산 알림을 실제로 검증하다가 "푸시가 오면 볼 수 있는

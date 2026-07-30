@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
+import { useToast } from '../contexts/ToastContext'
 import { fetchMonthlySettlement } from '../lib/api'
 import { getCategories } from '../lib/categories'
+import { migrateLegacyLocalStorage } from '../lib/legacyMigration'
+import { getMonthlyBasis, loadSettings, setMonthlyBasis } from '../lib/settings'
 import { filterSelectedCategories } from '../lib/settlementFilter'
 import type { MonthlySettlement as MonthlySettlementData, SettlementExpenseBucket, SettlementIncomeBucket } from '../types'
+
+type DateBasis = 'billing' | 'transaction'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -22,9 +27,11 @@ interface Props {
 }
 
 function MonthlySettlementTable({ month, categories = [] }: Props) {
+  const { showToast } = useToast()
   const [settlement, setSettlement] = useState<MonthlySettlementData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [basis, setBasis] = useState<DateBasis>(getMonthlyBasis)
   const expenseCategories = getCategories('expense')
   const incomeCategories = getCategories('income')
 
@@ -35,16 +42,31 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
     ? filterSelectedCategories(categories, expenseCategories)
     : expenseCategories
 
+  // 마운트 시점엔 서버 설정이 아직 로드되기 전이라 기본값(billing)일 수 있음 —
+  // 로드가 끝나면 실제 값으로 재동기화(MonthlyReport와 동일한 패턴)
+  useEffect(() => {
+    migrateLegacyLocalStorage().then(loadSettings).then(() => setBasis(getMonthlyBasis()))
+  }, [])
+
+  async function changeBasis(next: DateBasis) {
+    setBasis(next)
+    try {
+      await setMonthlyBasis(next)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '설정을 저장하지 못했습니다', 'error')
+    }
+  }
+
   function load() {
     setLoading(true)
     setError('')
-    fetchMonthlySettlement(month)
+    fetchMonthlySettlement(month, basis)
       .then(setSettlement)
       .catch((err) => setError(err instanceof Error ? err.message : '불러오기에 실패했습니다'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [month])
+  useEffect(load, [month, basis])
 
   const [year, mon] = month.split('-')
 
@@ -81,6 +103,32 @@ function MonthlySettlementTable({ month, categories = [] }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* 카드 지출 집계 기준 — 카드별 청구(MonthlyReport)와 동일한 서버 설정을 공유해
+          두 화면의 합계가 항상 일치하게 함 */}
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500">카드 지출 집계</span>
+        <div className="flex rounded-lg bg-neutral-100 dark:bg-neutral-800 p-0.5">
+          <button
+            type="button"
+            onClick={() => changeBasis('billing')}
+            className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
+              basis === 'billing' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            출금일 기준
+          </button>
+          <button
+            type="button"
+            onClick={() => changeBasis('transaction')}
+            className={`min-h-7 rounded-md px-2.5 text-xs font-semibold transition-colors ${
+              basis === 'transaction' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            거래일 기준
+          </button>
+        </div>
+      </div>
+
       {loading ? (
         <p className="flex items-center gap-2 text-base text-neutral-500 dark:text-neutral-400">
           <LoadingSpinner size={18} /> 불러오는 중...
