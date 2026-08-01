@@ -124,8 +124,9 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
           <div className="w-full max-w-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-xl">
             <h3 className="text-base font-bold text-neutral-800 dark:text-neutral-200">엑셀 내보내기</h3>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              거래내역 / 정산표(화면과 동일, {getMonthlyBasis() === 'billing' ? '출금일' : '거래일'} 기준) /
-              월별요약 / 카드별정산 4개 시트로 내보냅니다
+              거래내역 / 정산표(수입·지출 분리, 화면과 동일한{' '}
+              {getMonthlyBasis() === 'billing' ? '출금일' : '거래일'} 기준) /
+              월별요약 / 카드별정산 5개 시트로 내보냅니다
             </p>
 
             {/* 기간 선택 */}
