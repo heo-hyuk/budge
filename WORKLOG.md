@@ -1,5 +1,60 @@
 # WORKLOG
 
+## 2026-08-01 (130차) — 거래 수정 시에도 카드 혜택 선택 가능하게 + 혜택 전/후 금액 함께 표시
+
+사용자 요청: "지출입력할때 카드를 선택하면 혜택이 적용되는걸 선택하자나 이걸
+수정할때도 변경이 되어야 하는데 입력할때 한번 선택하면 수정에서는 선택이
+안되 이걸 수정할거고 그리고 기본금액을 입력하면 자동으로 계산을 해서
+보여주는데 내가 혜택을 받기 전금액도 같이 보여주면 좋겠어"
+
+### 원인
+- `TransactionForm.tsx`의 혜택 매칭 로직(`매칭 useEffect`)과 혜택 선택 UI 둘
+  다 `if (editingId) return` / `!editingId &&` 조건으로 수정 모드에서는 완전히
+  꺼져 있었음(의도적 설계였으나, `UpdateTransaction`에 할인/적립 필드가 없어서
+  반영할 곳이 없었던 게 원래 이유)
+- 그 결과 할인이 적용된 거래를 "수정"으로 열면 혜택 UI 자체가 안 보이고,
+  금액 입력창에도 이미 할인된 최종 금액(`tx.amount`)이 채워져 있어 원래
+  얼마였는지 확인할 방법도 없었음
+
+### 설계
+- `UpdateTransaction`/PATCH API에 `original_amount`/`discount_amount`/
+  `cashback_amount`/`benefit_id` 필드 추가 — 생성 시와 동일한 필드를 수정
+  시에도 저장 가능하게 함
+- 수정 모드 진입 시(`App.tsx`의 `handleEditRequest`/`handleDuplicate`) 폼에
+  채우는 금액을 `original_amount > 0 ? original_amount : amount`로 — 항상
+  "혜택 적용 전" 금액이 입력창에 오도록 해서, 생성 모드와 완전히 동일한
+  "입력 금액 → 혜택 매칭 → 실결제 계산" 로직을 수정 모드에도 그대로 재사용
+  (복제 시에도 동일한 문제라 함께 수정)
+- 혜택 매칭 useEffect와 선택 UI의 `editingId` 관련 조건을 제거해 생성/수정
+  모드 동일하게 동작하도록 함
+- 혜택 안내 문구를 "{할인액} 할인 → 실결제 {금액}"에서
+  "{원래금액} → {실결제금액} ({할인액} 할인)" 형태로 바꿔 할인 전/후 금액이
+  한 줄에 함께 보이도록 함(복수 매칭 라디오 목록의 개별 항목도 동일하게)
+- `TransactionList.tsx`의 더 단순한 인라인 수정 폼은 원래도 혜택 UI 자체가
+  없어 범위에서 제외(요청하신 "카드를 선택하면 혜택이 적용되는걸 선택"은
+  TransactionForm 쪽 UI를 가리킴)
+
+### 계획
+- `functions/api/transactions/[id].ts` PATCH에 4개 필드 추가
+- `src/types.ts`의 `UpdateTransaction`에 동일 필드 추가
+- `src/App.tsx`의 `handleEditRequest`/`handleDuplicate` amount 계산 수정
+- `src/components/TransactionForm.tsx` — 매칭 useEffect·UI의 `editingId` 가드
+  제거, `handleSubmit`의 수정 분기에 할인/적립 필드 포함, 안내 문구 개선
+
+### 완료
+- 위 4개 파일 전부 수정, `tsc -b --noEmit` / `oxlint` / `npm run build` 통과
+- Playwright + curl로 검증(포트 충돌 방지를 위해 8799 별도 포트 사용):
+  - 10,000원 거래에 10% 할인(9,000원 실결제)을 걸어 등록 → 수정 화면을 열면
+    금액 입력창에 10,000원이 채워지고 "혜택 자동 적용: 식비10% / 10,000원 →
+    9,000원 (1,000원 할인)" 박스가 정상적으로 다시 나타남을 확인
+  - 금액을 20,000원으로 바꾸면 실시간으로 "20,000원 → 18,000원 (2,000원
+    할인)"로 재계산되고, 저장 후 DB에 amount=18000/original_amount=20000/
+    discount_amount=2000/benefit_id 모두 정확히 반영됨을 확인
+  - 결제방법을 현금으로 바꾸고 저장하면 혜택 박스가 사라지고, DB의
+    original_amount/discount_amount/benefit_id가 모두 0/0/''로 정상
+    초기화됨을 확인(카드 해제 시 이전 할인 정보가 남지 않음)
+- 스키마 변경 없어 원격 배포는 코드 배포만으로 충분
+
 ## 2026-07-30 (129차) — 월간 정산 "분류별 표"도 출금일/거래일 기준 토글 적용
 
 사용자 요청(사진 첨부): "카드별청구에서만 출금일 기준이랑 거래일 기준이라는 집계가

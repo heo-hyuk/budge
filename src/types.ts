@@ -52,6 +52,10 @@ export interface UpdateTransaction {
   delivery_done?: boolean
   pending_source_payment_method?: string | null
   is_entertainment?: boolean
+  original_amount?: number
+  discount_amount?: number
+  cashback_amount?: number
+  benefit_id?: string
 }
 
 export interface Card {

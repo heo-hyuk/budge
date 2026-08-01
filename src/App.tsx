@@ -222,7 +222,9 @@ function App() {
       data: {
         type: tx.type,
         category: tx.category,
-        amount: tx.amount,
+        // 혜택 할인이 적용된 거래면 amount는 이미 할인 후 금액이라, 폼에 그대로 채우면
+        // 혜택이 재계산될 때 할인이 중복 적용됨 — 할인 전 원래 금액(original_amount)을 채움
+        amount: tx.original_amount > 0 ? tx.original_amount : tx.amount,
         merchant: tx.merchant,
         paymentMethod: tx.card_id || tx.payment_method || '현금',
         memo: tx.memo,
@@ -242,7 +244,10 @@ function App() {
       data: {
         type: tx.type,
         category: tx.category,
-        amount: tx.amount,
+        // 혜택 할인이 적용된 거래면 amount는 이미 할인 후 금액이라, 폼에 그대로 채우면
+        // 혜택 재계산 시 할인이 중복 적용됨 — 할인 전 원래 금액(original_amount)을 채워야
+        // 수정 모드에서도 생성 모드와 동일한 혜택 매칭 로직을 그대로 쓸 수 있음
+        amount: tx.original_amount > 0 ? tx.original_amount : tx.amount,
         merchant: tx.merchant,
         paymentMethod: tx.card_id || tx.payment_method || '현금',
         memo: tx.memo,

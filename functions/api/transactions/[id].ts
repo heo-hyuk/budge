@@ -32,6 +32,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
     memo?: string; date?: string; merchant?: string; payment_method?: string; card_id?: string
     unsettled?: boolean; delivery_done?: boolean; pending_source_payment_method?: string | null
     is_entertainment?: boolean
+    original_amount?: number; discount_amount?: number; cashback_amount?: number; benefit_id?: string
   }
 
   if (body.amount !== undefined) {
@@ -64,6 +65,10 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
   if (body.delivery_done !== undefined)  { fields.push('delivery_done = ?');  values.push(body.delivery_done ? 1 : 0) }
   if (body.pending_source_payment_method !== undefined) { fields.push('pending_source_payment_method = ?'); values.push(body.pending_source_payment_method) }
   if (body.is_entertainment !== undefined)      { fields.push('is_entertainment = ?');      values.push(body.is_entertainment ? 1 : 0) }
+  if (body.original_amount !== undefined) { fields.push('original_amount = ?'); values.push(body.original_amount) }
+  if (body.discount_amount !== undefined) { fields.push('discount_amount = ?'); values.push(body.discount_amount) }
+  if (body.cashback_amount !== undefined) { fields.push('cashback_amount = ?'); values.push(body.cashback_amount) }
+  if (body.benefit_id !== undefined)      { fields.push('benefit_id = ?');      values.push(body.benefit_id) }
 
   if (fields.length === 0) return json({ error: 'No fields to update' }, 400)
 

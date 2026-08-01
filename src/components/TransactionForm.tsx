@@ -414,10 +414,10 @@ function TransactionForm({
   }
 
   // 결제방법·구매처·분류·금액 변경 시 혜택 매칭 (debounce 400ms)
-  // 수정 모드에서는 건드리지 않음 — UpdateTransaction에 할인/적립 필드가 없어 반영할 곳이 없고,
-  // TransactionList의 인라인 수정도 혜택을 재계산하지 않아 일관성 유지
+  // 수정 모드에서도 동일하게 재계산 — editTarget 주입 시 amount는 항상 "혜택 적용 전" 금액으로
+  // 채워지므로(applyPrefill 참고) 생성 모드와 완전히 같은 로직을 그대로 재사용할 수 있음.
+  // (TransactionList의 더 단순한 인라인 수정 폼은 혜택 UI 자체가 없어 여전히 재계산하지 않음)
   useEffect(() => {
-    if (editingId) return
     if (type !== 'expense') return
     // paymentMethod가 카드 ID일 때만 혜택 매칭 대상 — '현금'/'계좌이체' 같은 비카드 값은 제외
     const cardId = cards.some((c) => c.id === paymentMethod) ? paymentMethod : ''
@@ -486,16 +486,27 @@ function TransactionForm({
 
     const selectedCard = cards.find((c) => c.id === paymentMethod)
 
-    // 수정 모드 — 혜택 재계산 없이 필드 그대로 업데이트 (TransactionList 인라인 수정과 동일한 방식)
+    // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
+    // (수정 모드도 생성과 동일하게 계산 — amount 입력값은 항상 "혜택 적용 전" 금액을 의미)
+    const isCashback = selectedMatch?.benefit_type === 'cashback'
+    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
+    const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
+    const finalAmount = numericAmount - discountAmount
+
+    // 수정 모드
     if (editingId) {
       setSaving(true)
       try {
         await onUpdateSubmit?.(editingId, {
-          type, category, amount: numericAmount, date,
+          type, category, amount: finalAmount, date,
           memo: memo.trim(),
           merchant: merchant.trim(),
           payment_method: selectedCard ? selectedCard.id : paymentMethod,
           card_id: selectedCard ? selectedCard.id : '',
+          original_amount: discountAmount > 0 ? numericAmount : 0,
+          discount_amount: discountAmount,
+          benefit_id: selectedMatch ? selectedMatch.benefit.id : '',
+          cashback_amount: cashbackAmount,
           unsettled,
           is_entertainment: type === 'expense' && isEntertainment,
         })
@@ -510,12 +521,6 @@ function TransactionForm({
       }
       return
     }
-
-    // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
-    const isCashback = selectedMatch?.benefit_type === 'cashback'
-    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
-    const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
-    const finalAmount = numericAmount - discountAmount
 
     setSaving(true)
     try {
@@ -892,8 +897,8 @@ function TransactionForm({
           </div>
         )}
 
-        {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서는 재계산 안 하므로 숨김) */}
-        {!editingId && type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
+        {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서도 동일하게 재계산) */}
+        {type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
           <div className="mt-4">
             {matchLoading && (
               <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>
@@ -920,7 +925,9 @@ function TransactionForm({
                         )}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        {formatWon(m.estimated_discount)} {m.benefit_type === 'cashback' ? '적립 예정' : '할인'}
+                        {m.benefit_type === 'cashback'
+                          ? `${formatWon(m.estimated_discount)} 적립 예정`
+                          : `${formatWon(numericAmount)} → ${formatWon(numericAmount - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
                         {m.monthly_remaining > 0 && (
                           <span className="ml-1 text-neutral-500 dark:text-neutral-400">
                             (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
@@ -956,8 +963,9 @@ function TransactionForm({
                       </p>
                     ) : (
                       <p className="text-sm font-bold text-green-700 dark:text-green-400 mt-0.5">
-                        {formatWon(selectedMatch.estimated_discount)} 할인 →{' '}
-                        실결제 {formatWon(numericAmount - selectedMatch.estimated_discount)}
+                        {formatWon(numericAmount)} →{' '}
+                        {formatWon(numericAmount - selectedMatch.estimated_discount)}{' '}
+                        <span className="font-normal">({formatWon(selectedMatch.estimated_discount)} 할인)</span>
                       </p>
                     )}
                     {selectedMatch.monthly_remaining > 0 && (
