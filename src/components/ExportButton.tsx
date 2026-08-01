@@ -1,8 +1,10 @@
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
-import { fetchExportData } from '../lib/api'
+import { fetchExportData, fetchMonthlySettlement } from '../lib/api'
 import { exportTransactionsToExcel } from '../lib/exportExcel'
+import { getMonthlyBasis } from '../lib/settings'
+import type { MonthlySettlement } from '../types'
 
 type Preset = 'this_month' | 'this_year' | 'all' | 'custom'
 
@@ -72,7 +74,20 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
         setError('해당 기간에 거래 내역이 없습니다')
         return
       }
-      exportTransactionsToExcel(data)
+
+      // "정산표" 시트용 — 화면(월간 정산)과 동일한 기준으로 월별 일별×분류 집계를 받아옴.
+      // 카드 거래는 청구기간이 달력월 경계를 넘나들 수 있어(출금일 기준) 여기서 직접
+      // 재집계하지 않고, 화면과 똑같은 서버 계산(calculateMonthlySettlement)을 그대로 재사용
+      const basis = getMonthlyBasis()
+      let settlements: MonthlySettlement[] = []
+      try {
+        const months = Array.from(new Set(data.transactions.map((t) => t.date.slice(0, 7)))).sort()
+        settlements = await Promise.all(months.map((m) => fetchMonthlySettlement(m, basis)))
+      } catch {
+        // 정산표 시트만 생략하고 나머지 내보내기는 정상 진행
+      }
+
+      exportTransactionsToExcel(data, settlements, basis)
       setOpen(false)
       showToast('엑셀 파일을 다운로드했습니다')
     } catch (e) {
@@ -109,7 +124,8 @@ export default function ExportButton({ defaultPreset = 'this_month', year, month
           <div className="w-full max-w-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-xl">
             <h3 className="text-base font-bold text-neutral-800 dark:text-neutral-200">엑셀 내보내기</h3>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              거래내역 / 월별요약 / 카드별정산 3개 시트로 내보냅니다
+              거래내역 / 정산표(화면과 동일, {getMonthlyBasis() === 'billing' ? '출금일' : '거래일'} 기준) /
+              월별요약 / 카드별정산 4개 시트로 내보냅니다
             </p>
 
             {/* 기간 선택 */}

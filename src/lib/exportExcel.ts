@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { getCardBillingPeriod } from './billing'
-import type { Card, Transaction } from '../types'
+import { getCategories } from './categories'
+import type { Card, MonthlySettlement, Transaction } from '../types'
 
 /** API export 응답에서 내려오는 거래 행 타입 */
 export interface ExportTransaction extends Omit<Transaction, 'recurring_id'> {
@@ -94,7 +95,72 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
   return ws
 }
 
-// ── 시트 2: 월별요약 ────────────────────────────────────
+// ── 시트 2: 정산표 (화면의 "분류별 표"와 동일한 일별×분류 그리드) ────────
+
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+function compactDateLabel(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${d.getDate()}일(${WEEKDAY_LABELS[d.getDay()]})`
+}
+
+/**
+ * 월간 정산 화면의 "분류별 표"를 그대로 재현하는 시트 — 월별로 날짜×분류
+ * 그리드를 이어붙임. `settlements`는 화면과 동일한 계산 결과(서버
+ * calculateMonthlySettlement)를 그대로 사용하므로, 특히 출금일 기준일 때
+ * 카드 거래가 청구일 하루로 몰리는 로직까지 화면과 100% 일치함
+ */
+function buildSettlementGridSheet(
+  settlements: MonthlySettlement[],
+  basis: 'billing' | 'transaction',
+): XLSX.WorkSheet {
+  if (settlements.length === 0) {
+    return XLSX.utils.aoa_to_sheet([['거래 내역이 없습니다']])
+  }
+
+  const incomeCategories = getCategories('income')
+  const expenseCategories = getCategories('expense')
+  const basisLabel = basis === 'billing' ? '출금일 기준' : '거래일 기준'
+  const header = ['날짜', ...incomeCategories, '수입합계', ...expenseCategories, '지출합계']
+
+  const rows: (string | number)[][] = []
+
+  for (const s of [...settlements].sort((a, b) => a.month.localeCompare(b.month))) {
+    const [y, m] = s.month.split('-')
+    rows.push([`${y}년 ${parseInt(m)}월 정산표 (${basisLabel})`])
+    rows.push(header)
+
+    for (const day of s.days) {
+      const incVals = incomeCategories.map((c) => day.income[c] ?? 0)
+      const expVals = expenseCategories.map((c) => day.expense[c] ?? 0)
+      rows.push([compactDateLabel(day.date), ...incVals, day.income.total ?? 0, ...expVals, day.expense.total ?? 0])
+    }
+
+    const totalIncVals = incomeCategories.map((c) => s.month_total.income[c] ?? 0)
+    const totalExpVals = expenseCategories.map((c) => s.month_total.expense[c] ?? 0)
+    rows.push(['월계', ...totalIncVals, s.month_total.income.total ?? 0, ...totalExpVals, s.month_total.expense.total ?? 0])
+    rows.push([])  // 월 사이 구분용 빈 행
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  const colCount = header.length
+  ws['!cols'] = Array.from({ length: colCount }, (_, i) => ({ wch: i === 0 ? 12 : 11 }))
+
+  // 숫자 컬럼 서식 지정 — 날짜/월 라벨/빈 행은 자연히 건너뜀
+  const numFmt = '#,##0'
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]
+    if (row.length < 2 || row[0] === '날짜') continue
+    for (let c = 1; c < row.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c })
+      if (ws[cellRef]) { ws[cellRef].t = 'n'; ws[cellRef].z = numFmt }
+    }
+  }
+
+  return ws
+}
+
+// ── 시트 3: 월별요약 ────────────────────────────────────
 
 function buildMonthlySheet(txs: ExportTransaction[]): XLSX.WorkSheet {
   // 월별 집계
@@ -137,7 +203,7 @@ function buildMonthlySheet(txs: ExportTransaction[]): XLSX.WorkSheet {
   return ws
 }
 
-// ── 시트 3: 카드별정산 ──────────────────────────────────
+// ── 시트 4: 카드별정산 ──────────────────────────────────
 
 function buildCardBillingSheet(
   txs: ExportTransaction[],
@@ -204,7 +270,11 @@ function buildCardBillingSheet(
 
 // ── 메인 내보내기 함수 ──────────────────────────────────
 
-export function exportTransactionsToExcel(data: ExportData): void {
+export function exportTransactionsToExcel(
+  data: ExportData,
+  settlements: MonthlySettlement[] = [],
+  basis: 'billing' | 'transaction' = 'transaction',
+): void {
   const { transactions: txs, cards, start_date, end_date } = data
 
   const wb = XLSX.utils.book_new()
@@ -212,10 +282,15 @@ export function exportTransactionsToExcel(data: ExportData): void {
   // 시트 1: 거래내역
   XLSX.utils.book_append_sheet(wb, buildTransactionsSheet(txs), '거래내역')
 
-  // 시트 2: 월별요약
+  // 시트 2: 정산표 (화면 "분류별 표"와 동일) — 서버에서 못 받아왔으면(오류 등) 조용히 생략
+  if (settlements.length > 0) {
+    XLSX.utils.book_append_sheet(wb, buildSettlementGridSheet(settlements, basis), '정산표')
+  }
+
+  // 시트 3: 월별요약
   XLSX.utils.book_append_sheet(wb, buildMonthlySheet(txs), '월별요약')
 
-  // 시트 3: 카드별정산
+  // 시트 4: 카드별정산
   XLSX.utils.book_append_sheet(wb, buildCardBillingSheet(txs, cards), '카드별정산')
 
   // 파일명 결정
