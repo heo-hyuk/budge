@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
+import { matchBenefit } from '../lib/api'
 import { getCategories } from '../lib/categories'
 import { formatDateLabel, formatNumberInput, formatWon, parseAmountInput } from '../lib/format'
 import { renderMemoWithHighlights } from '../lib/memoHighlight'
 import { getPaymentMethods } from '../lib/paymentMethods'
-import type { Card, Transaction, TransactionType, UpdateTransaction } from '../types'
+import type { BenefitMatch, Card, Transaction, TransactionType, UpdateTransaction } from '../types'
 
 interface Props {
   transactions: Transaction[]
@@ -34,6 +35,55 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
   const [editState, setEditState]   = useState<EditState | null>(null)
   const [saving, setSaving]         = useState(false)
 
+  // 혜택 매칭 상태 — TransactionForm과 동일한 패턴(수정 중인 항목 하나에만 적용)
+  const [matches, setMatches]             = useState<BenefitMatch[]>([])
+  const [selectedMatch, setSelectedMatch] = useState<BenefitMatch | null>(null)
+  const [matchLoading, setMatchLoading]   = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 결제방법·구매처·분류·금액 변경 시 혜택 매칭 (debounce 400ms) — TransactionForm과 동일 로직
+  useEffect(() => {
+    if (!editState || editState.type !== 'expense') {
+      setMatches([])
+      setSelectedMatch(null)
+      return
+    }
+    const cardId = cards.some((c) => c.id === editState.paymentMethod) ? editState.paymentMethod : ''
+    const numericAmount = Number(editState.amount.replace(/[^0-9]/g, ''))
+
+    if (!cardId || numericAmount <= 0) {
+      setMatches([])
+      setSelectedMatch(null)
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setMatchLoading(true)
+      try {
+        const month = editState.date.slice(0, 7)
+        const result = await matchBenefit({
+          card_id: cardId,
+          merchant: editState.merchant.trim(),
+          category: editState.category,
+          amount: numericAmount,
+          month,
+        })
+        setMatches(result)
+        setSelectedMatch(result.length === 1 ? result[0] : null)
+      } catch {
+        // 오류 시 조용히 무시
+      } finally {
+        setMatchLoading(false)
+      }
+    }, 400)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editState?.paymentMethod, editState?.merchant, editState?.category, editState?.amount, editState?.date, editState?.type, cards])
+
   // 카드 ID → Card 매핑
   const cardMap = new Map(cards.map((c) => [c.id, c]))
 
@@ -58,16 +108,25 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     setEditState({
       type: tx.type,
       category: tx.category,
-      amount: formatNumberInput(String(tx.amount), tx.type === 'income'),
+      // 혜택 할인이 적용된 거래면 amount는 이미 할인 후 금액이라, 그대로 채우면
+      // 혜택 재계산 시 할인이 중복 적용됨 — 할인 전 원래 금액(original_amount)을 채움
+      amount: formatNumberInput(String(tx.original_amount > 0 ? tx.original_amount : tx.amount), tx.type === 'income'),
       date: tx.date,
       memo: tx.memo ?? '',
       merchant: tx.merchant ?? '',
       paymentMethod: tx.card_id || tx.payment_method || '현금',
       unsettled: tx.unsettled === 1,
     })
+    setMatches([])
+    setSelectedMatch(null)
   }
 
-  function cancelEdit() { setEditingId(null); setEditState(null) }
+  function cancelEdit() {
+    setEditingId(null)
+    setEditState(null)
+    setMatches([])
+    setSelectedMatch(null)
+  }
 
   async function handleSave(id: string) {
     if (!editState) return
@@ -76,21 +135,34 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     if (!numericAmount) return
     if (editState.type === 'expense' && numericAmount < 0) return
     const selectedCard = cards.find((c) => c.id === editState.paymentMethod)
+
+    // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
+    const isCashback = selectedMatch?.benefit_type === 'cashback'
+    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
+    const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
+    const finalAmount = numericAmount - discountAmount
+
     setSaving(true)
     try {
       await onUpdate(id, {
         type: editState.type,
         category: editState.category,
-        amount: numericAmount,
+        amount: finalAmount,
         date: editState.date,
         memo: editState.memo.trim(),
         merchant: editState.merchant.trim(),
         payment_method: selectedCard ? selectedCard.id : editState.paymentMethod,
         card_id: selectedCard ? selectedCard.id : '',
+        original_amount: discountAmount > 0 ? numericAmount : 0,
+        discount_amount: discountAmount,
+        benefit_id: selectedMatch ? selectedMatch.benefit.id : '',
+        cashback_amount: cashbackAmount,
         unsettled: editState.unsettled,
       })
       setEditingId(null)
       setEditState(null)
+      setMatches([])
+      setSelectedMatch(null)
       showToast('거래를 수정했습니다')
     } catch (err) {
       showToast(err instanceof Error ? err.message : '거래를 수정하지 못했습니다', 'error')
@@ -190,6 +262,79 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                       )
                     })}
                   </div>
+                  {/* 혜택 매칭 — TransactionForm과 동일한 UI/로직(지출 + 카드 선택 시만 표시) */}
+                  {editState.type === 'expense' && cards.some((c) => c.id === editState.paymentMethod) && parseAmountInput(editState.amount) > 0 && (
+                    <div className="mb-2">
+                      {matchLoading && (
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>
+                      )}
+
+                      {!matchLoading && matches.length > 1 && (
+                        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-2.5 space-y-1.5">
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-300">적용 혜택을 선택하세요</p>
+                          {matches.map((m) => (
+                            <label key={m.benefit.id} className="flex items-start gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`benefit-${tx.id}`}
+                                className="mt-0.5"
+                                checked={selectedMatch?.benefit.id === m.benefit.id}
+                                onChange={() => setSelectedMatch(m)}
+                              />
+                              <div>
+                                <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+                                  {m.benefit.name}
+                                  {m.benefit_type === 'cashback' && (
+                                    <span className="ml-1.5 rounded bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 align-middle">적립</span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-amber-700 dark:text-amber-400">
+                                  {m.benefit_type === 'cashback'
+                                    ? `${formatWon(m.estimated_discount)} 적립 예정`
+                                    : `${formatWon(parseAmountInput(editState.amount))} → ${formatWon(parseAmountInput(editState.amount) - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
+                                </p>
+                              </div>
+                            </label>
+                          ))}
+                          <button type="button"
+                            onClick={() => { setMatches([]); setSelectedMatch(null) }}
+                            className="text-xs text-neutral-400 dark:text-neutral-500 underline"
+                          >
+                            혜택 미적용
+                          </button>
+                        </div>
+                      )}
+
+                      {!matchLoading && matches.length === 1 && selectedMatch && (
+                        <div className={`rounded-xl border p-2.5 flex items-center justify-between gap-2 ${
+                          selectedMatch.benefit_type === 'cashback' ? 'border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40' : 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40'
+                        }`}>
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold ${selectedMatch.benefit_type === 'cashback' ? 'text-blue-800 dark:text-blue-300' : 'text-green-800 dark:text-green-300'}`}>
+                              {selectedMatch.benefit_type === 'cashback' ? '적립 혜택 감지' : '혜택 자동 적용'}: {selectedMatch.benefit.name}
+                            </p>
+                            {selectedMatch.benefit_type === 'cashback' ? (
+                              <p className="text-sm font-bold text-blue-700 dark:text-blue-300 mt-0.5">
+                                이 결제로 예상 적립: {formatWon(selectedMatch.estimated_discount)}
+                              </p>
+                            ) : (
+                              <p className="text-sm font-bold text-green-700 dark:text-green-400 mt-0.5">
+                                {formatWon(parseAmountInput(editState.amount))} →{' '}
+                                {formatWon(parseAmountInput(editState.amount) - selectedMatch.estimated_discount)}{' '}
+                                <span className="font-normal">({formatWon(selectedMatch.estimated_discount)} 할인)</span>
+                              </p>
+                            )}
+                          </div>
+                          <button type="button"
+                            onClick={() => { setMatches([]); setSelectedMatch(null) }}
+                            className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500 underline"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* 분류 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {getCategories(editState.type).map((c) => (
