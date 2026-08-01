@@ -408,13 +408,27 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                             비정산
                           </span>
                         )}
+                        {/* 적립형 혜택 뱃지 — 결제액은 그대로라 금액 자체엔 안 보이므로 별도 표시 */}
+                        {tx.cashback_amount > 0 && (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                            적립 {formatWon(tx.cashback_amount)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>
-                        {/* 지출은 항상 양수라 '-' 고정, 수입은 차감 항목(음수)이면 formatWon이 이미 '-'를 표시하므로 '+'를 붙이지 않음 */}
-                        {tx.type === 'expense' ? '-' : tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        {/* 할인 혜택이 적용된 거래는 할인 전 금액도 함께 보여줌(취소선) */}
+                        {tx.discount_amount > 0 && (
+                          <span className="whitespace-nowrap text-xs text-neutral-400 dark:text-neutral-500 line-through">
+                            {formatWon(tx.original_amount)}
+                          </span>
+                        )}
+                        <span className={`whitespace-nowrap text-lg font-bold ${tx.type === 'income' ? 'text-blue-700 dark:text-blue-300' : 'text-coral-600 dark:text-coral-200'}`}>
+                          {/* 지출은 항상 양수라 '-' 고정, 수입은 차감 항목(음수)이면 formatWon이 이미 '-'를 표시하므로 '+'를 붙이지 않음 */}
+                          {tx.type === 'expense' ? '-' : tx.amount >= 0 ? '+' : ''}{formatWon(tx.amount)}
+                        </span>
+                      </div>
                       <button type="button" onClick={() => onDuplicate(tx)}
                         className="min-h-9 whitespace-nowrap rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
                       >
