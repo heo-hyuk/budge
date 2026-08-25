@@ -95,12 +95,16 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     )
   }
 
-  // 날짜별 그룹
+  // 날짜별 그룹 — 같은 날짜 내에서는 지출을 먼저, 수입을 아래에 배치
+  // (Array.sort는 안정 정렬이라 각 그룹 내 원래 시간 순서는 유지됨)
   const groups = new Map<string, Transaction[]>()
   for (const tx of transactions) {
     const list = groups.get(tx.date) ?? []
     list.push(tx)
     groups.set(tx.date, list)
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => (a.type === b.type ? 0 : a.type === 'expense' ? -1 : 1))
   }
 
   function startEdit(tx: Transaction) {
