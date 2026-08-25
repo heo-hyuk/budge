@@ -22,7 +22,22 @@
       "Bash(powershell.exe -Command '[System.IO.File]::WriteAllText\\('\\\\''C:/Users/SBS/AppData/Local/Temp/b2.json'\\\\'', '\\\\''{\"card_id\":\"28445537-f3a6-4e97-bf7b-a10243fd1b85\",\"name\":\"카페 500원 할인\",\"category\":\"카페/음료\",\"discount_type\":\"fixed\",\"discount_value\":500,\"monthly_cap\":5000}'\\\\'', [System.Text.Encoding]::UTF8\\)')",
       "Bash(node *)",
       "Bash(grep -v \"^$\\\\|oxlint\\\\|Lint\")",
-      "Bash(cat C:/budge/functions/api/budgets/[id].ts)"
+      "Bash(cat C:/budge/functions/api/budgets/[id].ts)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(disown)",
+      "Read(//c/Users/db848/AppData/Local/Temp/claude/C--work-budget/28d7d919-de8e-4d42-be7b-2e49baf69a14/scratchpad/**)",
+      "Bash(netstat -ano)",
+      "Bash(kill %1)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(npx --yes tsx -e ' *)",
+      "Bash(npx --yes tsx /c/Users/db848/AppData/Local/Temp/claude/C--work-budget/28d7d919-de8e-4d42-be7b-2e49baf69a14/scratchpad/billing_test.mjs)",
+      "Bash(npx *)",
+      "Read(//c/Users/db848/AppData/Local/Temp/claude/**)",
+      "Bash(taskkill //F //IM node.exe //T)",
+      "WebSearch",
+      "Bash(git pull *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)"
     ]
   }
 }
