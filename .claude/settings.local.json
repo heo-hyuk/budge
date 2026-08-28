@@ -37,7 +37,21 @@
       "WebSearch",
       "Bash(git pull *)",
       "Bash(gh --version)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Skill(update-config)",
+      "Bash(claude --version)",
+      "Bash(npm update *)",
+      "Bash(git checkout *)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(python3 -c ' *)",
+      "Bash(git log *)",
+      "Bash(sort -t차 -k1 -n -u)",
+      "Bash(powershell.exe -NoProfile -Command '[Environment]::GetFolderPath\\(\"Desktop\"\\)')",
+      "Read(//mnt/c/Users/**)",
+      "Bash(netstat -tlnp)",
+      "Bash(powershell.exe -Command '[Environment]::GetFolderPath\\(\"Desktop\"\\)')",
+      "Bash(cmd.exe /c \"echo %USERPROFILE%\")",
+      "Bash(awk '{print $1}')"
     ]
   }
 }
