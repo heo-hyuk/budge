@@ -1,5 +1,46 @@
 # WORKLOG
 
+## 2026-08-31 (144차) — 공지/문의(Q&A) 게시판 + 관리자 계정
+
+사용자 요청: "공지랑 큐앤에이 게시판도 필요할 거 같거든 이거 하나의 폼으로
+만들어줘". 추가 확인:
+- 관리자: 별도 계정으로 로그인(이메일 없이). 아이디 `db8485` / 비밀번호는
+  별도 보관. 기존 로그인 폼과 분리해 관리자만 로그인 가능하게.
+- 문의 공개/비공개: 글쓴이가 선택
+- 위치: 좌측 메뉴에 '게시판' 탭 추가
+
+### 작업 계획
+**DB (`migrations/032_add_admin_and_board.sql` + `schema.sql` 동기화)**
+- `users` 에 `is_admin INTEGER NOT NULL DEFAULT 0` 컬럼 추가
+- 관리자 계정 시드: `email` 컬럼을 로그인 아이디(`db8485`) 저장에 재사용
+  (형식 제약 없음), PBKDF2-SHA256 15000회 해시, `is_admin=1`
+- `board_posts` 테이블: `type`(notice/qna), `user_id`, `author_name`,
+  `title`, `content`, `is_private`, `is_pinned`, `answer`, `answered_at`,
+  `created_at`, `updated_at` + 인덱스
+
+**백엔드 (`functions/`)**
+- `lib/admin.ts` — `isAdmin(env, userId)` 헬퍼
+- `api/auth/admin-login.ts` — POST `{username,password}` → 세션 발급
+  (`is_admin=1` 계정만)
+- `api/auth/me.ts`, `api/auth/login.ts` — 응답 user에 `is_admin` 포함
+- `api/board/index.ts` — GET 목록(type 필터 + 비공개 필터), POST 작성
+  (공지=관리자만, 문의=로그인 사용자)
+- `api/board/[id].ts` — GET 단건, PATCH(작성자=제목/내용/공개여부,
+  관리자=답변/상단고정), DELETE(작성자 or 관리자)
+
+**프론트 (`src/`)**
+- `types.ts` — `BoardPost`, `BoardPostType`
+- `lib/api.ts` — 게시판 CRUD 함수
+- `contexts/AuthContext.tsx` — `User.is_admin`, `adminLogin()`
+- `components/AuthPage.tsx` — "관리자 로그인" 모드(아이디+비번, 이메일 없음)
+- `components/BoardView.tsx` — 신규. 공지/문의 서브탭 + 하나의 글쓰기 폼
+  (유형 선택은 관리자만 노출, 문의는 비공개 체크) + 목록/펼쳐보기 +
+  관리자 답변/고정/삭제
+- `App.tsx` — `'board'` 탭 추가(좌측 메뉴 '게시판', Megaphone 아이콘)
+
+**배포 후 사용자 조치**: 원격 D1에 마이그레이션 적용
+`npx wrangler d1 execute budget-db --remote --file=./migrations/032_add_admin_and_board.sql`
+
 ## 2026-08-31 (143차) — 구글 검색 노출 개선 (SEO: "텅장" 브랜드 검색 대응)
 
 사용자 요청: 구글 서치콘솔에서 사이트맵을 못 읽는 문제 + 구글에서
