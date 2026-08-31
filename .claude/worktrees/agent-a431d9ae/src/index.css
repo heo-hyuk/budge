@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* 브랜드 포인트 컬러(코랄) — 지출/경고 강조에 사용, 수입(파랑)/지출 표시(레드)와 구분 */
+@theme {
+  --color-coral-50:  #FAECE7;
+  --color-coral-100: #F5C4B3;
+  --color-coral-200: #F0997B;
+  --color-coral-400: #D85A30;
+  --color-coral-600: #993C1D;
+  --color-coral-800: #712B13;
+  --color-coral-900: #4A1B0C;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-coral-400);
+  outline-offset: 2px;
+}
+
+/* 토스트 등장 애니메이션 (Tailwind 플러그인 없이 순수 CSS로) */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast-enter {
+  animation: toast-in 0.2s ease-out;
+}

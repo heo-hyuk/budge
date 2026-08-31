@@ -5,21 +5,76 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="eTlV50wn_wLAqBeZG53GFGeWohVj8eEdLh11yhbl-YM" />
-    <title>텅~ 장 — 나만의 가계부 서비스</title>
-    <meta name="description" content="나만의 가계부 서비스, 텅~ 장. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서." />
+
+    <!-- 검색 노출용: "텅장"(붙여쓴 표기)과 "텅~ 장"을 모두 포함 -->
+    <title>텅장 (텅~ 장) — 나만의 가계부 서비스</title>
+    <meta
+      name="description"
+      content="텅장은 나만의 가계부 서비스예요. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서. 텅~ 장에서 지갑이 텅 비기 전에 관리하세요."
+    />
+    <meta name="keywords" content="텅장, 텅~ 장, 텅장 가계부, 가계부, 가계부 앱, 가계부 서비스, 예산 관리, 카드 혜택, 지출 관리, 수입 지출" />
+    <meta name="author" content="텅장" />
     <link rel="canonical" href="https://budget-3wb.pages.dev/" />
-    <meta property="og:title" content="텅~ 장 — 나만의 가계부 서비스" />
-    <meta property="og:description" content="나만의 가계부 서비스, 텅~ 장. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서." />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="텅장" />
+    <meta property="og:title" content="텅장 (텅~ 장) — 나만의 가계부 서비스" />
+    <meta
+      property="og:description"
+      content="텅장은 나만의 가계부 서비스예요. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서."
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://budget-3wb.pages.dev/" />
     <meta property="og:image" content="https://budget-3wb.pages.dev/screenshots/home.png" />
+    <meta property="og:locale" content="ko_KR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="텅장 (텅~ 장) — 나만의 가계부 서비스" />
+    <meta
+      name="twitter:description"
+      content="텅장은 나만의 가계부 서비스예요. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서."
+    />
+    <meta name="twitter:image" content="https://budget-3wb.pages.dev/screenshots/home.png" />
+
+    <!-- 구조화 데이터: 검색엔진이 "텅장"을 브랜드명으로 인식하도록 -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://budget-3wb.pages.dev/#website",
+            "url": "https://budget-3wb.pages.dev/",
+            "name": "텅장",
+            "alternateName": ["텅~ 장", "텅장 가계부"],
+            "description": "나만의 가계부 서비스. 수입·지출 기록, 카드 혜택 관리, 예산, 정산을 한 곳에서.",
+            "inLanguage": "ko-KR"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "텅장",
+            "alternateName": ["텅~ 장", "텅장 가계부"],
+            "url": "https://budget-3wb.pages.dev/",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "description": "텅장은 나만의 가계부 서비스입니다. 수입·지출 기록부터 카드 혜택 관리, 예산, 정산까지 한 곳에서 관리할 수 있습니다.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "KRW"
+            }
+          }
+        ]
+      }
+    </script>
 
     <!-- PWA: 홈 화면 설치 -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#D85A30" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="텅~ 장" />
+    <meta name="apple-mobile-web-app-title" content="텅장" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <script>
       // React 렌더 전에 먼저 적용해야 다크모드 사용자가 새로고침할 때 밝은 화면이 잠깐 번쩍이지 않음
@@ -31,7 +86,36 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      #root 안의 마크업은 React 마운트(createRoot().render()) 시 자동으로 교체됩니다.
+      JS 로딩 전 잠깐 보이는 자리표시 겸, 크롤러가 JS 실행 없이도 읽을 핵심 텍스트입니다.
+    -->
+    <div id="root">
+      <div style="max-width: 32rem; margin: 0 auto; padding: 4rem 1.5rem; text-align: center; font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;">
+        <img src="/logo.svg" alt="텅장" width="80" height="80" style="display: inline-block; height: 80px; width: auto;" />
+        <h1 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 700;">텅장 — 나만의 가계부 서비스</h1>
+        <p style="margin-top: 0.75rem; line-height: 1.6; color: #666;">
+          텅장(텅~ 장)은 수입·지출 기록부터 카드 혜택 관리, 예산 세우기, 월·연 정산까지
+          한 곳에서 관리하는 웹 가계부입니다. 지갑이 텅 비기 전에 텅장으로 관리하세요.
+        </p>
+        <p style="margin-top: 1.5rem; color: #999;">잠시만요, 텅장을 불러오는 중이에요…</p>
+        <p style="margin-top: 2rem; font-size: 0.875rem;">
+          <a href="/terms" style="color: #D85A30;">이용약관</a>
+          &nbsp;·&nbsp;
+          <a href="/privacy" style="color: #D85A30;">개인정보처리방침</a>
+        </p>
+      </div>
+    </div>
+    <noscript>
+      <div style="max-width: 32rem; margin: 0 auto; padding: 2rem 1.5rem; text-align: center;">
+        <h1>텅장 — 나만의 가계부 서비스</h1>
+        <p>
+          텅장(텅~ 장)은 수입·지출 기록, 카드 혜택 관리, 예산, 월·연 정산을 한 곳에서
+          관리하는 웹 가계부 서비스입니다. 이용하려면 자바스크립트를 켜 주세요.
+        </p>
+        <p><a href="/terms">이용약관</a> · <a href="/privacy">개인정보처리방침</a></p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

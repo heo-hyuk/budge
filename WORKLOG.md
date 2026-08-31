@@ -34,6 +34,25 @@
 - GSC 사이트맵 삭제 → 재제출, URL 검사에서 색인 생성 요청
 - 가능하면 커스텀 도메인 연결, 외부 링크 1~2개 확보
 
+### 완료 (코드)
+- `index.html` 수정
+  - `<title>` `텅장 (텅~ 장) — 나만의 가계부 서비스`, description에 "텅장"
+    자연스럽게 포함
+  - `<meta name="keywords">`, `og:site_name`, `og:locale`, `twitter:card`
+    등 추가
+  - JSON-LD `@graph`: `WebSite` + `SoftwareApplication`,
+    `name: "텅장"`, `alternateName: ["텅~ 장", "텅장 가계부"]`,
+    `applicationCategory: FinanceApplication`
+  - `<div id="root">` 안에 정적 히어로 마크업(로고 + h1 + 소개문 +
+    /terms·/privacy 링크) 추가 — `createRoot().render()`가 첫 렌더에서
+    자식을 비우므로 React 마운트 시 자동 교체, 사용자 화면엔 영향 없음.
+    JS 로딩 전 자리표시 겸 크롤러가 JS 없이 읽을 텍스트 역할
+  - `<noscript>` 블록에 동일 취지의 소개 텍스트 + 내부 링크
+- `main.tsx` 등 다른 파일 변경 불필요 (createRoot 방식이라 hydrate 아님)
+- `npm run build`(tsc -b 포함) 통과, `npm run lint` 통과
+- `dist/index.html` 에 "텅장" 24회 포함, `#root` 정적 텍스트 정상 반영 확인
+- 배포는 main push 시 GitHub Actions가 자동 처리
+
 ## 2026-08-28 (142차) — 홈 거래 목록, 지출/수입 순서 다시 원복(수입 먼저)
 
 사용자 요청: "홈에서 내역나오는데 지출 수입 위치 바꿔줘 지금 위아래가 지출
