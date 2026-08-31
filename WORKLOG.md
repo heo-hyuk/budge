@@ -92,9 +92,15 @@
 - 우회: Cloudflare 대시보드 → D1 → budget-db → **Console** 에
   migration 032 SQL 직접 실행 → "successfully executed" 확인.
   `board_posts` 테이블 + `users.is_admin` 컬럼 + 관리자 계정 시드 반영됨.
-- 후속 과제(선택): 로컬 wrangler 자격증명을 `558c8a68…799` 계정 토큰으로
-  교체하거나 env 토큰 제거 후 `wrangler login` — 안 하면 이후 `--remote`
-  D1/배포 CLI가 계속 실패
+- 후속 조치(완료): `~/.bashrc` 의 전역 `CLOUDFLARE_API_TOKEN` 을
+  `Db848552@gmail.com`(`558c8a68…799`, budge 소유 계정) 토큰으로 교체.
+  `wrangler whoami` / `d1 execute --remote` 정상 확인.
+- 다중 계정 정리: 이 PC에 Cloudflare 프로젝트가 두 계정에 분산돼 있음 —
+  budge/wedding-admin/wedd 는 `Db848552`, ppnation/easyprompt 는
+  `asdf1378kk@gmail.com`(`6209ea4d…985a`). 전역 토큰은 budge 계정 것이므로
+  ppnation/easyprompt 는 `CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=...`
+  를 명령 앞에 붙이거나 direnv 로 폴더별 분리 필요(각 저장소에 `DEPLOY.md`
+  기록해 둠). budge `.gitignore` 에 `.envrc` 추가.
 
 ## 2026-08-31 (143차) — 구글 검색 노출 개선 (SEO: "텅장" 브랜드 검색 대응)
 
