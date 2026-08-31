@@ -83,6 +83,19 @@
 전환되면 비밀번호 교체 권장 — 교체 시 `functions/lib/auth.ts`의 derive와
 동일 알고리즘으로 새 hash/salt 생성해 users 행 UPDATE
 
+### 배포 / 원격 DB 적용 (2026-08-31 완료)
+- 코드: `main` 푸시 → GitHub Actions가 Pages 자동 배포
+- 원격 D1 마이그레이션: `wrangler d1 execute --remote` 가 인증 에러(code
+  10000)로 실패 — 로컬 `CLOUDFLARE_API_TOKEN` 환경변수가 다른 계정
+  (`asdf1378kk@gmail.com` / `6209ea4d…985a`) 토큰이라 DB 소유 계정
+  (`Db848552@gmail.com` / `558c8a68…799`)에 접근 불가.
+- 우회: Cloudflare 대시보드 → D1 → budget-db → **Console** 에
+  migration 032 SQL 직접 실행 → "successfully executed" 확인.
+  `board_posts` 테이블 + `users.is_admin` 컬럼 + 관리자 계정 시드 반영됨.
+- 후속 과제(선택): 로컬 wrangler 자격증명을 `558c8a68…799` 계정 토큰으로
+  교체하거나 env 토큰 제거 후 `wrangler login` — 안 하면 이후 `--remote`
+  D1/배포 CLI가 계속 실패
+
 ## 2026-08-31 (143차) — 구글 검색 노출 개선 (SEO: "텅장" 브랜드 검색 대응)
 
 사용자 요청: 구글 서치콘솔에서 사이트맵을 못 읽는 문제 + 구글에서
