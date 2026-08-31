@@ -53,6 +53,12 @@
 - `dist/index.html` 에 "텅장" 24회 포함, `#root` 정적 텍스트 정상 반영 확인
 - 배포는 main push 시 GitHub Actions가 자동 처리
 
+### 추가 (2026-08-31) — 네이버 서치어드바이저 등록
+- `index.html` 에 `<meta name="naver-site-verification" content="7a675474437dd462969aacd066f681aa4b199f7c" />`
+  추가 (google-site-verification 바로 아래)
+- 사용자 조치: 소유 확인 후 사이트맵(`/sitemap.xml`) 제출 + `/`, `/terms`,
+  `/privacy` 웹 페이지 수집 요청
+
 ## 2026-08-28 (142차) — 홈 거래 목록, 지출/수입 순서 다시 원복(수입 먼저)
 
 사용자 요청: "홈에서 내역나오는데 지출 수입 위치 바꿔줘 지금 위아래가 지출
