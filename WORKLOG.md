@@ -1,5 +1,39 @@
 # WORKLOG
 
+## 2026-08-31 (143차) — 구글 검색 노출 개선 (SEO: "텅장" 브랜드 검색 대응)
+
+사용자 요청: 구글 서치콘솔에서 사이트맵을 못 읽는 문제 + 구글에서
+"텅장"으로 검색해도 사이트가 안 나오는 문제 해결.
+
+### 배경 / 원인 분석
+- `https://budget-3wb.pages.dev/sitemap.xml` 은 라이브에서 200 + 정상 XML로
+  응답함 (Googlebot UA로도 정상). GSC "가져올 수 없음"은 제출(7/28) 시점
+  일시 오류 후 재시도가 방치된 상태 → GSC에서 사이트맵 삭제 후 재제출로
+  해결 (코드 변경 불필요, 사용자 조치 안내함)
+- 검색 노출이 안 되는 코드 측 원인:
+  1. SPA라서 서버가 주는 HTML의 `<div id="root">` 가 비어 있음 →
+     JS 렌더링 전에는 본문 텍스트가 하나도 없음
+  2. "텅장" 붙여 쓴 표기가 title/description/본문 어디에도 없음
+     (전부 "텅~ 장")
+  3. 구조화 데이터(JSON-LD) 없음 → 브랜드명 인식 근거 부족
+
+### 작업 계획 (코드)
+- `index.html`
+  - `<title>` / `<meta name="description">` 에 "텅장" 붙여 쓴 표기 포함
+  - `<meta name="keywords">`, `og:site_name`, `twitter:card` 등 보강
+  - `<div id="root">` 안에 정적 히어로 마크업(로딩 자리표시 겸 SEO용)
+    추가 — React 마운트 시 교체되므로 사용자 화면엔 영향 없음
+  - `<noscript>` 블록에 핵심 소개 텍스트 + 내부 링크(/terms, /privacy)
+  - JSON-LD `<script type="application/ld+json">` 추가:
+    `WebSite` + `SoftwareApplication`, `name: "텅장"`,
+    `alternateName: ["텅~ 장", "텅장 가계부"]`
+- 예상 변경 파일: `index.html` (필요 시 `src/main.tsx` 에서 정적
+  자리표시 제거 로직 확인)
+
+### 사용자가 별도로 해야 할 일 (코드 아님)
+- GSC 사이트맵 삭제 → 재제출, URL 검사에서 색인 생성 요청
+- 가능하면 커스텀 도메인 연결, 외부 링크 1~2개 확보
+
 ## 2026-08-28 (142차) — 홈 거래 목록, 지출/수입 순서 다시 원복(수입 먼저)
 
 사용자 요청: "홈에서 내역나오는데 지출 수입 위치 바꿔줘 지금 위아래가 지출
