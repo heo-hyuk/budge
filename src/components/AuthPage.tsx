@@ -3,14 +3,15 @@ import LandingIntro from './LandingIntro'
 import { useAuth } from '../contexts/AuthContext'
 import { validateNicknameClient } from '../lib/nickname'
 
-type Mode = 'login' | 'register'
+type Mode = 'login' | 'register' | 'admin'
 
 const SAVED_EMAIL_KEY = 'budget:savedEmail'
 
 function AuthPage() {
-  const { login, register } = useAuth()
+  const { login, adminLogin, register } = useAuth()
   const [mode, setMode]     = useState<Mode>('login')
   const [email, setEmail]   = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) ?? '')
+  const [username, setUsername] = useState('')  // 관리자 로그인 아이디
   const [password, setPassword] = useState('')
   const [name, setName]     = useState('')
   const [nickname, setNickname] = useState('')
@@ -25,7 +26,9 @@ function AuthPage() {
     setError('')
     setLoading(true)
     try {
-      if (mode === 'login') {
+      if (mode === 'admin') {
+        await adminLogin(username, password, autoLogin)
+      } else if (mode === 'login') {
         if (saveEmail) localStorage.setItem(SAVED_EMAIL_KEY, email)
         else localStorage.removeItem(SAVED_EMAIL_KEY)
         await login(email, password, autoLogin)
@@ -54,27 +57,40 @@ function AuthPage() {
       <div id="signup" className="flex items-center justify-center px-4 pb-16 pt-4 scroll-mt-6">
         <div className="w-full max-w-sm">
           <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-            {/* 탭 */}
-            <div className="flex rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1 mb-6">
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setError('') }}
-                className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                  mode === 'login' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                }`}
-              >
-                로그인
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode('register'); setError('') }}
-                className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
-                  mode === 'register' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                }`}
-              >
-                회원가입
-              </button>
-            </div>
+            {/* 탭 (일반 로그인/회원가입). 관리자 모드에서는 탭 대신 안내 문구 표시 */}
+            {mode === 'admin' ? (
+              <div className="mb-6 flex items-center justify-between">
+                <span className="text-base font-bold text-neutral-900 dark:text-neutral-100">관리자 로그인</span>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError('') }}
+                  className="text-sm font-semibold text-coral-600 dark:text-coral-300 hover:underline"
+                >
+                  ← 일반 로그인
+                </button>
+              </div>
+            ) : (
+              <div className="flex rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1 mb-6">
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError('') }}
+                  className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
+                    mode === 'login' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                  }`}
+                >
+                  로그인
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setError('') }}
+                  className={`flex-1 min-h-9 rounded-lg text-sm font-semibold transition-colors ${
+                    mode === 'register' ? 'bg-white dark:bg-neutral-900 text-coral-600 dark:text-coral-200 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                  }`}
+                >
+                  회원가입
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* 이름 (회원가입만) */}
@@ -107,18 +123,36 @@ function AuthPage() {
                 </div>
               )}
 
-              {/* 이메일 */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이메일</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@email.com"
-                  className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
-                />
-              </div>
+              {/* 아이디 (관리자 로그인만) — 이메일이 아니라 로그인 아이디 */}
+              {mode === 'admin' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">아이디</label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="관리자 아이디"
+                    className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                </div>
+              )}
+
+              {/* 이메일 (일반 로그인/회원가입) */}
+              {mode !== 'admin' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">이메일</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="min-h-11 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 px-3 text-base transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                </div>
+              )}
 
               {/* 비밀번호 */}
               <div>
@@ -136,17 +170,19 @@ function AuthPage() {
 
               {/* 아이디 저장 / 자동 로그인 (로그인 모드만) — 체크박스 자체는 작아도
                   라벨 전체를 터치 영역으로 넓혀서 탭하기 쉽게 함 */}
-              {mode === 'login' && (
+              {mode !== 'register' && (
                 <div className="-ml-2 flex items-center gap-2">
-                  <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
-                    <input
-                      type="checkbox"
-                      checked={saveEmail}
-                      onChange={(e) => setSaveEmail(e.target.checked)}
-                      className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
-                    />
-                    아이디 저장
-                  </label>
+                  {mode === 'login' && (
+                    <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                      <input
+                        type="checkbox"
+                        checked={saveEmail}
+                        onChange={(e) => setSaveEmail(e.target.checked)}
+                        className="h-4 w-4 rounded border-2 border-neutral-300 dark:border-neutral-700 accent-coral-400"
+                      />
+                      아이디 저장
+                    </label>
+                  )}
                   <label className="flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
                     <input
                       type="checkbox"
@@ -190,9 +226,22 @@ function AuthPage() {
                 disabled={loading || (mode === 'register' && !agreed)}
                 className="min-h-12 w-full rounded-xl bg-coral-400 text-base font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50"
               >
-                {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
+                {loading ? '처리 중...' : mode === 'admin' ? '관리자 로그인' : mode === 'login' ? '로그인' : '회원가입'}
               </button>
             </form>
+
+            {/* 관리자 로그인 진입 (일반 로그인 화면에서만 노출) */}
+            {mode === 'login' && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode('admin'); setError('') }}
+                  className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 hover:underline"
+                >
+                  관리자 로그인
+                </button>
+              </div>
+            )}
           </div>
 
           <p className="mt-4 text-center text-xs text-neutral-400 dark:text-neutral-500">

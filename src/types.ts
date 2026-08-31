@@ -339,6 +339,35 @@ export interface TaxEstimate {
   is_estimate: true
 }
 
+// ── 공지/문의(Q&A) 게시판 ───────────────────────────────
+// notice: 관리자만 작성, 전원 공개. qna: 로그인 사용자 누구나 작성, is_private면 작성자+관리자만.
+
+export type BoardPostType = 'notice' | 'qna'
+
+export interface BoardPost {
+  id: string
+  type: BoardPostType
+  user_id: string
+  author_name: string
+  title: string
+  content: string
+  is_private: boolean   // qna 전용
+  is_pinned: boolean     // notice 전용
+  answer: string | null  // qna 관리자 답변, null = 미답변
+  answered_at: string | null
+  created_at: string
+  updated_at: string
+  is_mine: boolean       // 서버가 계산해준 값 (뷰어 == 작성자)
+  can_edit: boolean      // 서버가 계산해준 값 (관리자 또는 작성자)
+}
+
+export interface NewBoardPost {
+  type: BoardPostType
+  title: string
+  content: string
+  is_private?: boolean
+}
+
 // /api/notifications 응답 — 실제 발송된 푸시(카드 정산 알림/월간 세금 리포트)의 인앱 열람용 기록
 export interface NotificationLogEntry {
   id: string

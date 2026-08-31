@@ -57,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ).bind(sessionId, userId, expiresAt, now).run()
 
   return json(
-    { ok: true, user: { id: userId, email, name, nickname, created_at: now } },
+    { ok: true, user: { id: userId, email, name, nickname, created_at: now, is_admin: false } },
     201,
     { 'Set-Cookie': sessionCookie(sessionId) }
   )

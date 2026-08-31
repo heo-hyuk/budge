@@ -17,27 +17,29 @@ const json = (data: unknown, status = 200, extra?: HeadersInit) =>
 export const onRequestOptions: PagesFunction<Env> = async () =>
   new Response(null, { status: 204, headers: cors })
 
+/**
+ * POST /api/auth/admin-login — 관리자 전용 로그인
+ * 일반 로그인(/api/auth/login)과 분리. 이메일이 아니라 로그인 아이디(username)를 받고,
+ * is_admin=1 계정만 통과시킨다. users.email 컬럼에 로그인 아이디가 저장돼 있다(migration 032).
+ */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  // 항상 이메일/비밀번호를 검증한다. 기존 세션 쿠키가 남아있다는 이유로
-  // 검증을 건너뛰면, 공유 PC에서 이전 사용자의 세션이 남아있을 때 다른
-  // 계정으로 로그인 시도해도 이전 사용자로 로그인되는 문제가 생김
-  const body = await request.json() as { email?: string; password?: string; remember?: boolean }
-  const email    = body.email?.trim().toLowerCase()
+  const body = await request.json() as { username?: string; password?: string; remember?: boolean }
+  const username = body.username?.trim()
   const password = body.password?.trim()
-  const remember = body.remember !== false  // 기본값 true (자동 로그인)
+  const remember = body.remember !== false
 
-  if (!email || !password) return json({ error: '이메일과 비밀번호를 입력해주세요' }, 400)
+  if (!username || !password) return json({ error: '아이디와 비밀번호를 입력해주세요' }, 400)
 
   const user = await env.DB.prepare(
-    'SELECT id, email, name, nickname, created_at, password_hash, salt, iterations, is_admin FROM users WHERE email = ?'
-  ).bind(email).first<{ id: string; email: string; name: string; nickname: string | null; created_at: string; password_hash: string; salt: string; iterations: number; is_admin: number }>()
+    'SELECT id, email, name, nickname, created_at, password_hash, salt, iterations, is_admin FROM users WHERE email = ? AND is_admin = 1'
+  ).bind(username).first<{ id: string; email: string; name: string; nickname: string | null; created_at: string; password_hash: string; salt: string; iterations: number; is_admin: number }>()
 
-  if (!user) return json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' }, 401)
+  // 아이디 없음 / 관리자 아님 / 비번 불일치를 모두 같은 메시지로(계정 존재 여부 노출 방지)
+  if (!user) return json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
 
   const valid = await verifyPassword(password, user.password_hash, user.salt, user.iterations)
-  if (!valid)  return json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' }, 401)
+  if (!valid) return json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
 
-  // 예전에 더 적은 반복횟수로 해싱된 계정이면 로그인 성공한 김에 최신 기준으로 재해싱
   if (needsRehash(user.iterations)) {
     const rehashed = await hashPassword(password)
     await env.DB.prepare(
@@ -45,7 +47,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     ).bind(rehashed.hash, rehashed.salt, rehashed.iterations, user.id).run()
   }
 
-  // 세션 발급 (30일)
   const newSessionId = crypto.randomUUID()
   const now          = new Date().toISOString()
   const expiresAt    = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -55,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ).bind(newSessionId, user.id, expiresAt, now).run()
 
   return json(
-    { ok: true, user: { id: user.id, email: user.email, name: user.name, nickname: user.nickname, created_at: user.created_at, is_admin: !!user.is_admin } },
+    { ok: true, user: { id: user.id, email: user.email, name: user.name, nickname: user.nickname, created_at: user.created_at, is_admin: true } },
     200,
     { 'Set-Cookie': sessionCookie(newSessionId, remember) }
   )

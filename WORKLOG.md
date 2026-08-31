@@ -41,6 +41,48 @@
 **배포 후 사용자 조치**: 원격 D1에 마이그레이션 적용
 `npx wrangler d1 execute budget-db --remote --file=./migrations/032_add_admin_and_board.sql`
 
+### 완료
+**DB**
+- `migrations/032_add_admin_and_board.sql` 신규 — `users.is_admin` 컬럼,
+  관리자 계정 시드(로그인 아이디 `db8485`, PBKDF2-SHA256 15000회 해시만
+  커밋 / 평문 비번은 미커밋), `board_posts` 테이블 + 인덱스
+- `schema.sql` 동기화 (신규 init 시에도 동일 결과, INSERT OR IGNORE /
+  IF NOT EXISTS 로 기존 DB 재실행 안전 — 로컬에서 확인)
+
+**백엔드**
+- `functions/lib/admin.ts` — `isAdmin()` 헬퍼
+- `functions/api/auth/admin-login.ts` — 아이디 기반 관리자 로그인
+  (`is_admin=1` 계정만, 존재 여부 비노출 동일 에러 메시지)
+- `functions/api/auth/{me,login,register}.ts` — 응답 user에 `is_admin: boolean`
+- `functions/api/board/index.ts` — GET(type 필터 + 비공개 필터 + is_admin
+  플래그), POST(공지=관리자, 문의=로그인 사용자, 비공개는 문의만)
+- `functions/api/board/[id].ts` — GET(비공개 접근 차단), PATCH(작성자=
+  제목/내용/공개여부, 관리자=answer/is_pinned), DELETE(작성자 or 관리자)
+
+**프론트**
+- `src/types.ts` — `BoardPost`, `BoardPostType`, `NewBoardPost`
+- `src/lib/api.ts` — `fetchBoardPosts` / `createBoardPost` /
+  `updateBoardPost` / `deleteBoardPost`
+- `src/contexts/AuthContext.tsx` — `User.is_admin?`, `adminLogin()`
+- `src/components/AuthPage.tsx` — "관리자 로그인" 모드(하단 링크로 진입,
+  이메일 대신 아이디 입력, 탭 숨김, "← 일반 로그인"으로 복귀)
+- `src/components/BoardView.tsx` 신규 — 공지사항/문의 서브탭 + 단일
+  글쓰기 폼(유형은 서브탭 따라감, 문의만 비공개 체크) + 아코디언 목록 +
+  관리자 인라인 답변/고정/삭제 + 작성자 수정/삭제
+- `src/App.tsx` — `'board'` 탭 추가(좌측 메뉴 '게시판', Megaphone 아이콘)
+
+**검증**
+- `npx tsc -b`, `npm run lint`, `npm run build` 통과
+- 로컬 D1에 마이그레이션 적용 후 `wrangler pages dev`로 실제 요청 테스트:
+  관리자 로그인(성공/오답), 공지 작성 권한(일반 403 / 관리자 201),
+  비공개 문의 격리(작성자·관리자만 열람, 타 사용자 403/목록 제외),
+  관리자 답변·고정, 삭제 권한(타인 403 / 작성자 200), 잘못된 type 400 —
+  전부 기대대로 동작 확인. 테스트 데이터는 정리함
+
+**주의**: 관리자 평문 비밀번호는 저장소에 없음(해시만). 저장소가 공개
+전환되면 비밀번호 교체 권장 — 교체 시 `functions/lib/auth.ts`의 derive와
+동일 알고리즘으로 새 hash/salt 생성해 users 행 UPDATE
+
 ## 2026-08-31 (143차) — 구글 검색 노출 개선 (SEO: "텅장" 브랜드 검색 대응)
 
 사용자 요청: 구글 서치콘솔에서 사이트맵을 못 읽는 문제 + 구글에서

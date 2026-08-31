@@ -1,4 +1,4 @@
-import type { AnnualSettlement, BenefitGroup, BenefitMatch, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, NotificationLogEntry, QuickTemplate, RecentMerchant, RecurringTransaction, TaxEstimate, TaxType, Transaction, TransactionType, UpdateTransaction, UserTaxSettings, WeeklySettlement } from '../types'
+import type { AnnualSettlement, BenefitGroup, BenefitMatch, BoardPost, BoardPostType, Budget, BudgetStatus, Card, CardBenefit, DailySettlement, MonthlySettlement, NewBenefit, NewBenefitGroup, NewBoardPost, NewBudget, NewCard, NewNote, NewQuickTemplate, NewRecurring, NewTransaction, Note, NotificationLogEntry, QuickTemplate, RecentMerchant, RecurringTransaction, TaxEstimate, TaxType, Transaction, TransactionType, UpdateTransaction, UserTaxSettings, WeeklySettlement } from '../types'
 
 /** 서버가 4xx/5xx로 응답했을 때 던지는 에러 (서버가 준 메시지를 그대로 보존) */
 export class ApiError extends Error {
@@ -569,4 +569,25 @@ export async function fetchNotifications(): Promise<{ data: NotificationLogEntry
 
 export async function markNotificationsRead(): Promise<void> {
   await apiRequest('/api/notifications/read', { method: 'PATCH' }, '알림을 읽음 처리하지 못했습니다')
+}
+
+// ── 공지/문의(Q&A) 게시판 API ─────────────────────────────
+
+export async function fetchBoardPosts(type: BoardPostType): Promise<{ data: BoardPost[]; is_admin: boolean }> {
+  return apiRequest(`/api/board?type=${type}`, undefined, '게시판을 불러오지 못했습니다')
+}
+
+export async function createBoardPost(post: NewBoardPost): Promise<{ id: string }> {
+  return apiRequest('/api/board', jsonInit('POST', post), '글을 등록하지 못했습니다')
+}
+
+export async function updateBoardPost(
+  id: string,
+  data: { title?: string; content?: string; is_private?: boolean; answer?: string | null; is_pinned?: boolean },
+): Promise<void> {
+  await apiRequest(`/api/board/${id}`, jsonInit('PATCH', data), '글을 수정하지 못했습니다')
+}
+
+export async function deleteBoardPost(id: string): Promise<void> {
+  await apiRequest(`/api/board/${id}`, { method: 'DELETE' }, '글을 삭제하지 못했습니다')
 }

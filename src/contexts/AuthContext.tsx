@@ -14,12 +14,14 @@ interface User {
   name: string
   nickname: string | null
   created_at: string
+  is_admin?: boolean   // 관리자 계정만 true (일반 사용자는 undefined/false)
 }
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (email: string, password: string, remember?: boolean) => Promise<void>
+  adminLogin: (username: string, password: string, remember?: boolean) => Promise<void>
   register: (email: string, password: string, name: string, nickname: string) => Promise<void>
   logout: () => Promise<void>
   updateNickname: (nickname: string) => Promise<void>
@@ -50,6 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     const body = (await res.json()) as { ok?: boolean; user?: User; error?: string }
     if (!res.ok || !body.user) throw new Error(body.error ?? '로그인에 실패했습니다')
+    setUser(body.user)
+  }
+
+  /** 관리자 전용 로그인 — 이메일이 아니라 로그인 아이디로 인증(/api/auth/admin-login) */
+  async function adminLogin(username: string, password: string, remember = true) {
+    const res  = await fetch('/api/auth/admin-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, remember }),
+    })
+    const body = (await res.json()) as { ok?: boolean; user?: User; error?: string }
+    if (!res.ok || !body.user) throw new Error(body.error ?? '관리자 로그인에 실패했습니다')
     setUser(body.user)
   }
 
@@ -116,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateNickname, changePassword, deleteAccount }}>
+    <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout, updateNickname, changePassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

@@ -34,11 +34,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const userId = await getUserId(request, env)
   if (!userId) return json({ user: null }, 200)
 
-  const user = await env.DB.prepare(
-    'SELECT id, email, name, nickname, created_at FROM users WHERE id = ?'
-  ).bind(userId).first<{ id: string; email: string; name: string; nickname: string | null; created_at: string }>()
+  const row = await env.DB.prepare(
+    'SELECT id, email, name, nickname, created_at, is_admin FROM users WHERE id = ?'
+  ).bind(userId).first<{ id: string; email: string; name: string; nickname: string | null; created_at: string; is_admin: number }>()
 
-  return json({ user: user ?? null })
+  const user = row ? { ...row, is_admin: !!row.is_admin } : null
+  return json({ user })
 }
 
 export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {

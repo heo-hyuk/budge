@@ -1,6 +1,7 @@
-import { Banknote, Calculator, CalendarDays, ClipboardList, CreditCard, Home, Landmark, Menu, Moon, NotebookPen, Receipt, Repeat, RotateCw, Search, Sun, TriangleAlert, Truck, Users, X } from 'lucide-react'
+import { Banknote, Calculator, CalendarDays, ClipboardList, CreditCard, Home, Landmark, Megaphone, Menu, Moon, NotebookPen, Receipt, Repeat, RotateCw, Search, Sun, TriangleAlert, Truck, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import AuthPage from './components/AuthPage'
+import BoardView from './components/BoardView'
 import BudgetManager from './components/BudgetManager'
 import CardManager from './components/CardManager'
 import CardSettlementView from './components/CardSettlementView'
@@ -39,7 +40,7 @@ import { loadSettings } from './lib/settings'
 import type { BudgetStatus, Card, NewTransaction, RecurringTransaction, Transaction, UpdateTransaction } from './types'
 
 // 탭 정의
-type Tab = 'home' | 'overview' | 'unsettled' | 'incomeCalculator' | 'expenseCalculator' | 'taxCalculator' | 'delivery' | 'cardSettlement' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes'
+type Tab = 'home' | 'overview' | 'unsettled' | 'incomeCalculator' | 'expenseCalculator' | 'taxCalculator' | 'delivery' | 'cardSettlement' | 'cards' | 'recurring' | 'budget' | 'search' | 'notes' | 'board'
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'home',              label: '홈',         icon: Home },
@@ -54,6 +55,7 @@ const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'recurring',  label: '고정',     icon: Repeat },
   { id: 'budget',     label: '예산',     icon: ClipboardList },
   { id: 'notes',      label: '메모',     icon: NotebookPen },
+  { id: 'board',      label: '게시판',   icon: Megaphone },
   { id: 'search',     label: '검색',     icon: Search },
 ]
 
@@ -618,6 +620,11 @@ function App() {
         {/* 메모 탭 */}
         {activeTab === 'notes' && (
           <NotesView month={selectedMonth} />
+        )}
+
+        {/* 게시판 탭 — 공지사항 + 문의(Q&A). 전 사용자 공용, 관리자만 공지 작성/문의 답변 */}
+        {activeTab === 'board' && (
+          <BoardView isAdmin={!!user.is_admin} />
         )}
 
         {/* 검색 탭 */}
