@@ -233,6 +233,8 @@ function App() {
         date: tx.date,
         unsettled: tx.unsettled === 1,
         is_entertainment: tx.is_entertainment === 1,
+        // 카드 혜택이 아닌(= card_id 없는) 포인트/할인 사용액만 복원 — 카드 혜택은 재매칭 로직이 따로 처리
+        pointDiscount: !tx.card_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
       },
       nonce: Date.now(),
     })
@@ -256,6 +258,8 @@ function App() {
         date: tx.date,
         unsettled: tx.unsettled === 1,
         is_entertainment: tx.is_entertainment === 1,
+        // 카드 혜택이 아닌(= card_id 없는) 포인트/할인 사용액만 복원 — 카드 혜택은 재매칭 로직이 따로 처리
+        pointDiscount: !tx.card_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
       },
       nonce: Date.now(),
     })

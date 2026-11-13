@@ -23,6 +23,30 @@
 - 예상 변경 파일: `src/components/TransactionForm.tsx` 단일 파일
 - 범위 제외: `TransactionList.tsx` 인라인 수정 화면(필요 시 후속 요청으로)
 
+### 완료
+- `src/components/TransactionForm.tsx`
+  - "포인트/할인 사용" 체크박스 + 금액 입력 추가 — 지출 + 결제수단이
+    카드가 아닐 때만 노출(카드 혜택 자동매칭 블록과 같은 자리, 상호 배타적)
+  - `handleSubmit`: `benefitDiscount`(카드 혜택) + `pointDiscount`(포인트,
+    비카드 결제 전용, 입력 금액 초과 못 하게 clamp)를 합쳐 `discountAmount`로
+    계산 → `original_amount`/`discount_amount`에 그대로 반영, `benefit_id`는
+    빈 값 유지(카드 혜택 아님을 구분)
+  - 예산 미리보기 2곳(인라인 진행률, 저장 전 요약)과 저장 버튼 라벨
+    (`저장 (N원 결제)`)도 포인트 차감을 반영하도록 동일하게 수정
+  - 결제수단을 카드로 바꾸면 포인트 입력 자동 초기화, 저장 후에도 초기화
+- `TransactionPrefill`에 `pointDiscount?: number` 추가, `applyPrefill`에서
+  체크박스/금액 복원 — `src/App.tsx`의 복제(`handleDuplicate`)/수정
+  (`handleEditRequest`) 양쪽에서 `card_id`가 없고 `discount_amount > 0`인
+  거래는 포인트 사용으로 간주해 전달 (카드 혜택은 기존 재매칭 로직이 처리)
+- DB/백엔드 변경 없음 — 기존 범용 필드만 재사용
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과
+- 로컬 `wrangler pages dev`(포트 8799)로 서버 기동까지 확인. 이번 세션에는
+  브라우저 자동화 도구가 연결돼 있지 않아 실제 클릭 테스트는 진행 못 함 —
+  사용자가 직접 "현금 결제 + 포인트 사용" 체크 → 금액 입력 → 저장 흐름을
+  한 번 확인해보는 걸 권장
+- 코드 변경만 있어 원격 배포는 코드 배포(`npm run deploy`)로 충분, D1
+  마이그레이션 불필요
+
 ## 2026-08-31 (144차) — 공지/문의(Q&A) 게시판 + 관리자 계정
 
 사용자 요청: "공지랑 큐앤에이 게시판도 필요할 거 같거든 이거 하나의 폼으로

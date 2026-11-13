@@ -23,6 +23,7 @@ export interface TransactionPrefill {
   date: string  // 복제/템플릿 적용 시엔 무시되고 오늘로 재설정되지만, 수정 모드에선 원래 날짜를 유지하는 데 사용
   unsettled?: boolean  // 비정산 거래 여부(가족 비용 확인용 — 정산/예산/잔액/내보내기에서 제외)
   is_entertainment?: boolean  // 거래처 접대성 지출 여부(부가세 매입세액공제 제외 대상)
+  pointDiscount?: number  // 카드 혜택이 아닌 포인트/할인 사용액(현금 등 비카드 결제, "포인트 사용" 체크박스 복원용)
 }
 
 interface Props {
@@ -77,6 +78,12 @@ function TransactionForm({
   const [selectedMatch, setSelectedMatch] = useState<BenefitMatch | null>(null)
   const [matchLoading, setMatchLoading]   = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 포인트/할인 사용 상태 — 카드 혜택과 별개로, 카드가 아닌 결제수단(현금 등)에서
+  // 포인트를 써서 실결제액이 줄어드는 경우를 수동으로 기록 (original_amount/
+  // discount_amount 필드를 카드 혜택과 공유해서 재사용, benefit_id는 비워둠)
+  const [usePoints, setUsePoints]     = useState(false)
+  const [pointAmount, setPointAmount] = useState('')
 
   // 최근 구매처 자동완성 상태
   const [recentMerchants, setRecentMerchants] = useState<RecentMerchant[]>([])
@@ -150,6 +157,8 @@ function TransactionForm({
     setPaymentMethods(getPaymentMethods(data.type))
     setUnsettled(data.unsettled ?? false)
     setIsEntertainment(data.is_entertainment ?? false)
+    setUsePoints((data.pointDiscount ?? 0) > 0)
+    setPointAmount(data.pointDiscount ? formatNumberInput(String(data.pointDiscount)) : '')
     setMemo(data.memo)
     setDate(todayStr())
     setAddingCategory(false)
@@ -423,6 +432,12 @@ function TransactionForm({
     const cardId = cards.some((c) => c.id === paymentMethod) ? paymentMethod : ''
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
+    // 카드가 선택되면 포인트 사용(비카드 전용) 입력은 의미가 없으므로 초기화
+    if (cardId) {
+      setUsePoints(false)
+      setPointAmount('')
+    }
+
     // 카드 미선택이거나 금액 없으면 초기화
     if (!cardId || numericAmount <= 0) {
       setMatches([])
@@ -475,6 +490,8 @@ function TransactionForm({
     setIsEntertainment(false)
     setMatches([])
     setSelectedMatch(null)
+    setUsePoints(false)
+    setPointAmount('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -489,8 +506,11 @@ function TransactionForm({
     // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
     // (수정 모드도 생성과 동일하게 계산 — amount 입력값은 항상 "혜택 적용 전" 금액을 의미)
     const isCashback = selectedMatch?.benefit_type === 'cashback'
-    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
+    const benefitDiscount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
     const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
+    // 포인트 사용(카드 혜택과 별개, 비카드 결제 전용) — 금액을 넘길 수 없게 clamp
+    const pointDiscount = !selectedCard && usePoints ? Math.min(parseAmountInput(pointAmount) || 0, numericAmount) : 0
+    const discountAmount = benefitDiscount + pointDiscount
     const finalAmount = numericAmount - discountAmount
 
     // 수정 모드
@@ -897,6 +917,49 @@ function TransactionForm({
           </div>
         )}
 
+        {/* 포인트/할인 사용 — 카드 혜택 자동매칭과 자리를 공유하되 상호 배타적(카드가 아닐 때만 노출) */}
+        {type === 'expense' && !cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
+          <div className="mt-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={usePoints}
+                onChange={(e) => {
+                  setUsePoints(e.target.checked)
+                  if (!e.target.checked) setPointAmount('')
+                }}
+                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-coral-400 focus:ring-coral-400"
+              />
+              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">포인트/할인 사용</span>
+            </label>
+            {usePoints && (
+              <div className="mt-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    placeholder="0"
+                    value={pointAmount}
+                    onChange={(e) => setPointAmount(formatNumberInput(e.target.value))}
+                    className="min-h-10 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 pl-3 pr-9 py-2 text-right text-base font-semibold text-neutral-900 dark:text-neutral-100 transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">원</span>
+                </div>
+                {(() => {
+                  const pointAmountNum = Math.min(parseAmountInput(pointAmount) || 0, numericAmount)
+                  return pointAmountNum > 0 && (
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      {formatWon(numericAmount)} → {formatWon(numericAmount - pointAmountNum)}{' '}
+                      <span className="font-normal">({formatWon(pointAmountNum)} 차감)</span>
+                    </p>
+                  )
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서도 동일하게 재계산) */}
         {type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
           <div className="mt-4">
@@ -1105,9 +1168,12 @@ function TransactionForm({
           )
           if (!matched) return null
 
-          // 입력 중인 금액까지 더한 예상 지출 — cashback은 결제액을 안 깎으므로 discount일 때만 차감
+          // 입력 중인 금액까지 더한 예상 지출 — cashback은 결제액을 안 깎으므로 discount일 때만 차감,
+          // 포인트 사용(비카드 결제)도 동일하게 실결제액에서 차감
           const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
-          const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+          const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount'
+            ? selectedMatch.estimated_discount
+            : usePoints ? Math.min(parseAmountInput(pointAmount) || 0, inputAmount) : 0
           const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
           const projectedSpent = matched.spent + addingAmount
           const projectedPct = matched.budget.monthly_limit > 0
@@ -1252,7 +1318,9 @@ function TransactionForm({
         )
         if (!matched) return null
 
-        const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+        const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount'
+          ? selectedMatch.estimated_discount
+          : usePoints ? Math.min(parseAmountInput(pointAmount) || 0, numericAmount) : 0
         const addingAmount = numericAmount - discountAmt
         if (addingAmount <= 0) return null
 
@@ -1282,6 +1350,8 @@ function TransactionForm({
             ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
             : selectedMatch && selectedMatch.benefit_type === 'cashback'
             ? `저장 (적립 예정 ${formatWon(selectedMatch.estimated_discount)})`
+            : usePoints && Math.min(parseAmountInput(pointAmount) || 0, numericAmount) > 0
+            ? `저장 (${formatWon(numericAmount - Math.min(parseAmountInput(pointAmount) || 0, numericAmount))} 결제)`
             : '저장하기'
         )}
       </button>
