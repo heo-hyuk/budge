@@ -82,9 +82,10 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
           (cardResults as { card: Card; start: string; end: string; txs: Transaction[] }[]).map(
             ({ card, start, end, txs }) => {
               const billingDate = card.is_debit ? '' : getCardBillingPeriod(month, card).billingDate
+              // 포인트 사용액은 카드에 청구되지 않으므로 실제 청구액 집계에서 제외
               const amount = txs
                 .filter((t) => t.type === 'expense')
-                .reduce((s, t) => s + t.amount, 0)
+                .reduce((s, t) => s + t.amount - t.point_discount, 0)
               return { card, start, end, billingDate, amount, transactions: txs }
             }
           )
@@ -98,9 +99,10 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
         setCardBills(
           cards.map((card) => {
             const cardTxs = txs.filter((t) => t.card_id === card.id)
+            // 포인트 사용액은 카드에 청구되지 않으므로 실제 청구액 집계에서 제외
             const amount = cardTxs
               .filter((t) => t.type === 'expense')
-              .reduce((s, t) => s + t.amount, 0)
+              .reduce((s, t) => s + t.amount - t.point_discount, 0)
             return { card, start: '', end: '', billingDate: '', amount, transactions: cardTxs }
           })
         )
@@ -115,15 +117,16 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
   const filteredCardBills = categories.length > 0
     ? cardBills.map((bill) => {
         const transactions = bill.transactions.filter((t) => categories.includes(t.category))
-        const amount = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+        const amount = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount - t.point_discount, 0)
         return { ...bill, transactions, amount }
       })
     : cardBills
 
-  // 현금 수입/지출 (카드 거래 제외)
+  // 현금 수입/지출 (카드 거래 제외) — 현금 지출도 포인트 사용액만큼은 실제로 현금이
+  // 나간 게 아니므로 집계에서 제외
   const cashIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  && !t.card_id).reduce((s, t) => s + t.amount, 0)
   const cardIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  &&  t.card_id).reduce((s, t) => s + t.amount, 0)
-  const cashExpense = filteredMonthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount, 0)
+  const cashExpense = filteredMonthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount - t.point_discount, 0)
   const totalIncome = cashIncome + cardIncome
 
   // 이번달 실제 카드 청구 합계

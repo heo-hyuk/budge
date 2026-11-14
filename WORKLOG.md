@@ -30,6 +30,33 @@
 - DB/백엔드 스키마 변경 없음(point_discount 컬럼은 이미 존재)
 - 예상 변경 파일: `functions/lib/settlement.ts`, `src/components/MonthlyReport.tsx`
 
+### 완료
+- `functions/lib/settlement.ts`
+  - `SettlementTransaction`에 `point_discount: number` 추가, `settlementAmount(t)`
+    헬퍼 신규(지출 집계 전용: `t.amount - (t.point_discount ?? 0)`)
+  - `calculateDailySettlement`: `prev_balance` 쿼리에 `point_discount` 포함 +
+    지출 부호 계산에 반영, `expense_total`을 `settlementAmount` 기준으로 변경
+    (반환되는 `incomes`/`expenses` 배열의 개별 거래는 그대로 원래 `amount`를
+    가짐 — 목록엔 실제 결제 내역이 보여야 하므로 총액만 조정)
+  - 주간(`calculateWeeklySettlement`)/월간(`applyRows`)/연간
+    (`calculateAnnualSettlement`) 전부 지출 `addAmount` 호출을
+    `settlementAmount(tx)`로 변경, 수입 쪽은 변경 없음(포인트 항상 0)
+  - `src/lib/exportExcel.ts`의 정산표 시트는 이 결과를 그대로 받아쓰므로
+    추가 수정 불필요
+- `src/components/MonthlyReport.tsx`: 카드별 청구 금액 계산 2곳(basis=billing/
+  transaction) + 분류 필터 재계산 1곳 + `cashExpense` 집계, 전부 `t.amount -
+  t.point_discount`로 변경
+- `functions/lib/budget.ts`는 148차 결정대로 변경하지 않음(예산은 포인트 포함이
+  맞는 계산)
+- `tsc -b --noEmit`(프론트) / 별도 `tsc --noEmit`(functions/lib/settlement.ts,
+  functions/api/transactions/*, functions/api/export — `functions/`는 메인
+  tsconfig에 포함 안 돼 있어 수동으로 확인) / `oxlint` / `npm run build` 통과
+- 로컬 D1 + `wrangler pages dev`로 실제 API 검증: 현금 거래(amount 8,000,
+  point_discount 2,000) + 카드 거래(amount 8,500, point_discount 1,000)로
+  `/api/settlement/daily`, `/api/settlement/monthly` 조회 → `expense_total`/
+  `month_total`이 각각 6,000+7,500=13,500원으로 정확히 집계됨을 확인(포인트
+  합계 3,000원 제외)
+
 ## 2026-11-14 (149차) — 카드 혜택 할인 계산에서 포인트 사용분 제외
 
 사용자 요청: 148차 완료 후 스크린샷(실제 간편결제 포인트 사용 화면) 첨부하며

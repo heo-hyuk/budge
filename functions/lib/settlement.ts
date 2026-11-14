@@ -20,7 +20,14 @@ export interface SettlementTransaction {
   payment_method: string
   card_id: string
   benefit_id: string
+  point_discount: number
   created_at: string
+}
+
+// 포인트 사용액은 카드/현금에 실제로 청구·지출되지 않으므로 정산 집계에서는 제외
+// (지출의 거래금액 amount엔 148차 결정대로 포인트가 반영 안 돼 있으므로 그대로 빼면 됨)
+function settlementAmount(t: SettlementTransaction): number {
+  return t.amount - (t.point_discount ?? 0)
 }
 
 export interface DailySettlementResult {
@@ -46,12 +53,12 @@ export async function calculateDailySettlement(
   date: string,  // 'YYYY-MM-DD'
 ): Promise<DailySettlementResult> {
   const { results: priorResults } = await db
-    .prepare(`SELECT type, amount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL}`)
+    .prepare(`SELECT type, amount, point_discount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL}`)
     .bind(userId, date, userId)
-    .all<{ type: 'income' | 'expense'; amount: number }>()
+    .all<{ type: 'income' | 'expense'; amount: number; point_discount: number }>()
 
   const prev_balance = (priorResults ?? [])
-    .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
+    .reduce((s, t) => s + (t.type === 'income' ? t.amount : -(t.amount - (t.point_discount ?? 0))), 0)
 
   const { results: todayResults } = await db
     .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date = ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY created_at ASC`)
@@ -62,7 +69,7 @@ export async function calculateDailySettlement(
   const incomes  = todayRows.filter((t) => t.type === 'income')
   const expenses = todayRows.filter((t) => t.type === 'expense')
   const income_total  = incomes.reduce((s, t) => s + t.amount, 0)
-  const expense_total = expenses.reduce((s, t) => s + t.amount, 0)
+  const expense_total = expenses.reduce((s, t) => s + settlementAmount(t), 0)
   const today_balance = prev_balance + income_total - expense_total
 
   return { date, prev_balance, incomes, income_total, expenses, expense_total, today_balance }
@@ -137,7 +144,7 @@ export async function calculateWeeklySettlement(
   for (const tx of rows) {
     // 누계는 monthStart~weekEnd 전체(조회 범위 그대로)에 누적
     if (tx.type === 'income') addAmount(monthCumulative.income, tx.category, tx.amount)
-    else addAmount(monthCumulative.expense, tx.category, tx.amount)
+    else addAmount(monthCumulative.expense, tx.category, settlementAmount(tx))
 
     const dayIdx = dayIndexByDate.get(tx.date)
     if (dayIdx === undefined) continue  // 이번 주 이전의 그 달 거래 — 누계에만 반영
@@ -146,8 +153,8 @@ export async function calculateWeeklySettlement(
       addAmount(bucket.income, tx.category, tx.amount)
       addAmount(weekTotal.income, tx.category, tx.amount)
     } else {
-      addAmount(bucket.expense, tx.category, tx.amount)
-      addAmount(weekTotal.expense, tx.category, tx.amount)
+      addAmount(bucket.expense, tx.category, settlementAmount(tx))
+      addAmount(weekTotal.expense, tx.category, settlementAmount(tx))
     }
   }
 
@@ -207,8 +214,8 @@ export async function calculateMonthlySettlement(
         addAmount(bucket.income, tx.category, tx.amount)
         addAmount(monthTotal.income, tx.category, tx.amount)
       } else {
-        addAmount(bucket.expense, tx.category, tx.amount)
-        addAmount(monthTotal.expense, tx.category, tx.amount)
+        addAmount(bucket.expense, tx.category, settlementAmount(tx))
+        addAmount(monthTotal.expense, tx.category, settlementAmount(tx))
       }
     }
   }
@@ -299,8 +306,8 @@ export async function calculateAnnualSettlement(
       addAmount(bucket.income, tx.category, tx.amount)
       addAmount(yearTotal.income, tx.category, tx.amount)
     } else {
-      addAmount(bucket.expense, tx.category, tx.amount)
-      addAmount(yearTotal.expense, tx.category, tx.amount)
+      addAmount(bucket.expense, tx.category, settlementAmount(tx))
+      addAmount(yearTotal.expense, tx.category, settlementAmount(tx))
     }
   }
 
