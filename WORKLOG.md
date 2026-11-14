@@ -1,5 +1,35 @@
 # WORKLOG
 
+## 2026-11-14 (150차) — 정산 탭 전체에서 포인트 사용액 제외
+
+사용자 요청: "정산금 조회에서는 포인트사용분은 빠지고 카드결제 금액만
+남아야 하는데 어떻게 하지?" — 148차에서 "거래금액(amount)엔 포인트를
+반영하지 않는다"고 정했지만, 정산 탭(일/주/월/연 지출 총액 + 카드별 청구)은
+"실제로 카드/현금에서 나간 돈"을 보여줘야 하는 화면이라 포인트 사용액만큼은
+빼야 한다는 요청. 범위 확인(AskUserQuestion): 카드별 청구뿐 아니라 정산 탭
+전체(일/주/월/연 지출 총액 포함)에 적용, 예산(budget.ts)은 148차 결정대로
+그대로 둠(포인트 포함이 의도된 동작).
+
+### 조사 결과 (fork 에이전트)
+- `functions/lib/settlement.ts`가 일/주/월/연 정산 전부를 계산(`SettlementTransaction`
+  인터페이스에 `point_discount` 없음 → `addAmount` 호출부들이 전부 `tx.amount`를
+  그대로 씀), `src/lib/exportExcel.ts`의 정산표 시트는 이 결과를 그대로 받아쓰므로
+  여기만 고치면 엑셀도 자동 반영됨
+- `src/components/MonthlyReport.tsx`(카드별 청구)는 서버를 거치지 않고 클라이언트에서
+  직접 `t.amount`를 reduce — 별도로 고쳐야 함
+- `functions/lib/budget.ts`는 수정 대상 아님(비교 확인만)
+
+### 작업 계획
+- `functions/lib/settlement.ts`: `SettlementTransaction`에 `point_discount: number`
+  추가, `calculateDailySettlement`의 SELECT 2곳에 `point_discount` 포함 + prev_balance/
+  income_total/expense_total 계산을 `t.amount - t.point_discount` 기준으로, `addAmount`
+  호출부(주간/월간/연간 전부)도 지출 집계 시 포인트 차감
+- `src/components/MonthlyReport.tsx`: 카드별 청구 금액 계산 2곳(basis=billing/
+  transaction) + 분류 필터 재계산 1곳 + `cashExpense` 집계, 전부 `t.amount -
+  t.point_discount`로 변경
+- DB/백엔드 스키마 변경 없음(point_discount 컬럼은 이미 존재)
+- 예상 변경 파일: `functions/lib/settlement.ts`, `src/components/MonthlyReport.tsx`
+
 ## 2026-11-14 (149차) — 카드 혜택 할인 계산에서 포인트 사용분 제외
 
 사용자 요청: 148차 완료 후 스크린샷(실제 간편결제 포인트 사용 화면) 첨부하며
