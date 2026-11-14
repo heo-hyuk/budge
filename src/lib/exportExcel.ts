@@ -36,17 +36,18 @@ function dateRange(txs: ExportTransaction[]): { min: string; max: string } {
 // ── 시트 1: 거래내역 ────────────────────────────────────
 
 function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
-  // 헤더 — 적립예정액은 정산 계산에 영향 없는 정보성 컬럼(cashback 혜택 전용)
+  // 헤더 — 적립예정액/포인트사용은 정산 계산(실결제액)엔 영향 없는 정보성 컬럼
+  // (적립은 cashback 혜택, 포인트사용은 할인이 아니라 내 포인트로 결제했다는 표시)
   const header = [
     '날짜', '구분', '분류', '구매처', '결제방법', '카드명',
-    '원금액', '할인액', '실결제액', '적립예정액', '메모',
+    '원금액', '할인액', '실결제액', '적립예정액', '포인트사용', '메모',
   ]
 
   const rows = txs.map((t) => {
     const originalAmt = t.original_amount > 0 ? t.original_amount : t.amount
-    // 할인액 = 카드 혜택 할인 + 포인트 사용(두 컬럼을 합쳐야 실결제액과 맞음)
-    const discountAmt = (t.discount_amount ?? 0) + (t.point_discount ?? 0)
+    const discountAmt = t.discount_amount ?? 0
     const cashbackAmt = t.cashback_amount ?? 0
+    const pointAmt = t.point_discount ?? 0
 
     return [
       t.date,                                         // 날짜 (YYYY-MM-DD)
@@ -56,9 +57,10 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
       t.card_name ? t.card_name : '현금',              // 결제방법
       t.card_name ?? '',                              // 카드명
       originalAmt,                                    // 원금액 (숫자)
-      discountAmt,                                    // 할인액 (숫자)
+      discountAmt,                                    // 할인액 (숫자, 카드 혜택만)
       t.amount,                                       // 실결제액 (숫자)
       cashbackAmt,                                    // 적립예정액 (숫자, 정보용)
+      pointAmt,                                        // 포인트사용 (숫자, 정보용)
       t.memo ?? '',                                   // 메모
     ]
   })
@@ -77,14 +79,15 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
     { wch: 10 },  // 할인액
     { wch: 12 },  // 실결제액
     { wch: 12 },  // 적립예정액
+    { wch: 12 },  // 포인트사용
     { wch: 24 },  // 메모
   ]
 
-  // 금액 컬럼(G, H, I, J)을 숫자 포맷으로 지정
+  // 금액 컬럼(G, H, I, J, K)을 숫자 포맷으로 지정
   const numFmt = '#,##0'
   const rowCount = rows.length
   for (let r = 1; r <= rowCount; r++) {
-    for (const col of ['G', 'H', 'I', 'J']) {
+    for (const col of ['G', 'H', 'I', 'J', 'K']) {
       const cellRef = `${col}${r + 1}`
       if (ws[cellRef]) ws[cellRef].t = 'n'
       if (ws[cellRef] && ws[cellRef].v !== undefined) {

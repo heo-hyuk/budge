@@ -418,12 +418,19 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                             적립 {formatWon(tx.cashback_amount)}
                           </span>
                         )}
+                        {/* 포인트 사용 뱃지 — 할인이 아니라 결제수단 정보라 금액엔 영향 없이 표시만 */}
+                        {tx.point_discount > 0 && (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                            포인트 {formatWon(tx.point_discount)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <div className="flex flex-col items-end">
-                        {/* 할인 혜택이나 포인트 사용이 적용된 거래는 할인 전 금액도 함께 보여줌(취소선) */}
-                        {tx.discount_amount + tx.point_discount > 0 && (
+                        {/* 카드 혜택 할인이 적용된 거래는 할인 전 금액도 함께 보여줌(취소선) — 포인트는
+                            할인이 아니라 금액에 영향이 없으므로 여기 포함하지 않음 */}
+                        {tx.discount_amount > 0 && (
                           <span className="whitespace-nowrap text-xs text-neutral-400 dark:text-neutral-500 line-through">
                             {formatWon(tx.original_amount)}
                           </span>

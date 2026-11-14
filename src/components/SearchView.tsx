@@ -499,10 +499,16 @@ function SearchView({ cards }: Props) {
                               {tx.memo && (
                                 <span className="text-xs text-neutral-400 dark:text-neutral-500">{renderMemoWithHighlights(tx.memo)}</span>
                               )}
-                              {/* 할인 뱃지 — 카드 혜택 할인 + 포인트 사용 합산 */}
-                              {(tx.discount_amount ?? 0) + (tx.point_discount ?? 0) > 0 && (
+                              {/* 할인 뱃지 — 카드 혜택 할인(금액에 실제로 반영됨) */}
+                              {(tx.discount_amount ?? 0) > 0 && (
                                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
-                                  -{formatWon((tx.discount_amount ?? 0) + (tx.point_discount ?? 0))}
+                                  -{formatWon(tx.discount_amount)}
+                                </span>
+                              )}
+                              {/* 포인트 사용 뱃지 — 할인이 아니라 결제수단 정보라 금액엔 영향 없이 표시만 */}
+                              {(tx.point_discount ?? 0) > 0 && (
+                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                                  포인트 {formatWon(tx.point_discount)}
                                 </span>
                               )}
                             </div>

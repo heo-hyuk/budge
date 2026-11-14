@@ -39,6 +39,34 @@
 - 예상 변경 파일: `TransactionForm.tsx`, `TransactionList.tsx`,
   `SearchView.tsx`, `exportExcel.ts`
 
+### 완료
+- `src/components/TransactionForm.tsx`
+  - `finalAmount = numericAmount - benefitDiscount`(포인트 제외)로 변경,
+    `pointDiscount`는 `finalAmount`를 넘지 않게 clamp하되 더 이상 차감하지
+    않음
+  - `original_amount`/`discount_amount` 설정 조건을 `benefitDiscount > 0`
+    기준으로 한정(포인트만 썼을 땐 둘 다 비움 — amount와 같은 값이라 의미 없음)
+  - 체크박스 라벨 "포인트/할인 사용" → "포인트 사용"으로 변경, 미리보기
+    문구를 "차감"에서 "거래금액 N원은 그대로 유지, 그중 포인트 N원 사용"으로
+  - 예산 인라인 미리보기/저장 전 요약 2곳 모두 포인트 항을 제거하고 카드
+    혜택(discount)만으로 재계산
+  - 저장 버튼 라벨: 혜택 할인 있으면 "저장 (N원 결제)", cashback이면
+    "저장 (적립 예정 N원)", 포인트만 있으면 "저장하기 (포인트 N원 포함)"
+- `src/components/TransactionList.tsx`: 취소선 조건을 `discount_amount >
+  0`으로 되돌림, cashback "적립" 뱃지 옆에 "포인트 N원" 뱃지 추가
+- `src/components/SearchView.tsx`: 할인 뱃지를 `discount_amount`만으로
+  되돌리고 "포인트 N원" 뱃지 별도 추가
+- `src/lib/exportExcel.ts`: "할인액" 컬럼을 `discount_amount`만으로 되돌리고
+  "포인트사용" 컬럼 신규 추가(K열), 금액 포맷 컬럼 목록에 K 추가
+- DB/백엔드 변경 없음(147차에서 추가한 `point_discount` 컬럼 그대로 재사용,
+  의미만 "할인"에서 "정보성 사용액"으로 재정의)
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과. 브라우저 자동화
+  도구가 없어 클릭 테스트는 못 했고, 코드 리뷰로 `handleSubmit`의 최종
+  로직(finalAmount가 포인트와 무관하게 계산되는지)을 재확인함
+- 코드 변경만 있어 push 시 GitHub Actions가 자동 배포(DB 마이그레이션
+  불필요 — 147차에서 이미 적용됨, 원격 D1 마이그레이션이 아직 안 됐다면
+  그쪽을 먼저 적용해야 함)
+
 ## 2026-11-14 (147차) — 포인트 사용액을 별도 컬럼(point_discount)으로 분리
 
 사용자 요청: 146차 완료 보고에서 "혜택+포인트를 같이 썼던 거래는 수정 시
