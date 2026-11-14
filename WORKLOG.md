@@ -1,5 +1,34 @@
 # WORKLOG
 
+## 2026-11-14 (153차) — 홈 화면 인라인 수정에도 포인트 사용 기능 이식
+
+사용자 요청: "지출입력 수정하려고 하니까 카드혜택 부분에 카드결제금액에서만
+할인률이 적용되어야 하는데 전체금액이 나오네?" — 확인해보니 사용자가 보고
+있던 화면은 TransactionForm.tsx(메인 입력 폼)이 아니라 홈 화면에서 거래를
+탭해서 나오는 `TransactionList.tsx`의 자체 인라인 수정 폼이었음. 146~152차의
+포인트 기능(체크박스 UI, 혜택 계산 시 포인트 제외)이 전부 TransactionForm.tsx
+에만 들어가 있고 이 인라인 폼은 복제 대상에서 빠져 있었음(146차 때 의도적으로
+범위 제외, 130→131차와 동일하게 이번에 요청받아 이식).
+
+### 작업 계획
+- `src/components/TransactionList.tsx`
+  - `EditState`에 `usePoints: boolean`, `pointAmount: string` 추가
+  - `startEdit`에서 `tx.point_discount`로 복원(`usePoints: tx.point_discount >
+    0`, `pointAmount: ...`)
+  - 혜택 매칭 useEffect: `cardChargeAmount = numericAmount - pointAmountNow`를
+    계산해 `matchBenefit`의 `amount`로 전달(TransactionForm 149차와 동일),
+    의존성 배열에 `usePoints`/`pointAmount` 추가
+  - "포인트 사용" 체크박스+금액 입력 UI 추가(지출 + 금액 있을 때, 카드/비카드
+    모두) — TransactionForm과 동일한 자리/패턴으로 복제
+  - 혜택 매칭 박스(복수/단일)의 "before→after" 표시도 `cardChargeAmount`
+    기준으로 변경
+  - `handleSave`: `benefitDiscount`(카드 혜택)만 `discount_amount`에,
+    `pointDiscount`는 `point_discount`에 각각 분리 저장(148~149차 모델과
+    동일), `finalAmount = numericAmount - benefitDiscount`(포인트는 amount에서
+    차감 안 함)
+- DB/백엔드 변경 없음 — 기존 필드/API 그대로 재사용
+- 예상 변경 파일: `src/components/TransactionList.tsx` 단일 파일
+
 ## 2026-11-14 (152차) — 정산 포인트 제외 모델 재수정 (150~151차 일부 되돌림)
 
 사용자 피드백: 150~151차에서 "정산 탭 전체에서 포인트 제외"로 처리했는데,
