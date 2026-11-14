@@ -1,5 +1,50 @@
 # WORKLOG
 
+## 2026-11-14 (149차) — 카드 혜택 할인 계산에서 포인트 사용분 제외
+
+사용자 요청: 148차 완료 후 스크린샷(실제 간편결제 포인트 사용 화면) 첨부하며
+"포인트는 빼고 할인이 계산되어야 하는거잖아 이런건 어떻게 처리할거야?" —
+카드 혜택(%) 할인은 실제로 카드에 청구되는 금액에만 적용되는데, 포인트로
+낸 부분까지 포함한 전체 금액을 기준으로 할인액을 계산하고 있어서 할인액이
+실제보다 부풀려지는 문제.
+
+### 원인
+`TransactionForm.tsx`의 혜택 매칭 `useEffect`가 `matchBenefit` API를 호출할
+때 `amount: numericAmount`(포인트 포함 전체 금액)를 그대로 넘기고 있었음 —
+포인트로 결제되는 부분은 카드에 청구되지 않으므로 할인 계산 기준에서
+빠져야 하는데 반영이 안 됨. 예: 25,350원 중 포인트 12,695원을 쓰면 실제
+카드 청구액은 12,655원인데, 할인율을 25,350원 기준으로 계산해서 혜택
+할인액이 실제보다 2배 넘게 크게 나옴.
+
+### 작업 계획
+- `src/components/TransactionForm.tsx`
+  - 혜택 매칭 useEffect: `cardChargeAmount = numericAmount - pointAmountNow`
+    (포인트 사용액만큼 뺀 실제 카드 청구액)를 계산해 `matchBenefit`의
+    `amount`로 전달. 의존성 배열에 `usePoints`/`pointAmount` 추가
+  - 혜택 매칭 섹션(복수 매칭 라디오 목록 + 단일 매칭 자동 제안 박스)의
+    "before→after" 표시도 `numericAmount` 대신 `cardChargeAmount` 기준으로
+    변경 — 화면에 보이는 할인 계산 기준과 실제 API 호출 기준을 일치시킴
+  - `handleSubmit`의 최종 `benefitDiscount`/`finalAmount` 계산식 자체는
+    변경 없음(이미 `selectedMatch.estimated_discount`를 그대로 쓰므로,
+    기준 금액만 바로잡으면 자동으로 정확해짐)
+- DB/백엔드 변경 없음 — 프론트에서 API에 넘기는 금액 기준만 수정
+- 예상 변경 파일: `src/components/TransactionForm.tsx` 단일 파일
+
+### 완료
+- 혜택 매칭 useEffect에서 `cardChargeAmount = numericAmount - pointAmountNow`
+  계산 후 `matchBenefit({ amount: cardChargeAmount, ... })`로 변경,
+  의존성 배열에 `usePoints`, `pointAmount` 추가해 포인트 입력이 바뀔 때도
+  혜택이 재계산되게 함
+- 복수 매칭 라디오 목록 / 단일 매칭 자동 제안 박스의 "before → after (할인)"
+  표시를 모두 `cardChargeAmount` 기준으로 변경(기존엔 `numericAmount` 기준이라
+  실제 계산 기준과 화면 표시가 불일치했음)
+- 포인트 체크박스 블록의 "거래금액 N원은 그대로 유지, 포인트 N원 사용"
+  미리보기는 이미 `selectedMatch.estimated_discount`를 그대로 참조하므로
+  별도 수정 없이 자동으로 올바른 값을 반영
+- `TransactionList.tsx`의 인라인 수정 폼은 포인트 UI 자체가 없어(146차부터
+  의도적으로 범위 제외) 이 버그의 영향을 받지 않음 — 수정 불필요
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과
+
 ## 2026-11-14 (148차) — 포인트 사용을 할인이 아닌 정보성 표시로 변경
 
 사용자 요청: 147차(point_discount 컬럼 분리) 완료 후 "전체거래금액에는

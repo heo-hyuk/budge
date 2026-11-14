@@ -432,9 +432,14 @@ function TransactionForm({
     // paymentMethod가 카드 ID일 때만 혜택 매칭 대상 — '현금'/'계좌이체' 같은 비카드 값은 제외
     const cardId = cards.some((c) => c.id === paymentMethod) ? paymentMethod : ''
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
+    // 포인트로 낸 금액은 카드에 청구되지 않으므로, 카드 혜택(%) 계산은 포인트를 뺀
+    // 실제 카드 청구액 기준으로 해야 함 — 안 그러면 포인트로 낸 부분까지 할인 대상으로
+    // 잘못 계산됨
+    const pointAmountNow = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount)) : 0
+    const cardChargeAmount = numericAmount - pointAmountNow
 
-    // 카드 미선택이거나 금액 없으면 초기화
-    if (!cardId || numericAmount <= 0) {
+    // 카드 미선택이거나 카드 청구액이 없으면 초기화
+    if (!cardId || cardChargeAmount <= 0) {
       setMatches([])
       setSelectedMatch(null)
       return
@@ -449,7 +454,7 @@ function TransactionForm({
           card_id: cardId,
           merchant: merchant.trim(),
           category,
-          amount: numericAmount,
+          amount: cardChargeAmount,
           month,
         })
         setMatches(result)
@@ -469,7 +474,7 @@ function TransactionForm({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [paymentMethod, merchant, category, amount, date, type, editingId, cards])
+  }, [paymentMethod, merchant, category, amount, date, type, editingId, cards, usePoints, pointAmount])
 
   // 혜택 적용 취소
   function dismissBenefit() {
@@ -961,7 +966,13 @@ function TransactionForm({
         })()}
 
         {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서도 동일하게 재계산) */}
-        {type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
+        {type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (() => {
+          // 포인트로 낸 금액은 카드 청구액이 아니므로, 혜택 할인의 "before" 표시도
+          // 전체 금액이 아니라 실제 카드 청구액 기준으로 보여줘야 함(useEffect의
+          // matchBenefit 호출 기준과 동일)
+          const pointAmountNow = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount)) : 0
+          const cardChargeAmount = numericAmount - pointAmountNow
+          return (
           <div className="mt-4">
             {matchLoading && (
               <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>
@@ -990,7 +1001,7 @@ function TransactionForm({
                       <p className="text-xs text-amber-700 dark:text-amber-400">
                         {m.benefit_type === 'cashback'
                           ? `${formatWon(m.estimated_discount)} 적립 예정`
-                          : `${formatWon(numericAmount)} → ${formatWon(numericAmount - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
+                          : `${formatWon(cardChargeAmount)} → ${formatWon(cardChargeAmount - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
                         {m.monthly_remaining > 0 && (
                           <span className="ml-1 text-neutral-500 dark:text-neutral-400">
                             (이번 달 한도 {formatWon(m.monthly_remaining)} 남음)
@@ -1026,8 +1037,8 @@ function TransactionForm({
                       </p>
                     ) : (
                       <p className="text-sm font-bold text-green-700 dark:text-green-400 mt-0.5">
-                        {formatWon(numericAmount)} →{' '}
-                        {formatWon(numericAmount - selectedMatch.estimated_discount)}{' '}
+                        {formatWon(cardChargeAmount)} →{' '}
+                        {formatWon(cardChargeAmount - selectedMatch.estimated_discount)}{' '}
                         <span className="font-normal">({formatWon(selectedMatch.estimated_discount)} 할인)</span>
                       </p>
                     )}
@@ -1050,7 +1061,8 @@ function TransactionForm({
 
             {/* 혜택 없음 — 조용히 표시 안 함 */}
           </div>
-        )}
+          )
+        })()}
       </UiCard>
 
       {/* 분류/날짜/메모 카드 */}
