@@ -122,18 +122,24 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
       })
     : cardBills
 
-  // 현금 수입/지출 (카드 거래 제외) — 현금 지출도 포인트 사용액만큼은 실제로 현금이
-  // 나간 게 아니므로 집계에서 제외
+  // 현금 수입/지출 (카드 거래 제외) — 현금은 날짜 이동이 없으므로 포인트도
+  // 현금처럼 그대로 포함(amount 그대로)
   const cashIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  && !t.card_id).reduce((s, t) => s + t.amount, 0)
   const cardIncome  = filteredMonthlyTx.filter((t) => t.type === 'income'  &&  t.card_id).reduce((s, t) => s + t.amount, 0)
-  const cashExpense = filteredMonthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount - t.point_discount, 0)
+  const cashExpense = filteredMonthlyTx.filter((t) => t.type === 'expense' && !t.card_id).reduce((s, t) => s + t.amount, 0)
   const totalIncome = cashIncome + cardIncome
 
-  // 이번달 실제 카드 청구 합계
+  // 이번달 실제 카드 청구 합계(포인트 사용액 제외 — 카드에 청구되지 않는 금액)
   const totalCardBill = filteredCardBills.reduce((s, b) => s + b.amount, 0)
+  // 카드 거래에서 쓴 포인트는 카드 청구에선 빠지지만, 포인트는 거래일에 바로
+  // 나간 돈이라 실지출에선 별도 항목으로 더해줘야 함(안 그러면 그만큼 누락됨)
+  const cardPointsUsed = filteredCardBills
+    .flatMap((b) => b.transactions)
+    .filter((t) => t.type === 'expense')
+    .reduce((s, t) => s + t.point_discount, 0)
 
-  // 실지출 = 현금지출 + 카드 청구액
-  const totalExpense = cashExpense + totalCardBill
+  // 실지출 = 현금지출 + 카드 청구액 + 카드 거래 포인트 사용액
+  const totalExpense = cashExpense + totalCardBill + cardPointsUsed
   const balance = totalIncome - totalExpense
 
   // 카드 입금 내역 (드문 케이스지만 수입정산에서 확인 가능해야 함)
@@ -281,6 +287,7 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
           <div className="space-y-2">
             <Row label="현금 지출" amount={cashExpense} color="coral" />
             <Row label="카드 청구 합계" amount={totalCardBill} color="coral" />
+            {cardPointsUsed > 0 && <Row label="포인트 사용" amount={cardPointsUsed} color="coral" />}
             <Row label="합계" amount={totalExpense} color="coral" bold />
           </div>
         </div>
@@ -379,8 +386,8 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
                       {tx.date} · {tx.category}
                     </p>
                   </div>
-                  {/* 헤더의 cashExpense 합계와 줄 단위로 일치하도록 포인트 사용액 제외 */}
-                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600 dark:text-coral-200">-{formatWon(tx.amount - tx.point_discount)}</span>
+                  {/* 현금은 날짜 이동이 없어 포인트도 그대로 포함(헤더 cashExpense와 동일 기준) */}
+                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600 dark:text-coral-200">-{formatWon(tx.amount)}</span>
                 </li>
               ))}
           </ul>

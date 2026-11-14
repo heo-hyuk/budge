@@ -47,6 +47,39 @@
 - DB/백엔드 스키마 변경 없음
 - 예상 변경 파일: `functions/lib/settlement.ts`, `src/components/MonthlyReport.tsx`
 
+### 완료
+- `functions/lib/settlement.ts`
+  - `settlementAmount()` 헬퍼 제거, `calculateDailySettlement`/
+    `calculateWeeklySettlement`/`calculateAnnualSettlement`를 전부 원래
+    `tx.amount` 기준으로 되돌림
+  - `calculateMonthlySettlement`의 `applyRows`도 `tx.amount` 기준으로 되돌림
+    (현금/체크카드/거래일 기준 전부 이걸 씀)
+  - `billing` 기준의 일반카드(청구일로 날짜를 옮기는) 분기 전용으로
+    `applyBillingCardRows(rows, billingDate)` 신규: 카드 청구분
+    (`amount - point_discount`)은 `billingDate` 버킷에, 포인트분은 원래
+    `tx.date` 버킷(해당 월 범위를 벗어나면 조용히 스킵, 기존 범위 밖 처리와
+    동일한 패턴)에 각각 더함 — 둘을 합치면 항상 원래 `tx.amount`와 같아서
+    어디서도 금액이 새지 않음
+- `src/components/MonthlyReport.tsx`
+  - `cashExpense` 포인트 제외를 되돌리고 `tx.amount` 그대로 사용
+  - `cardPointsUsed`(카드 거래의 포인트 사용 합계, `filteredCardBills`의
+    거래에서 집계) 신규 추가, `totalExpense = cashExpense + totalCardBill +
+    cardPointsUsed`로 재구성(이제 raw 합계와 정확히 일치)
+  - "실지출" Row 목록에 `cardPointsUsed > 0`일 때만 "포인트 사용" 행 추가
+  - "현금 지출 내역" 개별 줄을 `tx.amount`로 되돌림. "카드별 청구 내역"
+    개별 줄은 151차 그대로(카드 헤더 합계와 일치해야 하므로 포인트 제외 유지)
+- `tsc -b --noEmit`(프론트) / 수동 `tsc --noEmit`(functions/lib/settlement.ts)
+  / `oxlint` / `npm run build` 통과
+- 로컬 D1 + `wrangler pages dev`로 curl 검증:
+  - 현금(8,000)+카드(8,500, 포인트1,000)+카드(25,000, 포인트10,000, 현실적인
+    billing_day=25/closing_day=15 카드) 거래로 테스트
+  - 일일/주간/연간/월간(거래일 기준) 전부 전체금액(raw amount) 그대로 집계됨을
+    확인(41,500원 등)
+  - 월간(출금일 기준)에서 포인트 쓴 카드 거래가 거래일(11/14)엔 포인트분만,
+    카드 청구일(11/25)엔 카드청구분만 정확히 나뉘어 잡히고, 둘을 더하면
+    원래 거래 금액(25,000)과 정확히 일치함을 확인 — 어디서도 금액이
+    사라지지 않음
+
 ## 2026-11-14 (151차) — 카드별 청구/현금 지출 "내역" 줄도 포인트 제외
 
 사용자 요청: 150차 완료 후 "카드별 청구내역이 따로 있네 거기는 안되었는디?"

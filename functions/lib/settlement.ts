@@ -24,12 +24,6 @@ export interface SettlementTransaction {
   created_at: string
 }
 
-// 포인트 사용액은 카드/현금에 실제로 청구·지출되지 않으므로 정산 집계에서는 제외
-// (지출의 거래금액 amount엔 148차 결정대로 포인트가 반영 안 돼 있으므로 그대로 빼면 됨)
-function settlementAmount(t: SettlementTransaction): number {
-  return t.amount - (t.point_discount ?? 0)
-}
-
 export interface DailySettlementResult {
   date: string
   prev_balance: number
@@ -52,13 +46,15 @@ export async function calculateDailySettlement(
   userId: string,
   date: string,  // 'YYYY-MM-DD'
 ): Promise<DailySettlementResult> {
+  // 거래일 기준 집계 — 청구일로 날짜를 옮기는 개념이 없으므로 포인트도 현금처럼
+  // 거래일에 그대로 나간 돈으로 취급(amount 그대로 합산)
   const { results: priorResults } = await db
-    .prepare(`SELECT type, amount, point_discount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL}`)
+    .prepare(`SELECT type, amount FROM transactions WHERE user_id = ? AND date < ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL}`)
     .bind(userId, date, userId)
-    .all<{ type: 'income' | 'expense'; amount: number; point_discount: number }>()
+    .all<{ type: 'income' | 'expense'; amount: number }>()
 
   const prev_balance = (priorResults ?? [])
-    .reduce((s, t) => s + (t.type === 'income' ? t.amount : -(t.amount - (t.point_discount ?? 0))), 0)
+    .reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
 
   const { results: todayResults } = await db
     .prepare(`SELECT * FROM transactions WHERE user_id = ? AND date = ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY created_at ASC`)
@@ -69,7 +65,7 @@ export async function calculateDailySettlement(
   const incomes  = todayRows.filter((t) => t.type === 'income')
   const expenses = todayRows.filter((t) => t.type === 'expense')
   const income_total  = incomes.reduce((s, t) => s + t.amount, 0)
-  const expense_total = expenses.reduce((s, t) => s + settlementAmount(t), 0)
+  const expense_total = expenses.reduce((s, t) => s + t.amount, 0)
   const today_balance = prev_balance + income_total - expense_total
 
   return { date, prev_balance, incomes, income_total, expenses, expense_total, today_balance }
@@ -141,10 +137,11 @@ export async function calculateWeeklySettlement(
   const weekTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
   const monthCumulative = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
+  // 거래일 기준 집계라 포인트도 현금처럼 거래일에 그대로 나간 돈으로 취급
   for (const tx of rows) {
     // 누계는 monthStart~weekEnd 전체(조회 범위 그대로)에 누적
     if (tx.type === 'income') addAmount(monthCumulative.income, tx.category, tx.amount)
-    else addAmount(monthCumulative.expense, tx.category, settlementAmount(tx))
+    else addAmount(monthCumulative.expense, tx.category, tx.amount)
 
     const dayIdx = dayIndexByDate.get(tx.date)
     if (dayIdx === undefined) continue  // 이번 주 이전의 그 달 거래 — 누계에만 반영
@@ -153,8 +150,8 @@ export async function calculateWeeklySettlement(
       addAmount(bucket.income, tx.category, tx.amount)
       addAmount(weekTotal.income, tx.category, tx.amount)
     } else {
-      addAmount(bucket.expense, tx.category, settlementAmount(tx))
-      addAmount(weekTotal.expense, tx.category, settlementAmount(tx))
+      addAmount(bucket.expense, tx.category, tx.amount)
+      addAmount(weekTotal.expense, tx.category, tx.amount)
     }
   }
 
@@ -205,6 +202,8 @@ export async function calculateMonthlySettlement(
 
   const monthTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
+  // 날짜 이동이 없는 집계(거래일 기준 전부 + billing 기준의 현금/체크카드) —
+  // 포인트도 현금처럼 거래일에 그대로 나간 돈으로 취급(amount 그대로 합산)
   function applyRows(rows: SettlementTransaction[], bucketDate?: string) {
     for (const tx of rows) {
       const dayIdx = dayIndexByDate.get(bucketDate ?? tx.date)
@@ -214,8 +213,39 @@ export async function calculateMonthlySettlement(
         addAmount(bucket.income, tx.category, tx.amount)
         addAmount(monthTotal.income, tx.category, tx.amount)
       } else {
-        addAmount(bucket.expense, tx.category, settlementAmount(tx))
-        addAmount(monthTotal.expense, tx.category, settlementAmount(tx))
+        addAmount(bucket.expense, tx.category, tx.amount)
+        addAmount(monthTotal.expense, tx.category, tx.amount)
+      }
+    }
+  }
+
+  // billing 기준의 일반 카드(청구일로 날짜를 옮기는 경우) 전용 — 포인트는 카드에
+  // 청구되지 않고 거래일에 바로 나간 돈이므로, 카드 청구분(amount-point_discount)만
+  // billingDate에 몰아 넣고 포인트분은 원래 거래일 버킷에 따로 더한다
+  function applyBillingCardRows(rows: SettlementTransaction[], billingDate: string) {
+    for (const tx of rows) {
+      if (tx.type === 'income') {
+        const dayIdx = dayIndexByDate.get(billingDate)
+        if (dayIdx === undefined) continue
+        addAmount(days[dayIdx].income, tx.category, tx.amount)
+        addAmount(monthTotal.income, tx.category, tx.amount)
+        continue
+      }
+      const pointPortion = tx.point_discount ?? 0
+      const cardPortion = tx.amount - pointPortion
+
+      const billIdx = dayIndexByDate.get(billingDate)
+      if (billIdx !== undefined) {
+        addAmount(days[billIdx].expense, tx.category, cardPortion)
+        addAmount(monthTotal.expense, tx.category, cardPortion)
+      }
+
+      if (pointPortion > 0) {
+        const txIdx = dayIndexByDate.get(tx.date)
+        if (txIdx !== undefined) {
+          addAmount(days[txIdx].expense, tx.category, pointPortion)
+          addAmount(monthTotal.expense, tx.category, pointPortion)
+        }
       }
     }
   }
@@ -246,7 +276,7 @@ export async function calculateMonthlySettlement(
           .prepare(`SELECT * FROM transactions WHERE user_id = ? AND card_id = ? AND date >= ? AND date <= ? AND unsettled = 0 ${EXCLUDE_PENDING_SETTLEMENT_SQL} ORDER BY date ASC`)
           .bind(userId, card.id, start, end, userId)
           .all<SettlementTransaction>()
-        applyRows(results ?? [], billingDate)
+        applyBillingCardRows(results ?? [], billingDate)
       }
     }
   } else {
@@ -298,6 +328,7 @@ export async function calculateAnnualSettlement(
 
   const yearTotal = { income: {} as CategoryBucket, expense: {} as CategoryBucket }
 
+  // 거래일(월) 기준 집계라 포인트도 현금처럼 거래일에 그대로 나간 돈으로 취급
   for (const tx of rows) {
     const idx = monthIndexByKey.get(tx.date.slice(0, 7))
     if (idx === undefined) continue
@@ -306,8 +337,8 @@ export async function calculateAnnualSettlement(
       addAmount(bucket.income, tx.category, tx.amount)
       addAmount(yearTotal.income, tx.category, tx.amount)
     } else {
-      addAmount(bucket.expense, tx.category, settlementAmount(tx))
-      addAmount(yearTotal.expense, tx.category, settlementAmount(tx))
+      addAmount(bucket.expense, tx.category, tx.amount)
+      addAmount(yearTotal.expense, tx.category, tx.amount)
     }
   }
 
