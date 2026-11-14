@@ -1,5 +1,40 @@
 # WORKLOG
 
+## 2026-11-14 (147차) — 포인트 사용액을 별도 컬럼(point_discount)으로 분리
+
+사용자 요청: 146차 완료 보고에서 "혜택+포인트를 같이 썼던 거래는 수정 시
+discount_amount에 두 금액이 섞여 있어 포인트를 자동 복원 못 한다"는 한계를
+알리고 "필요하면 나중에 별도 컬럼으로 분리하자"고 제안 → "미리 별도로
+분리하자"로 지금 바로 처리하기로 결정.
+
+### 추가로 발견한 문제 (분리가 필요한 더 중요한 이유)
+`functions/lib/benefitMatcher.ts`의 월 한도 집계가
+`SUM(discount_amount + cashback_amount)`를 benefit_id로 그룹핑하는데,
+146차 이후 discount_amount에 카드 혜택분+포인트분이 합쳐져 저장되므로
+카드 혜택에 포인트를 추가로 쓴 달에는 그 혜택의 월 한도 사용량이 포인트
+금액만큼 실제보다 더 많이 집계되는 부작용이 있었음(수정 시 복원 문제보다
+먼저 고쳐야 하는 정확성 버그) — 컬럼을 분리하면 자동으로 해결됨.
+
+### 작업 계획
+- `migrations/033_add_point_discount.sql` (+ `schema.sql` 동기화):
+  `transactions.point_discount INTEGER NOT NULL DEFAULT 0` 추가
+- 백엔드: `functions/api/transactions/index.ts`(POST),
+  `functions/api/transactions/[id].ts`(PATCH), `functions/api/export/index.ts`
+  (SELECT 포함)에 `point_discount` 반영
+- `src/types.ts`: `Transaction.point_discount`(number),
+  `NewTransaction`/`UpdateTransaction`에 옵션 필드 추가
+- `src/components/TransactionForm.tsx`: `discount_amount`는 카드 혜택분만,
+  `point_discount`는 포인트분만 각각 저장하도록 분리(기존처럼 합쳐서
+  `discount_amount`에 넣지 않음). `original_amount`/`finalAmount` 계산은
+  두 값을 더해서 유지
+- `src/App.tsx`: 수정/복제 시 포인트 복원을 `tx.point_discount`에서 바로
+  읽어오도록 변경(더 이상 `benefit_id` 유무로 추정하지 않음) — 혜택+포인트
+  조합 거래도 정확히 복원됨
+- `src/lib/exportExcel.ts`: 엑셀 "할인액" 컬럼은 기존처럼
+  `discount_amount + point_discount` 합계로 유지(시트 구조 변경 없음)
+- 원격 D1에도 마이그레이션 적용 필요(배포 후 사용자 조치)
+- 예상 변경 파일: 위 전체(스키마 1개 + 백엔드 3개 + 프론트 4개)
+
 ## 2026-11-14 (146차) — 카드 결제에도 포인트/할인 수동 사용 허용
 
 사용자 요청: 145차(현금 등 비카드 결제의 "포인트/할인 사용")를 확인한 후
