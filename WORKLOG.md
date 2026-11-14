@@ -1,5 +1,44 @@
 # WORKLOG
 
+## 2026-11-14 (148차) — 포인트 사용을 할인이 아닌 정보성 표시로 변경
+
+사용자 요청: 147차(point_discount 컬럼 분리) 완료 후 "전체거래금액에는
+포인트도 내 걸 사용한거니까 할인처럼 들어가지 않았으면 좋겠어 거래금액은
+포인트랑 카드나 현금 결제한 원금이고 표기에만 포인트를 얼마 사용 이런식으로"
+— 포인트는 할인이 아니라 자기 자산(포인트)으로 결제한 것이므로, 실제
+지출/예산 집계에 쓰이는 "거래금액"(`amount`)에서 포인트만큼 깎으면 안 되고,
+카드/현금으로 낸 원금 그대로가 거래금액이어야 함. 포인트 사용 사실은
+"포인트 N원 사용"처럼 정보로만 표시(기존 cashback_amount/적립 뱃지와 동일한
+패턴).
+
+### 설계
+- `benefitDiscount`(카드 혜택의 진짜 할인)만 `amount`에서 차감하고,
+  `point_discount`는 `cashback_amount`처럼 정보용으로만 저장 — `amount`에는
+  영향 없음
+- `original_amount`(취소선용 "할인 전" 금액)도 포인트 때문엔 더 이상
+  채우지 않음 — 혜택 할인이 없으면 포인트를 썼어도 원금=거래금액이라
+  취소선 표시가 의미 없어짐(같은 숫자 두 번 보여주는 꼴)
+- 포인트 사용 사실은 거래 목록/검색에 cashback과 같은 자리에 별도 뱃지로
+  표시, 엑셀은 "할인액"과 분리된 "포인트사용" 컬럼 추가
+
+### 작업 계획
+- `src/components/TransactionForm.tsx`: `handleSubmit`의 `finalAmount`를
+  `numericAmount - benefitDiscount`로(포인트 제외), `pointDiscount`는 그
+  `finalAmount`를 넘지 않게 clamp. `original_amount` 설정 조건을
+  `benefitDiscount > 0`로 한정. 체크박스 블록 미리보기 문구를
+  "차감"에서 "포함"으로(예: "8,500원 결제 (포인트 2,000원 포함)"). 예산
+  미리보기 2곳/저장 버튼 라벨도 포인트를 빼고 혜택 할인만으로 재계산
+- `src/components/TransactionList.tsx`: 취소선 조건을 `discount_amount >
+  0`으로 되돌리고, cashback "적립" 뱃지 옆에 "포인트 N원 사용" 뱃지 추가
+- `src/components/SearchView.tsx`: 할인 뱃지를 `discount_amount`만으로
+  되돌리고 포인트 뱃지 별도 추가
+- `src/lib/exportExcel.ts`: "할인액" 컬럼을 `discount_amount`만으로 되돌리고
+  "포인트사용" 컬럼 신규 추가
+- DB/백엔드 변경 없음(point_discount 컬럼은 147차에서 이미 추가, 의미만
+  "할인"에서 "정보성 사용액"으로 재정의)
+- 예상 변경 파일: `TransactionForm.tsx`, `TransactionList.tsx`,
+  `SearchView.tsx`, `exportExcel.ts`
+
 ## 2026-11-14 (147차) — 포인트 사용액을 별도 컬럼(point_discount)으로 분리
 
 사용자 요청: 146차 완료 보고에서 "혜택+포인트를 같이 썼던 거래는 수정 시
