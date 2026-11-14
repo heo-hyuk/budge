@@ -347,7 +347,9 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
                               </p>
                             </div>
                             <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600 dark:text-coral-200">
-                              -{formatWon(tx.amount)}
+                              {/* 이 화면은 실제 청구 금액을 보여주는 목적이라 포인트 사용액은 제외 —
+                                  헤더의 bill.amount 합계와 줄 단위로 일치해야 함 */}
+                              -{formatWon(tx.amount - tx.point_discount)}
                             </span>
                           </li>
                         ))}
@@ -377,7 +379,8 @@ function MonthlyReport({ month, cards, categories = [] }: Props) {
                       {tx.date} · {tx.category}
                     </p>
                   </div>
-                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600 dark:text-coral-200">-{formatWon(tx.amount)}</span>
+                  {/* 헤더의 cashExpense 합계와 줄 단위로 일치하도록 포인트 사용액 제외 */}
+                  <span className="shrink-0 whitespace-nowrap text-sm font-bold text-coral-600 dark:text-coral-200">-{formatWon(tx.amount - tx.point_discount)}</span>
                 </li>
               ))}
           </ul>
