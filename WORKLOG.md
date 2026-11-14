@@ -29,6 +29,21 @@
 - DB/백엔드 변경 없음 — 기존 필드/API 그대로 재사용
 - 예상 변경 파일: `src/components/TransactionList.tsx` 단일 파일
 
+### 완료
+- 계획대로 전부 반영: `EditState.usePoints`/`pointAmount` 추가, `startEdit`
+  복원, 혜택 매칭 useEffect의 `amount`를 `cardChargeAmount`로 변경(의존성
+  배열에 포인트 상태 추가), "포인트 사용" 체크박스+입력 UI를 혜택 매칭
+  섹션 위에 추가(TransactionForm과 동일 자리), 혜택 매칭 박스(복수/단일)
+  표시를 `cardChargeAmount` 기준으로 변경, `handleSave`에서 `discount_amount`
+  (혜택분)/`point_discount`(포인트분) 분리 저장 + `finalAmount`는 포인트
+  미차감
+- 이번에도 TransactionForm과 별도 컴포넌트로 추출하지 않고 로직을 그대로
+  복제(131차와 동일한 판단 — 두 폼의 나머지 구조가 이미 상당히 달라서
+  복제가 더 단순하고 안전)
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과. 브라우저 자동화 도구가
+  없어 클릭 테스트는 못 함 — TransactionForm에서 이미 검증된 동일 로직을
+  그대로 복제한 것이라 코드 리뷰로 일치 여부 확인함
+
 ## 2026-11-14 (152차) — 정산 포인트 제외 모델 재수정 (150~151차 일부 되돌림)
 
 사용자 피드백: 150~151차에서 "정산 탭 전체에서 포인트 제외"로 처리했는데,

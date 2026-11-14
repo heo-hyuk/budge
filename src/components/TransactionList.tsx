@@ -26,6 +26,8 @@ interface EditState {
   merchant: string
   paymentMethod: string // '현금' | '계좌이체' | card.id
   unsettled: boolean
+  usePoints: boolean
+  pointAmount: string
 }
 
 function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate }: Props) {
@@ -50,8 +52,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
     }
     const cardId = cards.some((c) => c.id === editState.paymentMethod) ? editState.paymentMethod : ''
     const numericAmount = Number(editState.amount.replace(/[^0-9]/g, ''))
+    // 포인트로 낸 금액은 카드에 청구되지 않으므로, 카드 혜택(%) 계산은 포인트를 뺀
+    // 실제 카드 청구액 기준으로 해야 함(TransactionForm과 동일 로직)
+    const pointAmountNow = editState.usePoints ? Math.max(0, Math.min(parseAmountInput(editState.pointAmount) || 0, numericAmount)) : 0
+    const cardChargeAmount = numericAmount - pointAmountNow
 
-    if (!cardId || numericAmount <= 0) {
+    if (!cardId || cardChargeAmount <= 0) {
       setMatches([])
       setSelectedMatch(null)
       return
@@ -66,7 +72,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
           card_id: cardId,
           merchant: editState.merchant.trim(),
           category: editState.category,
-          amount: numericAmount,
+          amount: cardChargeAmount,
           month,
         })
         setMatches(result)
@@ -82,7 +88,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editState?.paymentMethod, editState?.merchant, editState?.category, editState?.amount, editState?.date, editState?.type, cards])
+  }, [editState?.paymentMethod, editState?.merchant, editState?.category, editState?.amount, editState?.date, editState?.type, editState?.usePoints, editState?.pointAmount, cards])
 
   // 카드 ID → Card 매핑
   const cardMap = new Map(cards.map((c) => [c.id, c]))
@@ -120,6 +126,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
       merchant: tx.merchant ?? '',
       paymentMethod: tx.card_id || tx.payment_method || '현금',
       unsettled: tx.unsettled === 1,
+      usePoints: tx.point_discount > 0,
+      pointAmount: tx.point_discount > 0 ? formatNumberInput(String(tx.point_discount)) : '',
     })
     setMatches([])
     setSelectedMatch(null)
@@ -142,9 +150,12 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
 
     // cashback 혜택은 결제액을 깎지 않고 적립 예정액만 정보로 기록 — discount만 실결제액에서 차감
     const isCashback = selectedMatch?.benefit_type === 'cashback'
-    const discountAmount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
+    const benefitDiscount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
     const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
-    const finalAmount = numericAmount - discountAmount
+    const finalAmount = numericAmount - benefitDiscount
+    // 포인트는 할인이 아니라 내 포인트로 결제한 금액이라 거래금액(finalAmount)에서
+    // 차감하지 않음 — cashback과 동일하게 정보성 표시 전용(TransactionForm과 동일 로직)
+    const pointDiscount = editState.usePoints ? Math.max(0, Math.min(parseAmountInput(editState.pointAmount) || 0, finalAmount)) : 0
 
     setSaving(true)
     try {
@@ -157,10 +168,11 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
         merchant: editState.merchant.trim(),
         payment_method: selectedCard ? selectedCard.id : editState.paymentMethod,
         card_id: selectedCard ? selectedCard.id : '',
-        original_amount: discountAmount > 0 ? numericAmount : 0,
-        discount_amount: discountAmount,
+        original_amount: benefitDiscount > 0 ? numericAmount : 0,
+        discount_amount: benefitDiscount,
         benefit_id: selectedMatch ? selectedMatch.benefit.id : '',
         cashback_amount: cashbackAmount,
+        point_discount: pointDiscount,
         unsettled: editState.unsettled,
       })
       setEditingId(null)
@@ -266,8 +278,55 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                       )
                     })}
                   </div>
+                  {/* 포인트 사용 — 할인이 아니라 내 포인트로 결제했다는 정보성 표시(TransactionForm과 동일 패턴) */}
+                  {editState.type === 'expense' && parseAmountInput(editState.amount) > 0 && (() => {
+                    const numericAmount = parseAmountInput(editState.amount)
+                    const benefitDiscountNow = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+                    const finalNow = numericAmount - benefitDiscountNow
+                    const pointAmountNum = Math.max(0, Math.min(parseAmountInput(editState.pointAmount) || 0, finalNow))
+                    return (
+                    <div className="mb-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editState.usePoints}
+                          onChange={(e) => setEditState((s) => s && {
+                            ...s, usePoints: e.target.checked, pointAmount: e.target.checked ? s.pointAmount : '',
+                          })}
+                          className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-coral-400 focus:ring-coral-400"
+                        />
+                        <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">포인트 사용</span>
+                      </label>
+                      {editState.usePoints && (
+                        <div className="mt-1.5">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="0"
+                              value={editState.pointAmount}
+                              onChange={(e) => setEditState((s) => s && { ...s, pointAmount: formatNumberInput(e.target.value) })}
+                              className="min-h-9 w-full rounded-xl border border-neutral-300 dark:border-neutral-700 pl-3 pr-9 py-1.5 text-right text-sm font-semibold transition-colors focus:border-coral-400 focus:outline-none focus:ring-2 focus:ring-coral-50 dark:focus:ring-coral-900/40"
+                            />
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 dark:text-neutral-500">원</span>
+                          </div>
+                          {pointAmountNum > 0 && (
+                            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                              거래금액 {formatWon(finalNow)}은 그대로 유지, 그중{' '}
+                              <span className="font-normal">포인트 {formatWon(pointAmountNum)} 사용</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    )
+                  })()}
                   {/* 혜택 매칭 — TransactionForm과 동일한 UI/로직(지출 + 카드 선택 시만 표시) */}
-                  {editState.type === 'expense' && cards.some((c) => c.id === editState.paymentMethod) && parseAmountInput(editState.amount) > 0 && (
+                  {editState.type === 'expense' && cards.some((c) => c.id === editState.paymentMethod) && parseAmountInput(editState.amount) > 0 && (() => {
+                    const numericAmount = parseAmountInput(editState.amount)
+                    const pointAmountNow = editState.usePoints ? Math.max(0, Math.min(parseAmountInput(editState.pointAmount) || 0, numericAmount)) : 0
+                    const cardChargeAmount = numericAmount - pointAmountNow
+                    return (
                     <div className="mb-2">
                       {matchLoading && (
                         <p className="text-xs text-neutral-400 dark:text-neutral-500">혜택 확인 중...</p>
@@ -295,7 +354,7 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                                 <p className="text-xs text-amber-700 dark:text-amber-400">
                                   {m.benefit_type === 'cashback'
                                     ? `${formatWon(m.estimated_discount)} 적립 예정`
-                                    : `${formatWon(parseAmountInput(editState.amount))} → ${formatWon(parseAmountInput(editState.amount) - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
+                                    : `${formatWon(cardChargeAmount)} → ${formatWon(cardChargeAmount - m.estimated_discount)} (${formatWon(m.estimated_discount)} 할인)`}
                                 </p>
                               </div>
                             </label>
@@ -323,8 +382,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                               </p>
                             ) : (
                               <p className="text-sm font-bold text-green-700 dark:text-green-400 mt-0.5">
-                                {formatWon(parseAmountInput(editState.amount))} →{' '}
-                                {formatWon(parseAmountInput(editState.amount) - selectedMatch.estimated_discount)}{' '}
+                                {formatWon(cardChargeAmount)} →{' '}
+                                {formatWon(cardChargeAmount - selectedMatch.estimated_discount)}{' '}
                                 <span className="font-normal">({formatWon(selectedMatch.estimated_discount)} 할인)</span>
                               </p>
                             )}
@@ -338,7 +397,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                         </div>
                       )}
                     </div>
-                  )}
+                    )
+                  })()}
                   {/* 분류 */}
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {getCategories(editState.type).map((c) => (
