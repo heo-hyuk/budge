@@ -25,6 +25,34 @@
 - 스키마/백엔드 변경 없음(기존 `original_amount`/`discount_amount` 재사용)
 - 예상 변경 파일: `src/components/TransactionForm.tsx`, `src/App.tsx`
 
+### 완료
+- `src/components/TransactionForm.tsx`
+  - "포인트/할인 사용" 블록 노출 조건에서 `!cards.some(...)` 제거 — 카드
+    선택 시에도 혜택 자동매칭 블록과 함께 노출
+  - 카드 선택 시 포인트 입력을 초기화하던 로직 제거
+  - 포인트 블록 내부 미리보기: 카드 할인이 같이 걸려 있으면
+    "원금 → 최종 (혜택 N원 + 포인트 N원 차감)"으로 합산 표시, 없으면 기존과
+    동일하게 포인트만 표시
+  - `handleSubmit`: `pointDiscount`를 `Math.max(0, Math.min(입력값,
+    numericAmount - benefitDiscount))`로 clamp 후 `benefitDiscount`와 합산
+  - 예산 미리보기 2곳(인라인 진행률, 저장 전 요약)도 혜택+포인트 합산으로
+    재계산
+  - 저장 버튼 라벨: cashback/discount/포인트 조합을 하나의 IIFE로 정리해
+    "저장 (N원 결제)" / "저장 (적립 예정 N원)" / "저장하기" 중 정확한 걸
+    고르도록 변경
+- `src/App.tsx`: `handleDuplicate`/`handleEditRequest`의 `pointDiscount`
+  복원 조건을 `!tx.card_id` → `!tx.benefit_id`로 변경
+- **알려진 한계**: 카드 혜택과 포인트를 동시에 썼던 거래를 나중에 수정하면,
+  저장된 `discount_amount`에 혜택분/포인트분이 하나로 합쳐져 있어 포인트
+  입력을 자동 복원하지 못함(혜택이 전혀 없던 순수 포인트 사용 거래는
+  정확히 복원됨) — 혜택+포인트 조합 거래를 수정할 땐 포인트 체크박스를
+  다시 체크하고 금액을 재입력해야 함. 정확한 분리가 필요해지면 별도 컬럼
+  추가(스키마 변경)로 후속 처리
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과. 브라우저 자동화
+  도구가 없어 클릭 테스트는 진행 못 함(145차와 동일한 한계)
+- 코드 변경만 있어 push 시 GitHub Actions가 자동 배포(수동 `npm run deploy`
+  불필요)
+
 ## 2026-11-14 (145차) — 현금 결제 시 포인트/할인 사용액 처리
 
 사용자 요청: "현금결제를 하는도중에 포인트를 사용하거나 해서 차감되는

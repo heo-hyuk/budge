@@ -79,9 +79,10 @@ function TransactionForm({
   const [matchLoading, setMatchLoading]   = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // 포인트/할인 사용 상태 — 카드 혜택과 별개로, 카드가 아닌 결제수단(현금 등)에서
-  // 포인트를 써서 실결제액이 줄어드는 경우를 수동으로 기록 (original_amount/
-  // discount_amount 필드를 카드 혜택과 공유해서 재사용, benefit_id는 비워둠)
+  // 포인트/할인 사용 상태 — 카드 자동 혜택과 별개로, 포인트를 추가로 써서
+  // 실결제액이 더 줄어드는 경우를 수동으로 기록 (카드/비카드 결제 모두 사용 가능,
+  // original_amount/discount_amount 필드를 카드 혜택과 공유해서 재사용하되
+  // benefit_id는 비워둠 — 저장 시 혜택 할인액 + 포인트 할인액을 합산)
   const [usePoints, setUsePoints]     = useState(false)
   const [pointAmount, setPointAmount] = useState('')
 
@@ -432,12 +433,6 @@ function TransactionForm({
     const cardId = cards.some((c) => c.id === paymentMethod) ? paymentMethod : ''
     const numericAmount = Number(amount.replace(/[^0-9]/g, ''))
 
-    // 카드가 선택되면 포인트 사용(비카드 전용) 입력은 의미가 없으므로 초기화
-    if (cardId) {
-      setUsePoints(false)
-      setPointAmount('')
-    }
-
     // 카드 미선택이거나 금액 없으면 초기화
     if (!cardId || numericAmount <= 0) {
       setMatches([])
@@ -508,8 +503,9 @@ function TransactionForm({
     const isCashback = selectedMatch?.benefit_type === 'cashback'
     const benefitDiscount = selectedMatch && !isCashback ? selectedMatch.estimated_discount : 0
     const cashbackAmount = selectedMatch && isCashback ? selectedMatch.estimated_discount : 0
-    // 포인트 사용(카드 혜택과 별개, 비카드 결제 전용) — 금액을 넘길 수 없게 clamp
-    const pointDiscount = !selectedCard && usePoints ? Math.min(parseAmountInput(pointAmount) || 0, numericAmount) : 0
+    // 포인트 사용(카드 혜택과 별개, 카드/비카드 결제 모두 허용) — 혜택 할인과 합쳐도
+    // 원금을 넘지 않게 clamp
+    const pointDiscount = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount - benefitDiscount)) : 0
     const discountAmount = benefitDiscount + pointDiscount
     const finalAmount = numericAmount - discountAmount
 
@@ -917,8 +913,11 @@ function TransactionForm({
           </div>
         )}
 
-        {/* 포인트/할인 사용 — 카드 혜택 자동매칭과 자리를 공유하되 상호 배타적(카드가 아닐 때만 노출) */}
-        {type === 'expense' && !cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
+        {/* 포인트/할인 사용 — 카드 혜택 자동매칭과 독립적으로 추가 차감(카드 결제에도 함께 적용 가능) */}
+        {type === 'expense' && numericAmount > 0 && (() => {
+          const benefitDiscountNow = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+          const pointAmountNum = Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount - benefitDiscountNow))
+          return (
           <div className="mt-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -946,19 +945,20 @@ function TransactionForm({
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 dark:text-neutral-500">원</span>
                 </div>
-                {(() => {
-                  const pointAmountNum = Math.min(parseAmountInput(pointAmount) || 0, numericAmount)
-                  return pointAmountNum > 0 && (
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                      {formatWon(numericAmount)} → {formatWon(numericAmount - pointAmountNum)}{' '}
-                      <span className="font-normal">({formatWon(pointAmountNum)} 차감)</span>
-                    </p>
-                  )
-                })()}
+                {pointAmountNum > 0 && (
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    {benefitDiscountNow > 0
+                      ? <>{formatWon(numericAmount)} → {formatWon(numericAmount - benefitDiscountNow - pointAmountNum)}{' '}
+                          <span className="font-normal">(혜택 {formatWon(benefitDiscountNow)} + 포인트 {formatWon(pointAmountNum)} 차감)</span></>
+                      : <>{formatWon(numericAmount)} → {formatWon(numericAmount - pointAmountNum)}{' '}
+                          <span className="font-normal">({formatWon(pointAmountNum)} 차감)</span></>}
+                  </p>
+                )}
               </div>
             )}
           </div>
-        )}
+          )
+        })()}
 
         {/* 혜택 매칭 섹션 (지출 + 카드 선택 시만 표시, 수정 모드에서도 동일하게 재계산) */}
         {type === 'expense' && cards.some((c) => c.id === paymentMethod) && numericAmount > 0 && (
@@ -1169,11 +1169,11 @@ function TransactionForm({
           if (!matched) return null
 
           // 입력 중인 금액까지 더한 예상 지출 — cashback은 결제액을 안 깎으므로 discount일 때만 차감,
-          // 포인트 사용(비카드 결제)도 동일하게 실결제액에서 차감
+          // 포인트 사용도 카드 혜택과 합산해 실결제액에서 차감
           const inputAmount = Number(amount.replace(/[^0-9]/g, ''))
-          const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount'
-            ? selectedMatch.estimated_discount
-            : usePoints ? Math.min(parseAmountInput(pointAmount) || 0, inputAmount) : 0
+          const benefitDiscountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+          const pointDiscountAmt = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, inputAmount - benefitDiscountAmt)) : 0
+          const discountAmt = benefitDiscountAmt + pointDiscountAmt
           const addingAmount = inputAmount > 0 ? inputAmount - discountAmt : 0
           const projectedSpent = matched.spent + addingAmount
           const projectedPct = matched.budget.monthly_limit > 0
@@ -1318,9 +1318,9 @@ function TransactionForm({
         )
         if (!matched) return null
 
-        const discountAmt = selectedMatch && selectedMatch.benefit_type === 'discount'
-          ? selectedMatch.estimated_discount
-          : usePoints ? Math.min(parseAmountInput(pointAmount) || 0, numericAmount) : 0
+        const benefitDiscountAmt = selectedMatch && selectedMatch.benefit_type === 'discount' ? selectedMatch.estimated_discount : 0
+        const pointDiscountAmt = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount - benefitDiscountAmt)) : 0
+        const discountAmt = benefitDiscountAmt + pointDiscountAmt
         const addingAmount = numericAmount - discountAmt
         if (addingAmount <= 0) return null
 
@@ -1343,17 +1343,15 @@ function TransactionForm({
         disabled={saving}
         className="min-h-12 w-full rounded-xl bg-coral-400 text-lg font-bold text-white transition-colors hover:bg-coral-600 active:bg-coral-800 disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : (
-          editingId
-            ? '수정 완료'
-            : selectedMatch && selectedMatch.benefit_type === 'discount'
-            ? `저장 (${formatWon(numericAmount - selectedMatch.estimated_discount)} 결제)`
-            : selectedMatch && selectedMatch.benefit_type === 'cashback'
-            ? `저장 (적립 예정 ${formatWon(selectedMatch.estimated_discount)})`
-            : usePoints && Math.min(parseAmountInput(pointAmount) || 0, numericAmount) > 0
-            ? `저장 (${formatWon(numericAmount - Math.min(parseAmountInput(pointAmount) || 0, numericAmount))} 결제)`
-            : '저장하기'
-        )}
+        {saving ? <><LoadingSpinner size={18} /> 처리 중...</> : editingId ? '수정 완료' : (() => {
+          const isCashbackNow = selectedMatch?.benefit_type === 'cashback'
+          const benefitDiscountNow = selectedMatch && !isCashbackNow ? selectedMatch.estimated_discount : 0
+          const pointDiscountNow = usePoints ? Math.max(0, Math.min(parseAmountInput(pointAmount) || 0, numericAmount - benefitDiscountNow)) : 0
+          const totalDiscount = benefitDiscountNow + pointDiscountNow
+          if (totalDiscount > 0) return `저장 (${formatWon(numericAmount - totalDiscount)} 결제)`
+          if (isCashbackNow) return `저장 (적립 예정 ${formatWon(selectedMatch!.estimated_discount)})`
+          return '저장하기'
+        })()}
       </button>
     </form>
   )

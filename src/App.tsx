@@ -234,7 +234,9 @@ function App() {
         unsettled: tx.unsettled === 1,
         is_entertainment: tx.is_entertainment === 1,
         // 카드 혜택이 아닌(= card_id 없는) 포인트/할인 사용액만 복원 — 카드 혜택은 재매칭 로직이 따로 처리
-        pointDiscount: !tx.card_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
+        // 카드 혜택(benefit_id)이 걸린 거래는 할인액에 혜택분/포인트분이 섞여 있어 분리 불가 —
+        // 혜택이 전혀 없던 거래의 할인액만 순수 포인트 사용으로 간주해 복원
+        pointDiscount: !tx.benefit_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
       },
       nonce: Date.now(),
     })
@@ -259,7 +261,9 @@ function App() {
         unsettled: tx.unsettled === 1,
         is_entertainment: tx.is_entertainment === 1,
         // 카드 혜택이 아닌(= card_id 없는) 포인트/할인 사용액만 복원 — 카드 혜택은 재매칭 로직이 따로 처리
-        pointDiscount: !tx.card_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
+        // 카드 혜택(benefit_id)이 걸린 거래는 할인액에 혜택분/포인트분이 섞여 있어 분리 불가 —
+        // 혜택이 전혀 없던 거래의 할인액만 순수 포인트 사용으로 간주해 복원
+        pointDiscount: !tx.benefit_id && tx.discount_amount > 0 ? tx.discount_amount : undefined,
       },
       nonce: Date.now(),
     })
