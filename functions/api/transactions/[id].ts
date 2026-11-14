@@ -33,6 +33,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
     unsettled?: boolean; delivery_done?: boolean; pending_source_payment_method?: string | null
     is_entertainment?: boolean
     original_amount?: number; discount_amount?: number; cashback_amount?: number; benefit_id?: string
+    point_discount?: number
   }
 
   if (body.amount !== undefined) {
@@ -69,6 +70,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ params, request, env,
   if (body.discount_amount !== undefined) { fields.push('discount_amount = ?'); values.push(body.discount_amount) }
   if (body.cashback_amount !== undefined) { fields.push('cashback_amount = ?'); values.push(body.cashback_amount) }
   if (body.benefit_id !== undefined)      { fields.push('benefit_id = ?');      values.push(body.benefit_id) }
+  if (body.point_discount !== undefined)  { fields.push('point_discount = ?');  values.push(body.point_discount) }
 
   if (fields.length === 0) return json({ error: 'No fields to update' }, 400)
 

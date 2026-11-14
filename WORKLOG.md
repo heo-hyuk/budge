@@ -35,6 +35,42 @@ discount_amount에 두 금액이 섞여 있어 포인트를 자동 복원 못 �
 - 원격 D1에도 마이그레이션 적용 필요(배포 후 사용자 조치)
 - 예상 변경 파일: 위 전체(스키마 1개 + 백엔드 3개 + 프론트 4개)
 
+### 완료
+- `migrations/033_add_point_discount.sql` 신규, `schema.sql` 동기화 —
+  `transactions.point_discount INTEGER NOT NULL DEFAULT 0`
+- 백엔드: `functions/api/transactions/index.ts`(POST INSERT에 컬럼 추가),
+  `functions/api/transactions/[id].ts`(PATCH 동적 필드에 추가),
+  `functions/api/export/index.ts`(SELECT에 `COALESCE(point_discount,0)` 추가)
+- `src/types.ts`: `Transaction.point_discount`, `NewTransaction`/
+  `UpdateTransaction.point_discount?`
+- `src/components/TransactionForm.tsx`: `handleSubmit`에서 생성/수정 모두
+  `discount_amount: benefitDiscount`(카드 혜택만), `point_discount:
+  pointDiscount`(포인트만)로 분리 저장. `original_amount`는 그대로
+  (benefitDiscount+pointDiscount)>0일 때 채움
+- `src/App.tsx`: `handleDuplicate`/`handleEditRequest`가 이제
+  `tx.point_discount`를 그대로 읽어 복원 — 혜택+포인트 조합 거래도 수정 시
+  정확히 복원됨(146차에서 남겼던 알려진 한계 해소)
+- 화면 표시 쪽도 분리된 두 필드를 합쳐서 보여주도록 수정(그냥 두면 포인트만
+  쓴 거래가 "할인 없음"으로 보이는 회귀가 생겨서):
+  - `src/components/TransactionList.tsx`: 할인 전 금액 취소선 표시 조건을
+    `discount_amount > 0` → `discount_amount + point_discount > 0`
+  - `src/components/SearchView.tsx`: 검색 결과 할인 뱃지를 두 필드 합계로 표시
+  - `src/components/CardManager.tsx`의 카드 혜택 그룹 월 한도 집계는
+    `benefit_id` 보유 거래만 필터링해서 쓰므로 수정 불필요(분리로 자동 교정됨)
+  - `src/lib/exportExcel.ts`: "할인액" 컬럼 = `discount_amount +
+    point_discount` 합계(시트 구조 변경 없음)
+- 로컬 D1에 마이그레이션 적용 후 `wrangler pages dev`로 실제 API 호출까지
+  검증(curl): 현금+포인트만/카드혜택+포인트 조합 거래 생성, PATCH로
+  point_discount 수정, export 응답까지 모두 두 필드가 분리된 채로 정확히
+  저장·조회됨을 확인
+- `tsc -b --noEmit` / `oxlint` / `npm run build` 통과
+- **원격 배포 후 사용자 조치 필요**: 아래 명령으로 원격 D1에도 마이그레이션
+  적용해야 함 (안 하면 point_discount 컬럼이 없어 포인트 사용 거래 저장 시
+  에러)
+  ```
+  npx wrangler d1 execute budget-db --remote --file=./migrations/033_add_point_discount.sql
+  ```
+
 ## 2026-11-14 (146차) — 카드 결제에도 포인트/할인 수동 사용 허용
 
 사용자 요청: 145차(현금 등 비카드 결제의 "포인트/할인 사용")를 확인한 후

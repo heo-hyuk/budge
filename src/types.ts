@@ -15,6 +15,7 @@ export interface Transaction {
   discount_amount: number  // 적용된 할인액
   benefit_id: string       // 적용된 혜택 규칙 ID
   cashback_amount: number  // 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, 정보 표시 전용)
+  point_discount: number  // 포인트/할인 수동 사용액(카드 혜택 discount_amount와 별개)
   unsettled: number        // 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외)
   delivery_done: number    // 1 = 배송완료 체크(배송 탭 전용)
   pending_source_payment_method: string | null  // 카드정산기 확인 시 원래 결제방법(되돌리기용), null이면 미확인
@@ -35,6 +36,7 @@ export interface NewTransaction {
   discount_amount?: number
   benefit_id?: string
   cashback_amount?: number
+  point_discount?: number
   unsettled?: boolean
   is_entertainment?: boolean
 }
@@ -56,6 +58,7 @@ export interface UpdateTransaction {
   discount_amount?: number
   cashback_amount?: number
   benefit_id?: string
+  point_discount?: number
 }
 
 export interface Card {

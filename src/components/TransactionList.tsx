@@ -422,8 +422,8 @@ function TransactionList({ transactions, cards, onDelete, onUpdate, onDuplicate 
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <div className="flex flex-col items-end">
-                        {/* 할인 혜택이 적용된 거래는 할인 전 금액도 함께 보여줌(취소선) */}
-                        {tx.discount_amount > 0 && (
+                        {/* 할인 혜택이나 포인트 사용이 적용된 거래는 할인 전 금액도 함께 보여줌(취소선) */}
+                        {tx.discount_amount + tx.point_discount > 0 && (
                           <span className="whitespace-nowrap text-xs text-neutral-400 dark:text-neutral-500 line-through">
                             {formatWon(tx.original_amount)}
                           </span>

@@ -44,7 +44,8 @@ function buildTransactionsSheet(txs: ExportTransaction[]): XLSX.WorkSheet {
 
   const rows = txs.map((t) => {
     const originalAmt = t.original_amount > 0 ? t.original_amount : t.amount
-    const discountAmt = t.discount_amount ?? 0
+    // 할인액 = 카드 혜택 할인 + 포인트 사용(두 컬럼을 합쳐야 실결제액과 맞음)
+    const discountAmt = (t.discount_amount ?? 0) + (t.point_discount ?? 0)
     const cashbackAmt = t.cashback_amount ?? 0
 
     return [

@@ -520,9 +520,10 @@ function TransactionForm({
           payment_method: selectedCard ? selectedCard.id : paymentMethod,
           card_id: selectedCard ? selectedCard.id : '',
           original_amount: discountAmount > 0 ? numericAmount : 0,
-          discount_amount: discountAmount,
+          discount_amount: benefitDiscount,
           benefit_id: selectedMatch ? selectedMatch.benefit.id : '',
           cashback_amount: cashbackAmount,
+          point_discount: pointDiscount,
           unsettled,
           is_entertainment: type === 'expense' && isEntertainment,
         })
@@ -547,9 +548,10 @@ function TransactionForm({
         payment_method: selectedCard ? selectedCard.id : paymentMethod,
         card_id: selectedCard ? selectedCard.id : undefined,
         original_amount: discountAmount > 0 ? numericAmount : undefined,
-        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+        discount_amount: benefitDiscount > 0 ? benefitDiscount : undefined,
         benefit_id: selectedMatch ? selectedMatch.benefit.id : undefined,
         cashback_amount: cashbackAmount > 0 ? cashbackAmount : undefined,
+        point_discount: pointDiscount > 0 ? pointDiscount : undefined,
         unsettled,
         is_entertainment: type === 'expense' && isEntertainment,
       })

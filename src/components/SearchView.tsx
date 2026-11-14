@@ -499,10 +499,10 @@ function SearchView({ cards }: Props) {
                               {tx.memo && (
                                 <span className="text-xs text-neutral-400 dark:text-neutral-500">{renderMemoWithHighlights(tx.memo)}</span>
                               )}
-                              {/* 할인 뱃지 */}
-                              {(tx.discount_amount ?? 0) > 0 && (
+                              {/* 할인 뱃지 — 카드 혜택 할인 + 포인트 사용 합산 */}
+                              {(tx.discount_amount ?? 0) + (tx.point_discount ?? 0) > 0 && (
                                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
-                                  -{formatWon(tx.discount_amount)}
+                                  -{formatWon((tx.discount_amount ?? 0) + (tx.point_discount ?? 0))}
                                 </span>
                               )}
                             </div>

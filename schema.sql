@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   discount_amount INTEGER DEFAULT 0,     -- 적용된 할인액
   benefit_id TEXT DEFAULT '',            -- 적용된 카드 혜택 규칙 ID
   cashback_amount INTEGER DEFAULT 0,     -- 적립형(cashback) 혜택 예상 적립액 (정산 계산엔 미포함, migration 011)
+  point_discount INTEGER NOT NULL DEFAULT 0,  -- 포인트/할인 수동 사용액(카드 혜택 discount_amount와 별개, migration 033)
   unsettled INTEGER NOT NULL DEFAULT 0,  -- 1 = 비정산(가족 비용 확인용, 정산·예산·잔액·내보내기에서 완전히 제외, migration 021)
   delivery_done INTEGER NOT NULL DEFAULT 0,  -- 1 = 배송완료 체크(배송 탭 전용, migration 025)
   pending_source_payment_method TEXT,    -- 카드정산기 확인 시 원래 결제방법을 기억(되돌리기용, migration 028), NULL이면 미확인
